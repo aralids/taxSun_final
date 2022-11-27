@@ -1,8 +1,14 @@
+var path = "C:/Users/PC/Desktop/workflow diagram/krona.tsv";
 var taxIDArray = [];
 var Taxon = /** @class */ (function () {
     function Taxon(taxID) {
         this.taxID = taxID;
-        this.requestData();
+        if (this.taxID === "NA") {
+            this.name = "unidentified";
+        }
+        else {
+            this.requestData();
+        }
         this.getUnidentifiedCount();
         this.totalCount = this.unidentifiedCount;
     }
@@ -30,39 +36,22 @@ var Taxon = /** @class */ (function () {
     return Taxon;
 }());
 // Generate mock-up data; reference: OSLEUM CLADE subplot from the LASALLIA PUSTULATA Krona plot.
-var i;
-var j = 0;
-for (i = 0; i < 15; i++) {
-    taxIDArray.push("560253");
-}
-for (i = 0; i < 40; i++) {
-    taxIDArray.push("112416");
-}
-for (i = 0; i < 49; i++) {
-    taxIDArray.push("112415");
-}
-for (i = 0; i < 32; i++) {
-    taxIDArray.push("172621");
-}
-for (i = 0; i < 32; i++) {
-    taxIDArray.push("1903189");
-}
-for (i = 0; i < 507; i++) {
-    taxIDArray.push("78060");
-}
-for (i = 0; i < 15; i++) {
-    taxIDArray.push("9975");
-}
+loadDataFromTSV();
 // ---
+var taxIDArrayUnique = [];
 var taxonArrayUnique = [];
+$(document).ajaxStop(function () {
+    taxIDArrayUnique = taxIDArray.filter(function (value, index, self) { return self.indexOf(value) === index; });
+    console.log(taxIDArrayUnique.length);
+    createTaxa();
+    $(document).ajaxStop(function () { getTotalCounts(); });
+});
 // Get total count for each taxon.
 function createTaxa() {
-    var taxIDArrayUnique = taxIDArray.filter(function (value, index, self) { return self.indexOf(value) === index; });
+    console.log("ln 54: Taxon objs");
     taxonArrayUnique = taxIDArrayUnique.map(function (taxID) { return new Taxon(taxID); });
-    console.log(taxonArrayUnique.map(function (taxon) { return taxon.name; }));
 }
 function getTotalCounts() {
-    console.log("fun2 starts");
     for (i = 0; i < taxonArrayUnique.length; i++) {
         var currTaxon = taxonArrayUnique[i];
         var otherTaxa = taxonArrayUnique.filter(function (item) { return item !== currTaxon; });
@@ -74,6 +63,8 @@ function getTotalCounts() {
 // Get 
 var lineageObjArray = taxonArrayUnique.map(function (taxon) { return taxon.lineageRanks; }).sort(function (a, b) { return a.length - b.length; });
 var repeatedTaxa = [];
+var i, j;
+j = 0;
 for (i = 0; i < lineageObjArray.length - 1; i++) {
     while (j < lineageObjArray[i].length) {
         if (lineageObjArray[i + 1].indexOf(lineageObjArray[i][j]) > -1 && repeatedTaxa.indexOf(lineageObjArray[i][j]) <= -1) {
@@ -83,6 +74,18 @@ for (i = 0; i < lineageObjArray.length - 1; i++) {
     }
     j = lineageObjArray[i + 1].indexOf(repeatedTaxa[repeatedTaxa.length - 1]);
 }
-createTaxa();
-$(document).ajaxStop(function () { getTotalCounts(); });
-console.log("name, taxon0: ", taxonArrayUnique[0].name);
+console.log("Done!");
+function loadDataFromTSV() {
+    $.ajax({
+        type: "GET",
+        url: "/load_tsv_data",
+        data: { "path": path },
+        success: function (response) {
+            taxIDArray = response["taxIDArray"];
+            console.log("AJAX DONE!");
+        },
+        error: function (response) {
+            console.log("ERROR", response);
+        }
+    });
+}
