@@ -3,6 +3,7 @@ var Taxon = /** @class */ (function () {
     function Taxon(taxID) {
         this.taxID = taxID;
         this.requestData();
+        this.getUnidentifiedCount();
         this.totalCount = this.unidentifiedCount;
     }
     ;
@@ -11,15 +12,15 @@ var Taxon = /** @class */ (function () {
         this.unidentifiedCount = taxIDArray.filter(function (item) { return _this.taxID === item; }).length;
     };
     Taxon.prototype.requestData = function () {
+        var self = this;
         $.ajax({
             type: "GET",
             url: "/get_tax_data",
             data: { "taxID": this.taxID },
             success: function (response) {
-                this.name = response["name"];
-                this.lineageNames = response["lineageNames"];
-                this.lineageRanks = response["lineageRanks"];
-                console.log(this.name, this.lineageNames, this.lineageRanks);
+                self.name = response["name"];
+                self.lineageNames = response["lineageNames"];
+                self.lineageRanks = response["lineageRanks"];
             },
             error: function (response) {
                 console.log("ERROR", response);
@@ -53,14 +54,21 @@ for (i = 0; i < 15; i++) {
     taxIDArray.push("9975");
 }
 // ---
+var taxonArrayUnique = [];
 // Get total count for each taxon.
-var taxIDArrayUnique = taxIDArray.filter(function (value, index, self) { return self.indexOf(value) === index; });
-var taxonArrayUnique = taxIDArrayUnique.map(function (taxID) { return new Taxon(taxID); });
-for (i = 0; i < taxonArrayUnique.length; i++) {
-    var currTaxon = taxonArrayUnique[i];
-    var otherTaxa = taxonArrayUnique.filter(function (item) { return item !== currTaxon; });
-    var subTaxa = otherTaxa.filter(function (item) { return item.lineageNames.indexOf(currTaxon.name) > -1; });
-    currTaxon.totalCount = subTaxa.reduce(function (totalCount, taxon) { return totalCount + taxon.unidentifiedCount; }, currTaxon.unidentifiedCount);
+function createTaxa() {
+    var taxIDArrayUnique = taxIDArray.filter(function (value, index, self) { return self.indexOf(value) === index; });
+    taxonArrayUnique = taxIDArrayUnique.map(function (taxID) { return new Taxon(taxID); });
+    console.log(taxonArrayUnique.map(function (taxon) { return taxon.name; }));
+}
+function getTotalCounts() {
+    console.log("fun2 starts");
+    for (i = 0; i < taxonArrayUnique.length; i++) {
+        var currTaxon = taxonArrayUnique[i];
+        var otherTaxa = taxonArrayUnique.filter(function (item) { return item !== currTaxon; });
+        var subTaxa = otherTaxa.filter(function (item) { return item.lineageNames.indexOf(currTaxon.name) > -1; });
+        currTaxon.totalCount = subTaxa.reduce(function (totalCount, taxon) { return totalCount + taxon.unidentifiedCount; }, currTaxon.unidentifiedCount);
+    }
 }
 // ---
 // Get 
@@ -75,4 +83,6 @@ for (i = 0; i < lineageObjArray.length - 1; i++) {
     }
     j = lineageObjArray[i + 1].indexOf(repeatedTaxa[repeatedTaxa.length - 1]);
 }
-taxonArrayUnique[0].requestData();
+createTaxa();
+$(document).ajaxStop(function () { getTotalCounts(); });
+console.log("name, taxon0: ", taxonArrayUnique[0].name);

@@ -20,9 +20,7 @@ def get_tax_data():
     lineageNamesList = taxon.name_lineage[::-1][2:]
     lineageRanksList = list(map(get_rank, lineageNamesList))
     for i in reversed(range(0, len(lineageRanksList))):
-        print(i)
         if lineageRanksList[i] == "clade":
-            print(lineageRanksList[i])
-            lineageRanksList.pop(i)
-            lineageNamesList.pop(i)
+            del lineageRanksList[i]
+            del lineageNamesList[i]
     return jsonify({"name": taxon.name, "lineageNames": lineageNamesList, "lineageRanks": lineageRanksList})
