@@ -3,191 +3,31 @@ var taxIDArray:string[] = [];
 class Taxon {
     taxID:string;
     name:string;
-    lineageArray:string[];
-    lineageObj:object;
+    lineageNames:string[];
+    lineageRanks:string[];
     unidentifiedCount:number;
     totalCount:number;
 
     constructor(taxID:string) {
         this.taxID = taxID;
-        this.getName();
-        this.getLineageArray();
-        this.getLineageObj();
-        this.getUnidentifiedCount();
+        this.requestData();
         this.totalCount = this.unidentifiedCount;
     };
-    getName():void {
-        if (this.taxID === "560253") {
-            this.name = "Letharia lupina";
-        }
-        else if (this.taxID === "112416") {
-            this.name = "Letharia columbiana";
-        }
-        else if (this.taxID === "112415") {
-            this.name = "Letharia";
-        }
-        else if (this.taxID === "172621") {
-            this.name = "Imshaugia aleurites";
-        }
-        else if (this.taxID === "1903189") {
-            this.name = "Alectoria fallacina";
-        }
-        else if (this.taxID === "78060") {
-            this.name = "Parmeliaceae";
-        }
-        else if (this.taxID === "9975") {
-            this.name = "Lagomorpha";
-        }
-    };
-    getLineageArray():void {
-        if (this.taxID === "560253") {
-            this.lineageArray = ["Eukaryota", "Opisthokonta", "Fungi", "Dikarya", "Ascomycota", "saccharomyceta", "Pezizomycotina", "leotiomyceta", "Lecanoromycetes", "OSLEUM clade", "Lecanoromycetidae", "Lecanorales", "Lecanorineae", "Parmeliaceae", "Letharia"];
-        }
-        else if (this.taxID === "112416") {
-            this.lineageArray = ["Eukaryota", "Opisthokonta", "Fungi", "Dikarya", "Ascomycota", "saccharomyceta", "Pezizomycotina", "leotiomyceta", "Lecanoromycetes", "OSLEUM clade", "Lecanoromycetidae", "Lecanorales", "Lecanorineae", "Parmeliaceae", "Letharia"];
-        }
-        else if (this.taxID === "112415") {
-            this.lineageArray = ["Eukaryota", "Opisthokonta", "Fungi", "Dikarya", "Ascomycota", "saccharomyceta", "Pezizomycotina", "leotiomyceta", "Lecanoromycetes", "OSLEUM clade", "Lecanoromycetidae", "Lecanorales", "Lecanorineae", "Parmeliaceae"];
-        }
-        else if (this.taxID === "172621") {
-            this.lineageArray = ["Eukaryota", "Opisthokonta", "Fungi", "Dikarya", "Ascomycota", "saccharomyceta", "Pezizomycotina", "leotiomyceta", "Lecanoromycetes", "OSLEUM clade", "Lecanoromycetidae", "Lecanorales", "Lecanorineae", "Parmeliaceae", "Imshaugia"];
-        }
-        else if (this.taxID === "1903189") {
-            this.lineageArray = ["Eukaryota", "Opisthokonta", "Fungi", "Dikarya", "Ascomycota", "saccharomyceta", "Pezizomycotina", "leotiomyceta", "Lecanoromycetes", "OSLEUM clade", "Lecanoromycetidae", "Lecanorales", "Lecanorineae", "Parmeliaceae", "Alectoria"];
-        }
-        else if (this.taxID === "78060") {
-            this.lineageArray = ["Eukaryota", "Opisthokonta", "Fungi", "Dikarya", "Ascomycota", "saccharomyceta", "Pezizomycotina", "leotiomyceta", "Lecanoromycetes", "OSLEUM clade", "Lecanoromycetidae", "Lecanorales", "Lecanorineae"];
-        }
-        else if (this.taxID === "9975") {
-            this.lineageArray = ['Lagomorpha', 'Glires', 'Euarchontoglires', 'Boreoeutheria', 'Eutheria', 'Theria', 'Mammalia', 'Amniota', 'Tetrapoda', 'Dipnotetrapodomorpha', 'Sarcopterygii', 'Euteleostomi', 'Teleostomi', 'Gnathostomata', 'Vertebrata', 'Craniata', 'Chordata', 'Deuterostomia', 'Bilateria', 'Eumetazoa', 'Metazoa', 'Opisthokonta', 'Eukaryota'].reverse();
-        }
-    }
+
     getUnidentifiedCount():void {
         this.unidentifiedCount = taxIDArray.filter(item => this.taxID === item).length;
     }
-    getLineageObj():void {
-        if (this.taxID === "560253") {
-            this.lineageObj = {
-                "superkingdom": "Eukaryota",
-                "kingdom": "Fungi",
-                "subkingdom": "Dikarya",
-                "phylum": "Ascomycota",
-                "subphylum": "Pezizomycotina",
-                "class": "Lecanoromycetes",
-                "clade": "OSLEUM clade",
-                "subclass": "Lecanoromycetidae",
-                "order": "Lecanorales",
-                "suborder": "Lecanorineae",
-                "family": "Parmeliaceae",
-                "genus": "Letharia",
-                "species": "Letharia lupina"
-            };
-        }
-        else if (this.taxID === "112416") {
-            this.lineageObj = {
-                "superkingdom": "Eukaryota",
-                "kingdom": "Fungi",
-                "subkingdom": "Dikarya",
-                "phylum": "Ascomycota",
-                "subphylum": "Pezizomycotina",
-                "class": "Lecanoromycetes",
-                "clade": "OSLEUM clade",
-                "subclass": "Lecanoromycetidae",
-                "order": "Lecanorales",
-                "suborder": "Lecanorineae",
-                "family": "Parmeliaceae",
-                "genus": "Letharia",
-                "species": "Letharia columbiana"
-            };
-        }
-        else if (this.taxID === "112415") {
-            this.lineageObj = {
-                "superkingdom": "Eukaryota",
-                "kingdom": "Fungi",
-                "subkingdom": "Dikarya",
-                "phylum": "Ascomycota",
-                "subphylum": "Pezizomycotina",
-                "class": "Lecanoromycetes",
-                "clade": "OSLEUM clade",
-                "subclass": "Lecanoromycetidae",
-                "order": "Lecanorales",
-                "suborder": "Lecanorineae",
-                "family": "Parmeliaceae",
-                "genus": "Letharia"
-            };
-        }
-        else if (this.taxID === "172621") {
-            this.lineageObj = {
-                "superkingdom": "Eukaryota",
-                "kingdom": "Fungi",
-                "subkingdom": "Dikarya",
-                "phylum": "Ascomycota",
-                "subphylum": "Pezizomycotina",
-                "class": "Lecanoromycetes",
-                "clade": "OSLEUM clade",
-                "subclass": "Lecanoromycetidae",
-                "order": "Lecanorales",
-                "suborder": "Lecanorineae",
-                "family": "Parmeliaceae",
-                "genus": "Imshaugia",
-                "species": "Imshaugia aleurites"
-            };
-        }
-        else if (this.taxID === "1903189") {
-            this.lineageObj = {
-                "superkingdom": "Eukaryota",
-                "kingdom": "Fungi",
-                "subkingdom": "Dikarya",
-                "phylum": "Ascomycota",
-                "subphylum": "Pezizomycotina",
-                "class": "Lecanoromycetes",
-                "clade": "OSLEUM clade",
-                "subclass": "Lecanoromycetidae",
-                "order": "Lecanorales",
-                "suborder": "Lecanorineae",
-                "family": "Parmeliaceae",
-                "genus": "Alectoria",
-                "species": "Alectoria fallacina"
-            };
-        }
-        else if (this.taxID === "78060") {
-            this.lineageObj = {
-                "superkingdom": "Eukaryota",
-                "kingdom": "Fungi",
-                "subkingdom": "Dikarya",
-                "phylum": "Ascomycota",
-                "subphylum": "Pezizomycotina",
-                "class": "Lecanoromycetes",
-                "clade": "OSLEUM clade",
-                "subclass": "Lecanoromycetidae",
-                "order": "Lecanorales",
-                "suborder": "Lecanorineae",
-                "family": "Parmeliaceae"
-            };
-        }
-        else if (this.taxID === "9975") {
-            this.lineageObj = {
-                "superkingdom": "Eukaryota",
-                "kingdom": "Metazoa",
-                "phylum": "Chordata",
-                "subphylum": "Craniata",
-                "superclass": "Sarcopterygii",
-                "class": "Mammalia",
-                "superorder": "Euarchontoglires",
-                "order": "Lagomorpha"
-            };
-        }
-    }
-    request_data():void {
+
+    requestData():void {
         $.ajax({
             type: "GET",
             url: "/get_tax_data",
             data: {"taxID": this.taxID},
             success: function (response) {
                 this.name = response["name"];
-                this.lineageArray = response["lineageNames"];
-                this.lineageObj = response["lineageRanks"];
-                console.log(this.name, this.lineageArray, this.lineageObj);
+                this.lineageNames = response["lineageNames"];
+                this.lineageRanks = response["lineageRanks"];
+                console.log(this.name, this.lineageNames, this.lineageRanks);
             },
             error: function (response) {
                 console.log("ERROR", response);
@@ -229,13 +69,13 @@ var taxonArrayUnique:Taxon[] = taxIDArrayUnique.map(taxID => new Taxon(taxID));
 for (i=0; i<taxonArrayUnique.length; i++) {
     var currTaxon:Taxon = taxonArrayUnique[i];
     var otherTaxa:Taxon[] = taxonArrayUnique.filter(item => item !== currTaxon);
-    var subTaxa:Taxon[] = otherTaxa.filter(item => item.lineageArray.indexOf(currTaxon.name) > -1);
+    var subTaxa:Taxon[] = otherTaxa.filter(item => item.lineageNames.indexOf(currTaxon.name) > -1);
     currTaxon.totalCount = subTaxa.reduce((totalCount, taxon) => totalCount + taxon.unidentifiedCount, currTaxon.unidentifiedCount);
 }
 // ---
 
 // Get 
-var lineageObjArray:string[][] = taxonArrayUnique.map(taxon => Object.keys(taxon.lineageObj)).sort(function(a, b){ return a.length - b.length;});
+var lineageObjArray:string[][] = taxonArrayUnique.map(taxon => taxon.lineageRanks).sort(function(a, b){ return a.length - b.length;});
 var repeatedTaxa:string[] = [];
 
 for (i=0; i<lineageObjArray.length-1; i++) {
@@ -247,4 +87,4 @@ for (i=0; i<lineageObjArray.length-1; i++) {
     }
     j = lineageObjArray[i+1].indexOf(repeatedTaxa[repeatedTaxa.length - 1]);
 }
-taxonArrayUnique[0].request_data();
+taxonArrayUnique[0].requestData();
