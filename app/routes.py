@@ -1,9 +1,9 @@
-from flask import render_template, url_for, request, jsonify
+from flask import render_template, url_for, request, jsonify, redirect
 from app import app
 import taxopy
 import csv
 
-taxdb = taxopy.TaxDb()
+taxdb = None
 
 def get_rank(tax_name):
     taxID = taxopy.taxid_from_name(tax_name, taxdb)[0]
@@ -16,8 +16,15 @@ def flatten(l):
 def get_count(key):
     return key["count"]
 
+@app.route('/')
+def loading_database():
+    global taxdb
+    taxdb = taxopy.TaxDb()
+    return redirect(url_for("index"))
+
 @app.route('/index')
 def index():
+    print("At index")
     return render_template('index.html')
 
 @app.route('/load_tsv_data')
