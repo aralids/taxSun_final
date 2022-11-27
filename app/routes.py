@@ -10,18 +10,41 @@ def get_rank(tax_name):
     taxon = taxopy.Taxon(taxID, taxdb)
     return taxon.rank
 
+def flatten(l):
+    return [item for sublist in l for item in sublist]
+
+def get_count(key):
+    return key["count"]
+
 @app.route('/index')
 def index():
     return render_template('index.html')
 
 @app.route('/load_tsv_data')
 def load_tsv_data():
-    path = request.args["path"]
+    path = request.args["tsv_path"]
     with open(path) as file:
         tsv_file = csv.reader(file, delimiter="\t", quotechar='"')
         taxIDList = [line[1] for line in tsv_file]
     del taxIDList[0]
-    return jsonify({"taxIDArray": taxIDList})
+    taxIDListUnique = list(dict.fromkeys(taxIDList))
+    taxDict = {}
+    for taxID in taxIDListUnique:
+        if taxID == "NA":
+            taxDict["unidentified"] = {"taxID": "NA", "lineageNames": [], "lineageRanks": [], "count": taxIDList.count("NA")}
+        else:
+            taxon = taxopy.Taxon(int(taxID), taxdb)
+            name = taxon.name
+            lineageNamesList = taxon.rank_name_dictionary
+            dictlist = [[k,v] for k,v in lineageNamesList.items()][::-1]
+            taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "count": taxIDList.count(taxID), "rank": taxon.rank, "total_count": taxIDList.count(taxID)}
+            print("Done!")
+    for taxon in taxDict.keys():
+        subtaxa_counts = [taxDict[other_taxon]["count"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
+        taxDict[taxon]["total_count"] = sum(subtaxa_counts)
+        print(taxon, subtaxa_counts)
+
+    return jsonify({"taxDict": taxDict})
 
 @app.route('/get_tax_data')
 def get_tax_data():
