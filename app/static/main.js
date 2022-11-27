@@ -173,17 +173,24 @@ var Taxon = /** @class */ (function () {
             };
         }
     };
+    Taxon.prototype.request_data = function () {
+        $.ajax({
+            type: "GET",
+            url: "/get_tax_data",
+            data: JSON.stringify(this.taxID),
+            contentType: "application/json",
+            dataType: 'json',
+            success: function (response) {
+                console.log("success", response);
+            },
+            error: function (response) {
+                console.log("ERROR", response);
+            }
+        });
+    };
     return Taxon;
 }());
-var Krona = /** @class */ (function () {
-    function Krona(root) {
-        this.root = root;
-    }
-    Krona.prototype.calculateRelativeStructure = function () {
-    };
-    return Krona;
-}());
-// generate mock-up data; reference: OSLEUM CLADE subplot from the LASALLIA PUSTULATA Krona plot
+// Generate mock-up data; reference: OSLEUM CLADE subplot from the LASALLIA PUSTULATA Krona plot.
 var i;
 var j = 0;
 for (i = 0; i < 15; i++) {
@@ -208,6 +215,7 @@ for (i = 0; i < 15; i++) {
     taxIDArray.push("9975");
 }
 // ---
+// Get total count for each taxon.
 var taxIDArrayUnique = taxIDArray.filter(function (value, index, self) { return self.indexOf(value) === index; });
 var taxonArrayUnique = taxIDArrayUnique.map(function (taxID) { return new Taxon(taxID); });
 for (i = 0; i < taxonArrayUnique.length; i++) {
@@ -216,13 +224,12 @@ for (i = 0; i < taxonArrayUnique.length; i++) {
     var subTaxa = otherTaxa.filter(function (item) { return item.lineageArray.indexOf(currTaxon.name) > -1; });
     currTaxon.totalCount = subTaxa.reduce(function (totalCount, taxon) { return totalCount + taxon.unidentifiedCount; }, currTaxon.unidentifiedCount);
 }
+// ---
+// Get 
 var lineageObjArray = taxonArrayUnique.map(function (taxon) { return Object.keys(taxon.lineageObj); }).sort(function (a, b) { return a.length - b.length; });
-var allLineageTaxaUnique = lineageObjArray.flat().filter(function (value, index, self) { return self.indexOf(value) === index; });
 var repeatedTaxa = [];
-var shortestLineage = lineageObjArray[0];
-var longestLineage = lineageObjArray[lineageObjArray.length - 1];
-for (i = 0; i < lineageObjArray.length - 1; i++) { // 2
-    while (j < lineageObjArray[i].length) { // 7
+for (i = 0; i < lineageObjArray.length - 1; i++) {
+    while (j < lineageObjArray[i].length) {
         if (lineageObjArray[i + 1].indexOf(lineageObjArray[i][j]) > -1 && repeatedTaxa.indexOf(lineageObjArray[i][j]) <= -1) {
             repeatedTaxa.push(lineageObjArray[i][j]);
         }
@@ -230,4 +237,4 @@ for (i = 0; i < lineageObjArray.length - 1; i++) { // 2
     }
     j = lineageObjArray[i + 1].indexOf(repeatedTaxa[repeatedTaxa.length - 1]);
 }
-console.log(repeatedTaxa);
+taxonArrayUnique[0].request_data();

@@ -178,6 +178,21 @@ class Taxon {
             };
         }
     }
+    request_data():void {
+        $.ajax({
+            type: "GET",
+            url: "/get_tax_data",
+            data: JSON.stringify(this.taxID),
+            contentType: "application/json",
+            dataType: 'json',
+            success: function (response) {
+                console.log("success", response)
+            },
+            error: function (response) {
+                console.log("ERROR", response);
+            }
+          });
+    }
 }
 
 // Generate mock-up data; reference: OSLEUM CLADE subplot from the LASALLIA PUSTULATA Krona plot.
@@ -220,7 +235,6 @@ for (i=0; i<taxonArrayUnique.length; i++) {
 
 // Get 
 var lineageObjArray:string[][] = taxonArrayUnique.map(taxon => Object.keys(taxon.lineageObj)).sort(function(a, b){ return a.length - b.length;});
-var allLineageTaxaUnique:string[] = lineageObjArray.flat().filter((value, index, self) => self.indexOf(value) === index);
 var repeatedTaxa:string[] = [];
 
 for (i=0; i<lineageObjArray.length-1; i++) {
@@ -232,5 +246,4 @@ for (i=0; i<lineageObjArray.length-1; i++) {
     }
     j = lineageObjArray[i+1].indexOf(repeatedTaxa[repeatedTaxa.length - 1]);
 }
-
-console.log(repeatedTaxa);
+taxonArrayUnique[0].request_data();

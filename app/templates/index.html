@@ -5,13 +5,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>KRONA plot</title>
         <link rel="stylesheet" href=""/>
-        <script src="{{url_for('static', filename='main.js')}}"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        
     </head>
-    <body>
+    <body id="body-1">
         <header></header>
         <main>
-            <canvas id="main-canvas"></canvas>
+            <canvas id="main-canvas" url={{ url_for('index') }}></canvas>
         </main>
         <footer></footer>
+        <script src="{{ url_for('static', filename='main.js') }}"></script>
     </body>
 </html>
