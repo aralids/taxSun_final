@@ -182,11 +182,12 @@ class Taxon {
         $.ajax({
             type: "GET",
             url: "/get_tax_data",
-            data: JSON.stringify(this.taxID),
-            contentType: "application/json",
-            dataType: 'json',
+            data: {"taxID": this.taxID},
             success: function (response) {
-                console.log("success", response)
+                this.name = response["name"];
+                this.lineageArray = response["lineageNames"];
+                this.lineageObj = response["lineageRanks"];
+                console.log(this.name, this.lineageArray, this.lineageObj);
             },
             error: function (response) {
                 console.log("ERROR", response);
