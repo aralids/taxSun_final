@@ -15,7 +15,6 @@ $(document).ajaxStop(function() {
     console.log("taxNames: ", lineagesNamesOnlyArray);
     var fullPlot:Plot = new Plot();
     var partialPlot:Plot = new Plot("Bacteria", 0);
-    console.log("fullPlot lineages: ", partialPlot.lineages);
 })
 
 function loadDataFromTSV(tsv_path) {
@@ -61,24 +60,35 @@ class Plot {
     root:string;
     layer:number;
     lineages:string[][];
-    structure:object;
+    structure:object = {};
 
     constructor (root:string = "", layer:number = -1) {
         this.root = root;
         this.layer = layer;
         this.getOnlyNecessaryLineages();
+        this.assignDegrees();
     }
 
     getOnlyNecessaryLineages():void {
         if (this.root === "" && this.layer === -1) {
             this.lineages = lineagesNamesOnlyArray;
         } else {
-            var almostLineages:string[][] = lineagesNamesOnlyArray.filter(item => item[this.layer] === this.root);
-            this.lineages = almostLineages.map(item => item.slice(1));
+            this.lineages = lineagesNamesOnlyArray.filter(item => item[this.layer] === this.root);
         }
     }
 
     assignDegrees():void {
-        this.structure = {};
+        var lineageCounts:number[] = this.lineages.map(item => allTaxa[item[item.length - 1]]["unassignedCount"]);
+        var lineageCountsSum:number = lineageCounts.reduce((accumulator, current) => {return accumulator + current;}, 0);
+        var sectionStart:number = 0;
+        var sectionEnd:number;
+        var key:string;
+        for (var i=0; i<this.lineages.length; i++) {
+            sectionEnd = sectionStart + lineageCounts[i]*360 / lineageCountsSum;
+            key = `${sectionStart}-${sectionEnd} deg`
+            this.structure[key] = this.lineages[i];
+            sectionStart = sectionEnd;
+        }
+        console.log("structure: ", this.structure);
     }
 }
