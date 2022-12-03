@@ -33,7 +33,7 @@ def load_tsv_data():
     taxDict = {}
     for taxID in taxIDListUnique:
         if taxID == "NA":
-            taxDict["unidentifiedTaxa"] = {"taxID": "NA", "lineageNames": [], "lineageRanks": [], "unassignedCount": taxIDList.count("NA"), "totalCount": taxIDList.count("NA")}
+            taxDict["unidentifiedTaxa"] = {"taxID": "NA", "lineageNames": [["no rank", "unidentifiedTaxa"]], "unassignedCount": taxIDList.count("NA"), "rank": "no rank", "totalCount": taxIDList.count("NA")}
         else:
             taxon = taxopy.Taxon(int(taxID), taxdb)
             name = taxon.name

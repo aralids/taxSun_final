@@ -11,7 +11,11 @@ $(document).ajaxStop(function () {
         taxonList.push(newTaxon);
         lineagesNamesOnlyArray.push(newTaxon.lineage.map(function (item) { return item[1]; }));
     }
+    lineagesNamesOnlyArray.sort();
     console.log("taxNames: ", lineagesNamesOnlyArray);
+    var fullPlot = new Plot();
+    var partialPlot = new Plot("Bacteria", 0);
+    console.log("fullPlot lineages: ", partialPlot.lineages);
 });
 function loadDataFromTSV(tsv_path) {
     $.ajax({
@@ -41,4 +45,24 @@ var Taxon = /** @class */ (function () {
         this.unassignedCount = allTaxa[this.name].unassignedCount;
     };
     return Taxon;
+}());
+var Plot = /** @class */ (function () {
+    function Plot(root, layer) {
+        if (root === void 0) { root = ""; }
+        if (layer === void 0) { layer = -1; }
+        this.root = root;
+        this.layer = layer;
+        this.getOnlyNecessaryLineages();
+    }
+    Plot.prototype.getOnlyNecessaryLineages = function () {
+        var _this = this;
+        if (this.root === "" && this.layer === -1) {
+            this.lineages = lineagesNamesOnlyArray;
+        }
+        else {
+            var almostLineages = lineagesNamesOnlyArray.filter(function (item) { return item[_this.layer] === _this.root; });
+            this.lineages = almostLineages.map(function (item) { return item.slice(1); });
+        }
+    };
+    return Plot;
 }());
