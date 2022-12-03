@@ -5,11 +5,6 @@ import csv
 
 taxdb = None
 
-def get_rank(tax_name):
-    taxID = taxopy.taxid_from_name(tax_name, taxdb)[0]
-    taxon = taxopy.Taxon(taxID, taxdb)
-    return taxon.rank
-
 def flatten(l):
     return [item for sublist in l for item in sublist]
 
@@ -38,18 +33,22 @@ def load_tsv_data():
     taxDict = {}
     for taxID in taxIDListUnique:
         if taxID == "NA":
-            taxDict["unidentified"] = {"taxID": "NA", "lineageNames": [], "lineageRanks": [], "count": taxIDList.count("NA")}
+            taxDict["unidentifiedTaxa"] = {"taxID": "NA", "lineageNames": [], "lineageRanks": [], "unassignedCount": taxIDList.count("NA"), "totalCount": taxIDList.count("NA")}
         else:
             taxon = taxopy.Taxon(int(taxID), taxdb)
             name = taxon.name
+            rank = taxon.rank
             lineageNamesList = taxon.rank_name_dictionary
             dictlist = [[k,v] for k,v in lineageNamesList.items()][::-1]
-            taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "count": taxIDList.count(taxID), "rank": taxon.rank, "total_count": taxIDList.count(taxID)}
+            taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "unassignedCount": taxIDList.count(taxID), "rank": rank, "totalCount": taxIDList.count(taxID)}
+            if not (name in flatten(taxDict[name]["lineageNames"])):
+                taxDict[name]["lineageNames"].append([rank, name])
             print("Done!")
     for taxon in taxDict.keys():
-        subtaxa_counts = [taxDict[other_taxon]["count"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
-        taxDict[taxon]["total_count"] = sum(subtaxa_counts)
+        subtaxa_counts = [taxDict[other_taxon]["unassignedCount"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
+        taxDict[taxon]["totalCount"] = sum(subtaxa_counts)
         print(taxon, subtaxa_counts)
+    taxDict["unidentifiedTaxa"]["totalCount"] = taxIDList.count("NA")
 
     return jsonify({"taxDict": taxDict})
 
