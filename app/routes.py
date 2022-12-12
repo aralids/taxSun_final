@@ -33,7 +33,7 @@ def load_tsv_data():
     taxDict = {}
     for taxID in taxIDListUnique:
         if taxID == "NA":
-            taxDict["unidentifiedTaxa"] = {"taxID": "NA", "lineageNames": [["no rank", "unidentifiedTaxa"]], "unassignedCount": taxIDList.count("NA"), "rank": "no rank", "totalCount": taxIDList.count("NA")}
+            taxDict["root"] = {"taxID": "NA", "lineageNames": [["no rank", "root"]], "unassignedCount": taxIDList.count("NA"), "rank": "no rank", "totalCount": taxIDList.count("NA")}
         else:
             taxon = taxopy.Taxon(int(taxID), taxdb)
             name = taxon.name
@@ -48,7 +48,7 @@ def load_tsv_data():
         subtaxa_counts = [taxDict[other_taxon]["unassignedCount"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
         taxDict[taxon]["totalCount"] = sum(subtaxa_counts)
         print(taxon, subtaxa_counts)
-    taxDict["unidentifiedTaxa"]["totalCount"] = taxIDList.count("NA")
+    taxDict["root"]["totalCount"] = taxIDList.count("NA")
 
     return jsonify({"taxDict": taxDict})
 
