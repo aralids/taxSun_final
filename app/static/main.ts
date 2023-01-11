@@ -1,4 +1,6 @@
-var path = "C:/Users/PC/Desktop/workflow diagram/krona.tsv"
+import * as React from "react";
+import * as ReactDOM from "react-dom";
+var path = "C:/Users/PC/Desktop/krona/krona.tsv"
 var allTaxa:object;
 var taxonList:Taxon[] = [];
 var lineagesNamesOnlyArray:string[][] = [];
@@ -13,8 +15,11 @@ $(document).ajaxStop(function() {
     }
     lineagesNamesOnlyArray.sort();
     console.log("taxNames: ", lineagesNamesOnlyArray);
-    var partialPlot:Plot = new Plot("Bacteria", 0, false);
-    console.log("lineagesNamesOnlyArray changed?: ", lineagesNamesOnlyArray);
+    // var fullPlot:Plot = new Plot();
+    // var partialPlot:Plot = new Plot("Bacteria", 0);
+    var screenDimensionsinMM = getScreenDimensionsInMM();
+    var mycosphaerellalesPlot:Plot = new Plot("Mycosphaerellales", 8, true, screenDimensionsinMM);
+    console.log("screenDimensions: ", screenDimensionsinMM["cx"]);
 })
 
 function loadDataFromTSV(tsv_path) {
@@ -59,19 +64,25 @@ class Taxon {
 class Plot {
     root:string;
     layer:number;
+    screenDimensions:object;
     lineages:string[][];
     structure:object = {};
     svgPaths:object = {};
 
-    constructor (root:string = "", layer:number = -1, collapse:boolean = true) {
+    constructor (root:string = "", layer:number = -1, collapse:boolean = true, screenDimensionsInMM:object = {}) {
         this.root = root;
         this.layer = layer;
+        this.screenDimensions = screenDimensionsInMM;
         this.getOnlyNecessaryLineages();
         if (collapse) {
             this.collapse();
         }
+        console.log("this.screenDimensions: ", this.screenDimensions);
+        console.log("this.lineages: ", this.lineages);
         this.assignDegrees();
+        console.log("this.structure: ", this.structure);
         this.calculateSVGPaths();
+        console.log("this.svgPaths: ", this.svgPaths);
     }
 
     getOnlyNecessaryLineages():void {
@@ -97,7 +108,6 @@ class Plot {
             this.structure[key] = this.lineages[i];
             sectionStart = sectionEnd;
         }
-        console.log("structure: ", this.structure);
     }
 
     collapse():void {
@@ -117,17 +127,14 @@ class Plot {
         }
 
         this.lineages = lineagesCopy;
-        console.log("structureCollapsed: ", this.structure);
     }
 
-    calculateSVGPaths():void {
+    calculateSVGPaths(cx:number=this.screenDimensions["cx"], cy:number=this.screenDimensions["cy"]):void {
         var layerWidthMM:number = 10;
         var structureByTaxon:object = {};
         var lineagesCopy:string[][] = JSON.parse(JSON.stringify(this.lineages));
         var layers = this.getLayers(lineagesCopy);
         var layersUnique = this.getLayers(lineagesCopy, true);
-        console.log("layers: ", layers);
-        console.log("layersUnique: ", layersUnique);
 
         for (let i=1; i<layersUnique.length; i++) {
             for (let j=0; j<layersUnique[i].length; j++) {
@@ -140,7 +147,6 @@ class Plot {
                 var endDegrees:number = Number(structureSectionsArray[lastOccurrenceInLayer].slice(0,structureSectionsArray[lastOccurrenceInLayer].length-4).split("-")[1]);
                 var verticalMin:number = i;
                 var verticalMax:number;
-                console.log("layer index: ", i, "maxI: ", layersUnique.length, " next layer: ", layers[i+1], " firstOccurenceInLayer: ", firstOccurrenceInLayer);
                 if (i != layersUnique.length-1) {
                         if (!Boolean(layers[i+1][firstOccurrenceInLayer])) {
                             verticalMax = layers.length;
@@ -160,43 +166,42 @@ class Plot {
             }
         }
 
-        console.log("structureByTaxon: ", structureByTaxon);
 
         var svgPaths:object = {};
         for (var key of Object.keys(structureByTaxon)) {
             var innerArcX1:number = structureByTaxon[key].verticalWidthInLayerIndices[0] * layerWidthMM * Math.cos(radians(structureByTaxon[key].horizontalWidthInDeg[0]));
-            innerArcX1 = Math.round(innerArcX1 * 1000) / 1000;
+            innerArcX1 = (Math.round(innerArcX1 * 1000) / 1000) + cx;
             var innerArcY1:number = - structureByTaxon[key].verticalWidthInLayerIndices[0] * layerWidthMM * Math.sin(radians(structureByTaxon[key].horizontalWidthInDeg[0]));
-            innerArcY1 = Math.round(innerArcY1 * 1000) / 1000;
+            innerArcY1 = (Math.round(innerArcY1 * 1000) / 1000) + cy;
             var innerArcX2:number = structureByTaxon[key].verticalWidthInLayerIndices[0] * layerWidthMM * Math.cos(radians(structureByTaxon[key].horizontalWidthInDeg[1]));
-            innerArcX2 = Math.round(innerArcX2 * 1000) / 1000;
+            innerArcX2 = (Math.round(innerArcX2 * 1000) / 1000) + cx;
             var innerArcY2:number = - structureByTaxon[key].verticalWidthInLayerIndices[0] * layerWidthMM * Math.sin(radians(structureByTaxon[key].horizontalWidthInDeg[1]));
-            innerArcY2 = Math.round(innerArcY2 * 1000) / 1000;
+            innerArcY2 = (Math.round(innerArcY2 * 1000) / 1000) + cy;
             var innerArc:string = `M ${innerArcX1},${innerArcY1} A ${structureByTaxon[key].verticalWidthInLayerIndices[0]*layerWidthMM},${structureByTaxon[key].verticalWidthInLayerIndices[0]*layerWidthMM} 0 0 1 ${innerArcX2},${innerArcY2}`;
 
             var allMs:string[] = [innerArc];
 
             if (Boolean(structureByTaxon[key].breakingPoint)) {
                 var outerArcX1:number = structureByTaxon[key].verticalWidthInLayerIndices[1] * layerWidthMM * Math.cos(radians(structureByTaxon[key].horizontalWidthInDeg[0]));
-                outerArcX1 = Math.round(outerArcX1 * 1000) / 1000;
+                outerArcX1 = (Math.round(outerArcX1 * 1000) / 1000) + cx;
                 var outerArcY1:number = - structureByTaxon[key].verticalWidthInLayerIndices[1] * layerWidthMM * Math.sin(radians(structureByTaxon[key].horizontalWidthInDeg[0]));
-                outerArcY1 = Math.round(outerArcY1 * 1000) / 1000;
+                outerArcY1 = (Math.round(outerArcY1 * 1000) / 1000) + cy;
                 var outerArcX2:number = structureByTaxon[key].verticalWidthInLayerIndices[1] * layerWidthMM * Math.cos(radians(structureByTaxon[key].breakingPoint));
-                outerArcX2 = Math.round(outerArcX2 * 1000) / 1000;
+                outerArcX2 = (Math.round(outerArcX2 * 1000) / 1000) + cx;
                 var outerArcY2:number = - structureByTaxon[key].verticalWidthInLayerIndices[1] * layerWidthMM * Math.sin(radians(structureByTaxon[key].breakingPoint));
-                outerArcY2 = Math.round(outerArcY2 * 1000) / 1000;
+                outerArcY2 = (Math.round(outerArcY2 * 1000) / 1000) + cy;
                 var outerArc:string = `M ${outerArcX1},${outerArcY1} A ${structureByTaxon[key].verticalWidthInLayerIndices[1]*layerWidthMM},${structureByTaxon[key].verticalWidthInLayerIndices[1]*layerWidthMM} 0 0 1 ${outerArcX2},${outerArcY2}`;
 
                 allMs.push(outerArc);
 
                 var midArcX1:number = (structureByTaxon[key].verticalWidthInLayerIndices[0]+1) * layerWidthMM * Math.cos(radians(structureByTaxon[key].breakingPoint));
-                midArcX1 = Math.round(midArcX1 * 1000) / 1000;
+                midArcX1 = (Math.round(midArcX1 * 1000) / 1000) + cx;
                 var midArcY1:number = - (structureByTaxon[key].verticalWidthInLayerIndices[0]+1) * layerWidthMM * Math.sin(radians(structureByTaxon[key].breakingPoint));
-                midArcY1 = Math.round(midArcY1 * 1000) / 1000;
+                midArcY1 = (Math.round(midArcY1 * 1000) / 1000) + cy;
                 var midArcX2:number = (structureByTaxon[key].verticalWidthInLayerIndices[0]+1) * layerWidthMM * Math.cos(radians(structureByTaxon[key].horizontalWidthInDeg[1]));
-                midArcX2 = Math.round(midArcX2 * 1000) / 1000;
+                midArcX2 = (Math.round(midArcX2 * 1000) / 1000) + cx;
                 var midArcY2:number = - (structureByTaxon[key].verticalWidthInLayerIndices[0]+1) * layerWidthMM * Math.sin(radians(structureByTaxon[key].horizontalWidthInDeg[1]));
-                midArcY2 = Math.round(midArcY2 * 1000) / 1000;
+                midArcY2 = (Math.round(midArcY2 * 1000) / 1000) + cy;
                 var midArc:string = `M ${midArcX1},${midArcY1} A ${(structureByTaxon[key].verticalWidthInLayerIndices[0]+1)*layerWidthMM},${(structureByTaxon[key].verticalWidthInLayerIndices[0]+1)*layerWidthMM} 0 0 1 ${midArcX2},${midArcY2}`;
 
                 allMs.push(midArc);
@@ -210,13 +215,13 @@ class Plot {
                 allMs.push(lineMidToInner);
             } else {
                 var outerArcX1:number = structureByTaxon[key].verticalWidthInLayerIndices[1] * layerWidthMM * Math.cos(radians(structureByTaxon[key].horizontalWidthInDeg[0]));
-                outerArcX1 = Math.round(outerArcX1 * 1000) / 1000;
+                outerArcX1 = (Math.round(outerArcX1 * 1000) / 1000) + cx;
                 var outerArcY1:number = - structureByTaxon[key].verticalWidthInLayerIndices[1] * layerWidthMM * Math.sin(radians(structureByTaxon[key].horizontalWidthInDeg[0]));
-                outerArcY1 = Math.round(outerArcY1 * 1000) / 1000;
+                outerArcY1 = (Math.round(outerArcY1 * 1000) / 1000) + cy;
                 var outerArcX2:number = structureByTaxon[key].verticalWidthInLayerIndices[1] * layerWidthMM * Math.cos(radians(structureByTaxon[key].horizontalWidthInDeg[1]));
-                outerArcX2 = Math.round(outerArcX2 * 1000) / 1000;
+                outerArcX2 = (Math.round(outerArcX2 * 1000) / 1000) + cx;
                 var outerArcY2:number = - structureByTaxon[key].verticalWidthInLayerIndices[1] * layerWidthMM * Math.sin(radians(structureByTaxon[key].horizontalWidthInDeg[1]));
-                outerArcY2 = Math.round(outerArcY2 * 1000) / 1000;
+                outerArcY2 = (Math.round(outerArcY2 * 1000) / 1000) + cy;
                 var outerArc:string = `M ${outerArcX1},${outerArcY1} A ${structureByTaxon[key].verticalWidthInLayerIndices[1]*layerWidthMM},${structureByTaxon[key].verticalWidthInLayerIndices[1]*layerWidthMM} 0 0 1 ${outerArcX2},${outerArcY2}`;
 
                 var lineOuterToInner = `M ${outerArcX2},${outerArcY2} ${innerArcX2},${innerArcY2}`
@@ -229,9 +234,18 @@ class Plot {
 
             var d:string = allMs.join(" ");
             
-
-            console.log("key: ", key ,"d: ", d);
+            this.svgPaths[key] = d;
         }
+
+
+    }
+
+    
+
+
+
+    draw():void {
+        // remove GoL;
 
 
     }
@@ -251,10 +265,29 @@ class Plot {
         }
         return layers;
     }
+
+
 }
 
-function radians(degrees) {
+function radians(degrees):number {
     degrees = 270 - degrees;
     var pi = Math.PI;
     return degrees * (pi/180);
+}
+
+
+
+function getScreenDimensionsInMM():object {
+    var dpcm_x:any = document.getElementById('dpi')?.offsetWidth;
+    var dpcm_y:any = document.getElementById('dpi')?.offsetHeight;
+    var screenWidth:number = screen.width / dpcm_x * 10;
+    var screenHeight:number = screen.height / dpcm_y * 10;
+    var cx:number = screenWidth / 2;
+    var cy:number = screenHeight / 2;
+    return {
+        "screenWidth": screenWidth,
+        "screenHeight": screenHeight,
+        "cx": cx,
+        "cy": cy
+    }
 }

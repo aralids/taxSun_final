@@ -4,7 +4,6 @@ import taxopy
 import csv
 
 taxdb = None
-
 def flatten(l):
     return [item for sublist in l for item in sublist]
 
@@ -19,7 +18,6 @@ def loading_database():
 
 @app.route('/index')
 def index():
-    print("At index")
     return render_template('index.html')
 
 @app.route('/load_tsv_data')
@@ -40,14 +38,15 @@ def load_tsv_data():
             rank = taxon.rank
             lineageNamesList = taxon.rank_name_dictionary
             dictlist = [[k,v] for k,v in lineageNamesList.items()][::-1]
+            if name in taxDict:
+                name += " 1"
             taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "unassignedCount": taxIDList.count(taxID), "rank": rank, "totalCount": taxIDList.count(taxID)}
             if not (name in flatten(taxDict[name]["lineageNames"])):
                 taxDict[name]["lineageNames"].append([rank, name])
-            print("Done!")
+                print("aa")
     for taxon in taxDict.keys():
         subtaxa_counts = [taxDict[other_taxon]["unassignedCount"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
         taxDict[taxon]["totalCount"] = sum(subtaxa_counts)
-        print(taxon, subtaxa_counts)
     taxDict["root"]["totalCount"] = taxIDList.count("NA")
 
     return jsonify({"taxDict": taxDict})

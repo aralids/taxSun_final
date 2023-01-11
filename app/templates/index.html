@@ -1,19 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>KRONA plot</title>
         <link rel="stylesheet" href=""/>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script>var exports = {};</script>
+        
+
         
     </head>
-    <body id="body-1">
-        <header></header>
-        <main>
-            <canvas id="main-canvas" url={{ url_for('index') }}></canvas>
+    <body id="body-1" style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
+        <main style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
+            <div id="dpmm" style="height: 1mm; width: 1mm; left: 100%; position: fixed; top: 100%;"></div>
+            <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+            <svg style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; " id="plot-container"></svg>
+            <div id="labels" style="float: right;"></div>
+            <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+            <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
         </main>
-        <footer></footer>
-        <script src="{{ url_for('static', filename='main.js') }}"></script>
+        <script src="{{ url_for('static', filename='bundle.js') }}"></script>
     </body>
 </html>
