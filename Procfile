@@ -1,1 +1,1 @@
-web: gunicorn krona:app
+web: gunicorn app.__init__:app
