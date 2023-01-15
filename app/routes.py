@@ -2,6 +2,18 @@ from flask import render_template, url_for, request, jsonify, redirect
 from app import app
 import taxopy
 import csv
+from flask_redmail import RedMail
+
+@app.route("/send-email")
+def send_email():
+    email.send(
+        subject="An example",
+        receivers=["you@example.com"],
+        html="""
+            <h1>Hi,</h1>
+            <p>This is an example message</p>
+        """
+    )
 
 taxdb = None
 def flatten(l):
@@ -22,6 +34,15 @@ def index():
 
 @app.route('/load_tsv_data')
 def load_tsv_data():
+    email = RedMail()
+    email.send(
+        subject="An example",
+        receivers=["dilara.sarach@abv.bg"],
+        html="""
+            <h1>Hi,</h1>
+            <p>This is an example message</p>
+        """
+    )
     path = request.args["tsv_path"]
     with open(path) as file:
         tsv_file = csv.reader(file, delimiter="\t", quotechar='"')
