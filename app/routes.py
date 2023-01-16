@@ -3,17 +3,35 @@ from app import app
 import taxopy
 import csv
 from flask_redmail import RedMail
+import json
 
-@app.route("/send-email")
+@app.route("/send-email", methods=['GET', 'POST'])
 def send_email():
+    email = RedMail()
+    url = '"' + str(request.form["url"]) + '"'
+    
+    print("state", json.loads(request.form["currentState"])["root"], json.loads(request.form["currentState"])["layer"], json.loads(request.form["currentState"])["collapse"])
+    state = json.loads(request.form["currentState"])
+    colors = state["colors"]
+    root = state["root"]
+    layer = state["layer"]
+    collapse = state["collapse"]
+    structure_by_taxon = state["structureByTaxon"]
     email.send(
-        subject="An example",
-        receivers=["you@example.com"],
+        subject="Colors & Corrections",
+        receivers=["dilara.sarach@abv.bg"],
         html="""
-            <h1>Hi,</h1>
-            <p>This is an example message</p>
+            <h1>Colors & Corrections</h1>
+            <img width="700px" src=""" + url + """/>
+            <p><b>colors:</b> <style='color: bluel'>""" + " ".join(colors) + """</style> </p>
+            <p><b>root:</b> """ + root + """ </p>
+            <p><b>layer:</b> """ + str(layer) + """ </p>
+            <p><b>collapse:</b> """ + str(collapse) + """ </p>
+            <p><b>structure_by_taxon:</b> """ + '<br/>'.join([f'{key}: {value}' for key, value in structure_by_taxon.items()]) + """ </p>
+
         """
     )
+    return jsonify()
 
 taxdb = None
 def flatten(l):
@@ -22,27 +40,21 @@ def flatten(l):
 def get_count(key):
     return key["count"]
 
+'''
 @app.route('/')
 def loading_database():
     global taxdb
     taxdb = taxopy.TaxDb()
     return redirect(url_for("index"))
+'''
 
-@app.route('/index')
+# previously @app.route('/index')
+@app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/load_tsv_data')
 def load_tsv_data():
-    email = RedMail()
-    email.send(
-        subject="An example",
-        receivers=["dilara.sarach@abv.bg"],
-        html="""
-            <h1>Hi,</h1>
-            <p>This is an example message</p>
-        """
-    )
     path = request.args["tsv_path"]
     with open(path) as file:
         tsv_file = csv.reader(file, delimiter="\t", quotechar='"')

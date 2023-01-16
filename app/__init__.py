@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_redmail import RedMail
+
 app = Flask(__name__)
 app.config["EMAIL_HOST"] = "smtp.gmail.com"
 app.config["EMAIL_PORT"] = 587

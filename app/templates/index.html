@@ -7,14 +7,18 @@
         <link rel="stylesheet" href=""/>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        
         <script>var exports = {};</script>
         
 
         
     </head>
     <body id="body-1" style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
-        <button id="take-snapshot" style="position: fixed, top: 0, left: 0">Take Screenshot & Download</button>
-        <a id="link-here" href="">Snapshot</a>
+        <div id="input" style="display: flex; position: fixed; top: 0; left: 0;">
+            <input id="new-palette" type="text">
+            <button id="change-palette">Try palette</button>
+            <button id="take-snapshot">Send Snapshot</button>
+        </div>
         <main style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
             <div id="dpmm" style="height: 1mm; width: 1mm; left: 100%; position: fixed; top: 100%;"></div>
             <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
@@ -23,20 +27,6 @@
             <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
             <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
         </main>
-        
         <script src="{{ url_for('static', filename='bundle.js') }}"></script>
-        <script>
-            const srcElement = document.getElementById("plot-container"),
-            snapshotBtn = document.getElementById("take-snapshot");
-            snapshotBtn.addEventListener("click", () => {
-                html2canvas(srcElement).then(canvas => {
-                  const a = document.getElementById("link-here");
-                  a.href = canvas.toDataURL();
-                  a.download = "screenshot.jpg";
-                  console.log("a.href: ", a.href);
-                  a.click();
-                });
-            });
-        </script>
     </body>
 </html>
