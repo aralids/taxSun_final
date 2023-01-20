@@ -151,6 +151,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         });
         addEventListener("resize", function (event) {
             console.log("resize event");
+            var newViewportDimensions = getViewportDimensions();
+            _this.setState({ horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"] }, function () { return _this.calculateSVGPaths({}); });
         });
     };
     // Leave only relevant lineages and crop them if necessary.
@@ -265,19 +267,22 @@ var PlotDrawing = /** @class */ (function (_super) {
         return { x1: x1, y1: y1, x2: x2, y2: y2, radius: round(radius) };
     };
     PlotDrawing.prototype.calculateSVGPaths = function (newState) {
+        var croppedLineages = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
+        var structureByTaxon = newState["structureByTaxon"] == undefined ? this.state.structureByTaxon : newState["structureByTaxon"];
         var dpmm = viewportDimensions["dpmm"];
-        var lineagesCopy = JSON.parse(JSON.stringify(newState["croppedLineages"]));
+        console.log("resize cropped Lineages: ", croppedLineages);
+        var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
         var layers = getLayers(lineagesCopy);
         var numberOfLayers = Object.keys(layers).length;
         var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
         var layerWidth = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 5);
         var svgPaths = {};
-        var firstLayer = function (key) { return newState["structureByTaxon"][key].verticalWidthInLayerIndices[0]; };
-        var lastLayer = function (key) { return newState["structureByTaxon"][key].verticalWidthInLayerIndices[1]; };
-        var startDeg = function (key) { return newState["structureByTaxon"][key].horizontalWidthInDeg[0]; };
-        var endDeg = function (key) { return newState["structureByTaxon"][key].horizontalWidthInDeg[1]; };
-        var breakingPt = function (key) { return newState["structureByTaxon"][key].breakingPoint; };
-        for (var _i = 0, _a = Object.keys(newState["structureByTaxon"]); _i < _a.length; _i++) {
+        var firstLayer = function (key) { return structureByTaxon[key].verticalWidthInLayerIndices[0]; };
+        var lastLayer = function (key) { return structureByTaxon[key].verticalWidthInLayerIndices[1]; };
+        var startDeg = function (key) { return structureByTaxon[key].horizontalWidthInDeg[0]; };
+        var endDeg = function (key) { return structureByTaxon[key].horizontalWidthInDeg[1]; };
+        var breakingPt = function (key) { return structureByTaxon[key].breakingPoint; };
+        for (var _i = 0, _a = Object.keys(structureByTaxon); _i < _a.length; _i++) {
             var key = _a[_i];
             var innerArc = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
             var innerArcPath = "M ".concat(innerArc["x1"], ",").concat(innerArc["y1"], " A ").concat(round(firstLayer(key) * layerWidth), ",").concat(round(firstLayer(key) * layerWidth), " 0 0 1 ").concat(innerArc["x2"], ",").concat(innerArc["y2"]);
@@ -328,21 +333,23 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.calculateTaxonLabels(newState);
     };
     PlotDrawing.prototype.calculateTaxonLabels = function (newState) {
+        var croppedLineages = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
+        var structureByTaxon = newState["structureByTaxon"] == undefined ? this.state.structureByTaxon : newState["structureByTaxon"];
         var shapeCenters = {};
         var cx = this.state.horizontalShift;
         var cy = this.state.verticalShift;
         ;
-        var lineagesCopy = JSON.parse(JSON.stringify(newState["croppedLineages"]));
+        var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
         var layers = getLayers(lineagesCopy);
         var layerWidthInPx = Math.max((Math.min(cx, cy) - viewportDimensions["dpmm"] * 10) / Object.keys(layers).length, viewportDimensions["dpmm"] * 4);
-        var firstLayer = function (key) { return newState["structureByTaxon"][key].verticalWidthInLayerIndices[0]; };
-        var lastLayer = function (key) { return newState["structureByTaxon"][key].verticalWidthInLayerIndices[1]; };
-        var startDeg = function (key) { return newState["structureByTaxon"][key].horizontalWidthInDeg[0]; };
-        var endDeg = function (key) { return newState["structureByTaxon"][key].horizontalWidthInDeg[1]; };
-        var breakingPt = function (key) { return newState["structureByTaxon"][key].breakingPoint; };
+        var firstLayer = function (key) { return structureByTaxon[key].verticalWidthInLayerIndices[0]; };
+        var lastLayer = function (key) { return structureByTaxon[key].verticalWidthInLayerIndices[1]; };
+        var startDeg = function (key) { return structureByTaxon[key].horizontalWidthInDeg[0]; };
+        var endDeg = function (key) { return structureByTaxon[key].horizontalWidthInDeg[1]; };
+        var breakingPt = function (key) { return structureByTaxon[key].breakingPoint; };
         var taxonLabels = {};
         console.log("at calculateTaxonLabels(): ", taxonLabels);
-        for (var _i = 0, _a = Object.keys(newState["structureByTaxon"]); _i < _a.length; _i++) {
+        for (var _i = 0, _a = Object.keys(structureByTaxon); _i < _a.length; _i++) {
             var key = _a[_i];
             var centerDegree = void 0, centerRadius = void 0;
             if (breakingPt(key) === null) {
@@ -361,7 +368,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             shapeCenters[key] = center;
         }
         ;
-        for (var _b = 0, _c = Object.keys(newState["structureByTaxon"]); _b < _c.length; _b++) {
+        for (var _b = 0, _c = Object.keys(structureByTaxon); _b < _c.length; _b++) {
             var key = _c[_b];
             var direction = breakingPt(key) === null && lastLayer(key) === Object.keys(layers).length ? "radial" : "circumferential";
             var twist = void 0, left = void 0, right = void 0, top_1 = void 0, transform = void 0, transformOrigin = void 0;

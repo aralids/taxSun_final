@@ -154,6 +154,8 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
         })
         addEventListener("resize", (event) => {
             console.log("resize event");
+            var newViewportDimensions = getViewportDimensions();
+            this.setState({horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"]}, () => this.calculateSVGPaths({}));
         })
             
     }
@@ -273,22 +275,25 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
     }
 
     calculateSVGPaths(newState:object):void {
+        var croppedLineages = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
+        var structureByTaxon = newState["structureByTaxon"] == undefined ? this.state.structureByTaxon : newState["structureByTaxon"];
         var dpmm = viewportDimensions["dpmm"];
-        var lineagesCopy:string[][] = JSON.parse(JSON.stringify(newState["croppedLineages"]));
+        console.log("resize cropped Lineages: ", croppedLineages)
+        var lineagesCopy:string[][] = JSON.parse(JSON.stringify(croppedLineages));
         var layers:string[][] = getLayers(lineagesCopy);
         var numberOfLayers = Object.keys(layers).length;
         var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
         var layerWidth:number = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 5);
         var svgPaths:object = {};
 
-        var firstLayer = (key) => {return newState["structureByTaxon"][key].verticalWidthInLayerIndices[0]};
-        var lastLayer = (key) => {return newState["structureByTaxon"][key].verticalWidthInLayerIndices[1]};
-        var startDeg = (key) => {return newState["structureByTaxon"][key].horizontalWidthInDeg[0]};
-        var endDeg = (key) => {return newState["structureByTaxon"][key].horizontalWidthInDeg[1]};
-        var breakingPt = (key) => {return newState["structureByTaxon"][key].breakingPoint};
+        var firstLayer = (key) => {return structureByTaxon[key].verticalWidthInLayerIndices[0]};
+        var lastLayer = (key) => {return structureByTaxon[key].verticalWidthInLayerIndices[1]};
+        var startDeg = (key) => {return structureByTaxon[key].horizontalWidthInDeg[0]};
+        var endDeg = (key) => {return structureByTaxon[key].horizontalWidthInDeg[1]};
+        var breakingPt = (key) => {return structureByTaxon[key].breakingPoint};
         
 
-        for (var key of Object.keys(newState["structureByTaxon"])) {
+        for (var key of Object.keys(structureByTaxon)) {
             var innerArc:object = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
             var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${round(firstLayer(key)*layerWidth)},${round(firstLayer(key)*layerWidth)} 0 0 1 ${innerArc["x2"]},${innerArc["y2"]}`;
             if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
@@ -342,21 +347,23 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
     }
 
     calculateTaxonLabels(newState:object):void {
+        var croppedLineages = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
+        var structureByTaxon = newState["structureByTaxon"] == undefined ? this.state.structureByTaxon : newState["structureByTaxon"];
         var shapeCenters:object = {};
         var cx:number = this.state.horizontalShift;
         var cy:number = this.state.verticalShift;;
-        var lineagesCopy:string[][] = JSON.parse(JSON.stringify(newState["croppedLineages"]));
+        var lineagesCopy:string[][] = JSON.parse(JSON.stringify(croppedLineages));
         var layers:object = getLayers(lineagesCopy);
         var layerWidthInPx:number = Math.max((Math.min(cx, cy) - viewportDimensions["dpmm"] * 10) / Object.keys(layers).length , viewportDimensions["dpmm"] * 4);
-        var firstLayer = (key) => {return newState["structureByTaxon"][key].verticalWidthInLayerIndices[0]};
-        var lastLayer = (key) => {return newState["structureByTaxon"][key].verticalWidthInLayerIndices[1]};
-        var startDeg = (key) => {return newState["structureByTaxon"][key].horizontalWidthInDeg[0]};
-        var endDeg = (key) => {return newState["structureByTaxon"][key].horizontalWidthInDeg[1]};
-        var breakingPt = (key) => {return newState["structureByTaxon"][key].breakingPoint};
+        var firstLayer = (key) => {return structureByTaxon[key].verticalWidthInLayerIndices[0]};
+        var lastLayer = (key) => {return structureByTaxon[key].verticalWidthInLayerIndices[1]};
+        var startDeg = (key) => {return structureByTaxon[key].horizontalWidthInDeg[0]};
+        var endDeg = (key) => {return structureByTaxon[key].horizontalWidthInDeg[1]};
+        var breakingPt = (key) => {return structureByTaxon[key].breakingPoint};
         var taxonLabels:object = {};
         console.log("at calculateTaxonLabels(): ", taxonLabels);
 
-        for (var key of Object.keys(newState["structureByTaxon"])) {
+        for (var key of Object.keys(structureByTaxon)) {
             let centerDegree, centerRadius;
             if (breakingPt(key) === null) {
                 centerDegree = startDeg(key) + (endDeg(key) - startDeg(key))/2;
@@ -373,7 +380,7 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
             shapeCenters[key] = center;
         };
 
-        for (var key of Object.keys(newState["structureByTaxon"])) {
+        for (var key of Object.keys(structureByTaxon)) {
             let direction = breakingPt(key) === null && lastLayer(key) === Object.keys(layers).length ? "radial" : "circumferential";
             let twist, left, right, top, transform, transformOrigin;
             if (direction === "radial") {
