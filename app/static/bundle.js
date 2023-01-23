@@ -354,7 +354,7 @@ var Plot = /** @class */ (function () {
     }
     Plot.prototype.draw = function () {
         // remove GoL;
-        reactRoot.render(React.createElement(PlotDrawing, { lineages: lineagesNamesOnlyArray }));
+        reactRoot.render(React.createElement(PlotDrawing, { lineages: lineagesNamesOnlyArray, ranks: lineagesRanksOnlyArray }));
     };
     Plot.prototype.updateviewportDimensions = function (newDimensions) {
         this.viewportDimensions = newDimensions;
@@ -399,6 +399,8 @@ var PlotDrawing = /** @class */ (function (_super) {
             horizontalShift: viewportDimensions["cx"],
             verticalShift: viewportDimensions["cy"],
             croppedLineages: [],
+            croppedRanks: [],
+            unassignedCounts: [],
             structureByDegrees: {},
             structureByTaxon: {},
             svgPaths: {},
@@ -427,23 +429,81 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (layer === void 0) { layer = this.state.layer; }
         var ancestors = [""];
         var croppedLineages = JSON.parse(JSON.stringify(this.props.lineages)); // make sure changing croppedLineages will not attempt to change this.props.lineages
+        var croppedRanks = JSON.parse(JSON.stringify(this.props.ranks));
         if (!(root === "root" && layer === 0)) { // if the full plot is requested
+            console.log("root, croppedLineages unaltered, layer: ", root, croppedLineages, layer);
             croppedLineages = this.props.lineages.filter(function (item) { return item[layer] === root; }); // filter out all irrelevant lineages
+            if (!croppedLineages[0]) {
+                console.log("root, layer: ", root, layer + 1);
+                layer++;
+                croppedLineages = this.props.lineages.filter(function (item) { return item[layer] === root; });
+            }
             var ancestors = croppedLineages[0].slice(0, layer);
             croppedLineages = croppedLineages.map(function (item) { return item.slice(layer); }); // crop remaining lineages so they start with the root taxon
         }
-        console.log("croppedLineages: ", croppedLineages);
+        var croppedRanks = [];
+        for (var i = 0; i < this.props.lineages.length; i++) {
+            if (this.props.lineages[i][layer] === root) {
+                croppedRanks.push(this.props.ranks[i]);
+            }
+        }
+        croppedRanks = croppedRanks.map(function (item) { return item.slice(layer); });
+        var unassignedCounts = croppedLineages.map(function (item) { return allTaxa[item[item.length - 1]]["unassignedCount"]; });
+        var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []);
+        ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; });
+        var rankPattern = ranks.filter(function (item) { return ranksUnique.indexOf(item) > -1; });
+        console.log("rankPattern: ", rankPattern);
+        for (var i = 0; i < croppedRanks.length; i++) {
+            for (var j = croppedRanks[i].length - 1; j >= 0; j--) {
+                if (!rankPattern.includes(croppedRanks[i][j])) {
+                    console.log("excluded rank: ", croppedRanks[i][j]);
+                    croppedRanks[i].splice(j, 1);
+                    croppedLineages[i].splice(j, 1);
+                }
+            }
+        }
         if (this.state.collapse) {
             croppedLineages = this.collapse(croppedLineages);
         }
+        var croppedLineagesStrings = croppedLineages.map(function (item) { return item.join(" "); });
+        for (var i = croppedLineagesStrings.length - 1; i >= 0; i--) {
+            var lastOccurrence = i;
+            var firstOccurrence = croppedLineagesStrings.indexOf(croppedLineagesStrings[i]);
+            if (firstOccurrence !== lastOccurrence) {
+                console.log("lineage, fO, lO: ", croppedLineagesStrings[i], firstOccurrence, lastOccurrence, unassignedCounts[firstOccurrence], unassignedCounts[lastOccurrence]);
+                unassignedCounts[firstOccurrence] += unassignedCounts[lastOccurrence];
+                console.log("result: ", unassignedCounts[firstOccurrence]);
+                unassignedCounts.splice(i, 1);
+                croppedLineages.splice(i, 1);
+                croppedRanks.splice(i, 1);
+            }
+            ;
+        }
+        var alignedCropppedLineages = [];
+        var alignedCropppedRanks = [];
+        for (var i = 0; i < croppedLineages.length; i++) {
+            var alignedLineage = new Array(rankPattern.length).fill(null);
+            var alignedRank = new Array(rankPattern.length).fill(null);
+            for (var j = 0; j < croppedRanks[i].length; j++) {
+                var index = rankPattern.indexOf(croppedRanks[i][j]);
+                if (index > -1) {
+                    alignedLineage.splice(index, 1, croppedLineages[i][j]);
+                    alignedRank.splice(index, 1, croppedRanks[i][j]);
+                }
+            }
+            alignedCropppedLineages.push(alignedLineage);
+            alignedCropppedRanks.push(alignedRank);
+        }
+        croppedLineages = alignedCropppedLineages;
+        console.log("alignedCropppedLineages: ", alignedCropppedLineages);
+        console.log("alignedCropppedRanks: ", alignedCropppedRanks);
         if (croppedLineages.length > 1) {
-            this.assignDegrees({ "root": root, "layer": layer, "croppedLineages": croppedLineages, "ancestors": ancestors });
+            this.assignDegrees({ "root": root, "layer": layer, "croppedLineages": croppedLineages, "croppedRanks": croppedRanks, "unassignedCounts": unassignedCounts, "ancestors": ancestors });
         }
     };
     // Assign each cropped lineage a start and end degree.
     PlotDrawing.prototype.assignDegrees = function (newState) {
-        var croppedLineagesCopy = JSON.parse(JSON.stringify(newState["croppedLineages"]));
-        var unassignedCounts = croppedLineagesCopy.map(function (item) { return allTaxa[item[item.length - 1]]["unassignedCount"]; }); // get unassigned count of every cropped lineage from the global object allTaxa
+        var unassignedCounts = newState["unassignedCounts"] === undefined ? this.state.unassignedCounts : newState["unassignedCounts"];
         var totalUnassignedCounts = unassignedCounts.reduce(function (accumulator, current) { return accumulator + current; }, 0); // sum up
         var lineageStartDeg = 0;
         var lineageEndDeg;
@@ -489,7 +549,11 @@ var PlotDrawing = /** @class */ (function (_super) {
         var lineagesCopy = JSON.parse(JSON.stringify(newState["croppedLineages"]));
         var layers = getLayers(lineagesCopy);
         var layersUnique = getLayers(lineagesCopy, true);
-        console.log("at getStructureByTaxon(): ", layersUnique);
+        for (var i = 1; i < layers.length; i++) {
+            for (var j = 0; j < layers[i].length; j++) {
+                var key = layers[i][j];
+            }
+        }
         for (var i = 1; i < layersUnique.length; i++) {
             for (var j = 0; j < layersUnique[i].length; j++) {
                 var key = layersUnique[i][j];
@@ -499,29 +563,60 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var startDegrees = Number(structureSectionsArray[firstOccurrenceInLayer].slice(0, structureSectionsArray[firstOccurrenceInLayer].length - 4).split("-")[0]);
                 var potentialMidDegrees = Number(structureSectionsArray[firstOccurrenceInLayer].slice(0, structureSectionsArray[firstOccurrenceInLayer].length - 4).split("-")[1]);
                 var endDegrees = Number(structureSectionsArray[lastOccurrenceInLayer].slice(0, structureSectionsArray[lastOccurrenceInLayer].length - 4).split("-")[1]);
+                var actualIndex = i;
                 var verticalMin = i;
-                var verticalMax;
-                if (i != Object.keys(layersUnique).length - 1) {
-                    if (!Boolean(layers[i + 1][firstOccurrenceInLayer])) {
-                        verticalMax = Object.keys(layers).length;
+                var verticalMin0 = true;
+                for (var k = 1; k < i; k++) {
+                    verticalMin0 = verticalMin0 && layers[k][firstOccurrenceInLayer] === null;
+                }
+                if (verticalMin0) {
+                    verticalMin = 1;
+                }
+                var verticalMax = i + 1;
+                var breakingPoints = [];
+                var breakingLayers = [];
+                for (var l = firstOccurrenceInLayer; l <= lastOccurrenceInLayer; l++) {
+                    var point = Number(structureSectionsArray[l].slice(0, structureSectionsArray[l].length - 4).split("-")[1]);
+                    var layer = i + 1;
+                    for (var m = i; m < layers.length - 1; m++) {
+                        if (layers[m + 1][l] === null) {
+                            layer++;
+                        }
+                        else {
+                            break;
+                        }
                     }
-                    else {
-                        verticalMax = i + 1;
+                    breakingPoints.push(point);
+                    breakingLayers.push(layer);
+                }
+                var breakingPointsFiltered = [];
+                var breakingLayersFiltered = [];
+                for (var n = 0; n < breakingLayers.length - 1; n++) {
+                    if (!(breakingLayers[n] === breakingLayers[n + 1])) {
+                        breakingLayersFiltered.push(breakingLayers[n]);
+                        breakingPointsFiltered.push(breakingPoints[n]);
                     }
                 }
-                else {
-                    verticalMax = i + 1;
+                breakingLayersFiltered.push(breakingLayers[breakingLayers.length - 1]);
+                breakingPointsFiltered.push(breakingPoints[breakingLayers.length - 1]);
+                for (var k = i + 1; k < layers.length; k++) {
+                    if (layers[k][firstOccurrenceInLayer] === null) {
+                        verticalMax++;
+                    }
                 }
                 var breakingPoint = verticalMax === verticalMin + 1 || potentialMidDegrees === endDegrees ? null : potentialMidDegrees;
-                key += "_-_".concat(i);
+                key += "_-_".concat(verticalMin);
                 structureByTaxon[key] = {
                     "horizontalWidthInDeg": [round(startDegrees), round(endDegrees)],
                     "verticalWidthInLayerIndices": [verticalMin, verticalMax],
-                    "breakingPoint": breakingPoint === null ? breakingPoint : round(breakingPoint)
+                    "breakingLayers": breakingLayersFiltered,
+                    "breakingPoints": breakingPointsFiltered,
+                    "actualIndex": actualIndex
                 };
             }
         }
         newState["structureByTaxon"] = structureByTaxon;
+        console.log("newState[structureByTaxon]: ", newState["structureByTaxon"]);
         this.calculateSVGPaths(newState);
     };
     PlotDrawing.prototype.calculateArcEndpoints = function (layer, layerWidthInPx, deg1, deg2) {
@@ -536,7 +631,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         var croppedLineages = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
         var structureByTaxon = newState["structureByTaxon"] == undefined ? this.state.structureByTaxon : newState["structureByTaxon"];
         var dpmm = viewportDimensions["dpmm"];
-        console.log("resize cropped Lineages: ", croppedLineages);
         var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
         var layers = getLayers(lineagesCopy);
         var numberOfLayers = Object.keys(layers).length;
@@ -547,7 +641,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         var lastLayer = function (key) { return structureByTaxon[key].verticalWidthInLayerIndices[1]; };
         var startDeg = function (key) { return structureByTaxon[key].horizontalWidthInDeg[0]; };
         var endDeg = function (key) { return structureByTaxon[key].horizontalWidthInDeg[1]; };
-        var breakingPt = function (key) { return structureByTaxon[key].breakingPoint; };
         for (var _i = 0, _a = Object.keys(structureByTaxon); _i < _a.length; _i++) {
             var key = _a[_i];
             var innerArc = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
@@ -557,45 +650,26 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
             ;
             var subpaths = [innerArcPath];
-            if (Boolean(breakingPt(key))) {
-                var outerArc = this.calculateArcEndpoints(lastLayer(key), layerWidth, startDeg(key), breakingPt(key));
-                var outerArcPath = "L ".concat(outerArc["x2"], ",").concat(outerArc["y2"], " A ").concat(outerArc["radius"], ",").concat(outerArc["radius"], " 0 0 0 ").concat(outerArc["x1"], ",").concat(outerArc["y1"]);
-                if (Math.abs(breakingPt(key) - startDeg(key)) >= 180) {
-                    var outerArcPath = "L ".concat(outerArc["x2"], ",").concat(outerArc["y2"], " A ").concat(outerArc["radius"], ",").concat(outerArc["radius"], " 0 1 0 ").concat(outerArc["x1"], ",").concat(outerArc["y1"]);
-                }
-                ;
-                var midArc = this.calculateArcEndpoints((firstLayer(key) + 1), layerWidth, breakingPt(key), endDeg(key));
+            var midArc = {};
+            for (var i = structureByTaxon[key].breakingLayers.length - 1; i >= 0; i--) {
+                var curr = structureByTaxon[key].breakingPoints[i];
+                var prev = i === 0 ? startDeg(key) : structureByTaxon[key].breakingPoints[i - 1];
+                midArc = this.calculateArcEndpoints(structureByTaxon[key].breakingLayers[i], layerWidth, prev, curr);
                 var midArcPath = "L ".concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 0 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
-                if (Math.abs(endDeg(key) - breakingPt(key)) >= 180) {
+                if (Math.abs(curr - prev) >= 180) {
                     var midArcPath = "L ".concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 1 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
                 }
                 ;
-                console.log("key, midArcPath: ", key, midArcPath);
-                var lineInnerToMid = "L ".concat(innerArc["x2"], ",").concat(innerArc["y2"], " ").concat(midArc["x2"], ",").concat(midArc["y2"]);
-                var lineOuterToMid = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(outerArc["x2"], ",").concat(outerArc["y2"]);
-                subpaths.push(lineInnerToMid);
                 subpaths.push(midArcPath);
-                subpaths.push(lineOuterToMid);
-                subpaths.push(outerArcPath);
             }
-            else {
-                var outerArc = this.calculateArcEndpoints(lastLayer(key), layerWidth, startDeg(key), endDeg(key));
-                var outerArcPath = "L ".concat(outerArc["x2"], ",").concat(outerArc["y2"], " A ").concat(outerArc["radius"], ",").concat(outerArc["radius"], " 0 0 0 ").concat(outerArc["x1"], ",").concat(outerArc["y1"]);
-                if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
-                    var outerArcPath = "L ".concat(outerArc["x2"], ",").concat(outerArc["y2"], " A ").concat(outerArc["radius"], ",").concat(outerArc["radius"], " 0 1 0 ").concat(outerArc["x1"], ",").concat(outerArc["y1"]);
-                }
-                ;
-                var lineInnerToOuter = "L ".concat(innerArc["x2"], ",").concat(innerArc["y2"], " ").concat(outerArc["x2"], ",").concat(outerArc["y2"]);
-                subpaths.push(lineInnerToOuter);
-                subpaths.push(outerArcPath);
-            }
-            var lineInnertoOuter = "L ".concat(outerArc["x1"], ",").concat(outerArc["y1"], " ").concat(innerArc["x1"], ",").concat(innerArc["y1"]);
+            var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(innerArc["x1"], ",").concat(innerArc["y1"]);
             subpaths.push(lineInnertoOuter);
             var d = subpaths.join(" ");
             svgPaths[key] = d;
         }
         ;
         newState["svgPaths"] = svgPaths;
+        console.log("newState[svgPaths]: ", newState["svgPaths"]);
         this.calculateTaxonLabels(newState);
     };
     PlotDrawing.prototype.calculateTaxonLabels = function (newState) {
@@ -614,18 +688,11 @@ var PlotDrawing = /** @class */ (function (_super) {
         var endDeg = function (key) { return structureByTaxon[key].horizontalWidthInDeg[1]; };
         var breakingPt = function (key) { return structureByTaxon[key].breakingPoint; };
         var taxonLabels = {};
-        console.log("at calculateTaxonLabels(): ", taxonLabels);
         for (var _i = 0, _a = Object.keys(structureByTaxon); _i < _a.length; _i++) {
             var key = _a[_i];
             var centerDegree = void 0, centerRadius = void 0;
-            if (breakingPt(key) === null) {
-                centerDegree = startDeg(key) + (endDeg(key) - startDeg(key)) / 2;
-                centerRadius = firstLayer(key) + (lastLayer(key) - firstLayer(key)) / 2;
-            }
-            else {
-                centerDegree = startDeg(key) + (endDeg(key) - startDeg(key)) / 2;
-                centerRadius = firstLayer(key) + 0.5;
-            }
+            centerDegree = startDeg(key) + (endDeg(key) - startDeg(key)) / 2;
+            centerRadius = structureByTaxon[key].actualIndex + 0.5;
             var centerX = centerRadius * layerWidthInPx * cos(centerDegree);
             centerX = round(centerX) + cx;
             var centerY = -centerRadius * layerWidthInPx * sin(centerDegree);
@@ -636,7 +703,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         ;
         for (var _b = 0, _c = Object.keys(structureByTaxon); _b < _c.length; _b++) {
             var key = _c[_b];
-            var direction = breakingPt(key) === null && lastLayer(key) === Object.keys(layers).length ? "radial" : "circumferential";
+            var direction = (Object.keys(layers).length - structureByTaxon[key].actualIndex === 1) ? "radial" : "circumferential";
             var twist = void 0, left = void 0, right = void 0, top_1 = void 0, transform = void 0, transformOrigin = void 0;
             if (direction === "radial") {
                 twist = shapeCenters[key][2] <= 180 ? -shapeCenters[key][2] : +shapeCenters[key][2];
@@ -665,7 +732,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             };
         }
         ;
-        console.log("at calculateTaxonLabels() 2: ", taxonLabels);
         newState["taxonLabels"] = taxonLabels;
         this.getTaxonShapes(newState);
     };
@@ -674,7 +740,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         // var colors:string[] = ["6CCFF6", "1B998B", "A1E887", "EA638C", "B33C86"];
         // var colors:string[] = ["1B998B", "A1E887", "1E96FC", "B33C86","003F91", ];
         if ("colors" in newState) {
-            console.log("newState colors: ", newState["colors"]);
             var newColors = newState["colors"];
             var colors = newColors.map(hexToRGB);
         }
@@ -697,22 +762,29 @@ var PlotDrawing = /** @class */ (function (_super) {
         var layersUnique = getLayers(lineagesCopy, true);
         var colorCalculationParameters = {};
         var taxonShapes = {};
-        console.log("colors: ", colors);
-        for (var i = 0; i < layersUnique[1].length; i++) {
-            var firstAncestor = layersUnique[1][i];
-            if (firstAncestor) {
-                taxonShapes["".concat(firstAncestor, "_-_1")] = colors[i % colors.length];
+        for (var i = 0; i < Object.keys(structureByTaxon).length; i++) {
+            var firstAncestor = Object.keys(structureByTaxon)[i];
+            if (firstAncestor.endsWith("_-_1")) {
+                console.log("firstAncestor, firstAncestor.includes(_-_1): ", firstAncestor, firstAncestor.endsWith("_-_1"));
+                taxonShapes["".concat(firstAncestor)] = colors[i % colors.length];
             }
         }
+        console.log("taxonShapes firstAncestors:", taxonShapes);
         for (var i = 2; i < layers.length; i++) {
             for (var j = 0; j < layers[i].length; j++) {
-                if (layers[i][j]) {
+                if (layers[i][j] && structureByTaxon["".concat(layers[i][j], "_-_").concat(i)]) {
                     var firstAncestor = layers[1][j];
+                    for (var k = 1; k < i; k++) {
+                        if (layers[k][j] !== null) {
+                            firstAncestor = layers[k][j];
+                            break;
+                        }
+                    }
                     var ancestorColor = taxonShapes["".concat(firstAncestor, "_-_1")];
                     var nextColorIndex = (colors.indexOf(ancestorColor) + 1) % colors.length;
                     var nextColor = colors[nextColorIndex];
                     var selfStartingDegree = structureByTaxon["".concat(layers[i][j], "_-_").concat(i)].horizontalWidthInDeg[0];
-                    var ancestorDegrees = structureByTaxon["".concat(layers[1][j], "_-_").concat(1)].horizontalWidthInDeg;
+                    var ancestorDegrees = structureByTaxon["".concat(firstAncestor, "_-_").concat(1)].horizontalWidthInDeg;
                     var coef = (selfStartingDegree - ancestorDegrees[0]) / (ancestorDegrees[1] - ancestorDegrees[0]);
                     var tintFactor = (i - 1) / 10;
                     colorCalculationParameters[layers[i][j]] = [ancestorColor, nextColor, coef, tintFactor];
@@ -728,15 +800,12 @@ var PlotDrawing = /** @class */ (function (_super) {
     PlotDrawing.prototype.changePalette = function () {
         var newPaletteInput = document.getElementById("new-palette").value;
         var newPalette = Array.from(newPaletteInput.matchAll(/[0-9a-f]{6}/g)).map(String);
-        console.log("Palette changed: ", newPalette);
         this.getTaxonShapes({ "colors": newPalette });
     };
     PlotDrawing.prototype.handleClick = function (shapeId) {
-        console.log("shapeId: ", shapeId);
         var taxon = shapeId.match(/.+?(?=_)/)[0];
         var currLayer = parseInt(shapeId.match(/\d+/)[0]);
         var nextLayer = currLayer === 0 ? this.state.layer - 1 : currLayer + this.state.layer;
-        console.log("Clicked! ", taxon, nextLayer);
         this.cropLineages(taxon, nextLayer);
     };
     PlotDrawing.prototype.render = function () {
@@ -828,7 +897,6 @@ function tintify(rgb, tintFactor) {
     return "rgb(".concat(newRgb[0], ", ").concat(newRgb[1], ", ").concat(newRgb[2], ")");
 }
 function hoverHandler(id) {
-    console.log("id: ", id);
     if (id.indexOf("-label") > -1) {
         var label = id;
         var shape = id.replace("-label", "");
@@ -843,7 +911,6 @@ function hoverHandler(id) {
     document.getElementById(label).style.border = "0.4vmin solid #800080";
 }
 function onMouseOutHandler(id) {
-    console.log("id: ", id);
     if (id.indexOf("-label") > -1) {
         var label = id;
         var shape = id.replace("-label", "");
@@ -908,15 +975,28 @@ var Taxon = /** @class */ (function () {
 var taxonList = [];
 var currentState;
 var taxName;
+var lineagesRanksOnlyArray = [];
+var lineagesFullInfo = [];
 for (var _i = 0, _a = Object.keys(allTaxa); _i < _a.length; _i++) {
     taxName = _a[_i];
     var newTaxon = new Taxon(taxName);
     taxonList.push(newTaxon);
+    lineagesFullInfo.push(newTaxon.lineage.map(function (item) { return item[1] + "_*_" + item[0]; }));
     lineagesNamesOnlyArray.push(newTaxon.lineage.map(function (item) { return item[1]; }));
 }
+lineagesFullInfo.sort();
+lineagesRanksOnlyArray = lineagesFullInfo.map(function (item) { return item.map(function (item2) { return item2.split("_*_")[1]; }); });
+lineagesRanksOnlyArray.map(function (item) { return item.unshift("root"); });
 lineagesNamesOnlyArray.sort();
 lineagesNamesOnlyArray.map(function (item) { return item.unshift("root"); });
-console.log("taxNames: ", lineagesNamesOnlyArray);
+//var ranksUnique = lineagesRanksOnlyArray.reduce((accumulator, value) => accumulator.concat(value), []);
+//ranksUnique = ranksUnique.filter((value, index, self) => Boolean(value) && self.indexOf(value) === index);
+var ranks = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species", "subspecies", "strain"];
+//ranks = ranks.filter(item => ranksUnique.indexOf(item) > -1);
+console.log("allTaxa: ", allTaxa);
+console.log("lineagesFullInfo: ", lineagesFullInfo);
+console.log("lineagesRanksOnlyArray: ", lineagesRanksOnlyArray);
+console.log("taxNames: ", lineagesNamesOnlyArray.sort());
 // var fullPlot:Plot = new Plot();
 // var mycosphaerellalesPlot:Plot = new Plot("Bacteria", 0, true, viewportDimensions);
 // var mycosphaerellalesPlot:Plot = new Plot("Leotiomycetes", 6, true, viewportDimensions);

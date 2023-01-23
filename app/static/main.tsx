@@ -81,7 +81,7 @@ class Plot {
 
     draw():void {
         // remove GoL;
-        reactRoot.render(<PlotDrawing lineages={lineagesNamesOnlyArray}/>);
+        reactRoot.render(<PlotDrawing lineages={lineagesNamesOnlyArray} ranks={lineagesRanksOnlyArray}/>);
     }
 
     updateviewportDimensions(newDimensions):void {
@@ -127,7 +127,7 @@ function TaxonLabel(props) {
 
 
 
-class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, croppedLineages:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[]}> {
+class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, croppedLineages:string[][], croppedRanks:string[][], unassignedCounts:number[], structureByDegrees:object, structureByTaxon: object, svgPaths:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[]}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -137,6 +137,8 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
             horizontalShift: viewportDimensions["cx"],
             verticalShift: viewportDimensions["cy"],
             croppedLineages: [],
+            croppedRanks: [],
+            unassignedCounts: [],
             structureByDegrees: {},
             structureByTaxon: {},
             svgPaths: {},
@@ -164,28 +166,97 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
     cropLineages(root=this.state.root, layer=this.state.layer):void {
         var ancestors:string[] = [""];
         var croppedLineages = JSON.parse(JSON.stringify(this.props.lineages)); // make sure changing croppedLineages will not attempt to change this.props.lineages
+        var croppedRanks:string[][] = JSON.parse(JSON.stringify(this.props.ranks));
         if (!(root === "root" && layer === 0)) { // if the full plot is requested
+            console.log("root, croppedLineages unaltered, layer: ", root, croppedLineages, layer);
             croppedLineages = this.props.lineages.filter(item => item[layer] === root); // filter out all irrelevant lineages
+            if (!croppedLineages[0]) {
+                console.log("root, layer: ", root, layer+1);
+                layer++;
+                croppedLineages = this.props.lineages.filter(item => item[layer] === root);
+            }
             var ancestors:string[] = croppedLineages[0].slice(0, layer);
             croppedLineages = croppedLineages.map(item => item.slice(layer)); // crop remaining lineages so they start with the root taxon
         }
 
-        console.log("croppedLineages: ", croppedLineages);
+        var croppedRanks:string[][] = [];
+            for (let i=0; i<this.props.lineages.length; i++) {
+                if (this.props.lineages[i][layer] === root) {
+                    croppedRanks.push(this.props.ranks[i]);
+                }
+            }
+            croppedRanks = croppedRanks.map(item => item.slice(layer));
 
+        
+        var unassignedCounts:number[] = croppedLineages.map(item => allTaxa[item[item.length - 1]]["unassignedCount"]);
+
+        var ranksUnique = croppedRanks.reduce((accumulator, value) => accumulator.concat(value), []);
+        ranksUnique = ranksUnique.filter((value, index, self) => Boolean(value) && self.indexOf(value) === index);
+        var rankPattern:string[] = ranks.filter(item => ranksUnique.indexOf(item) > -1);
+        console.log("rankPattern: ", rankPattern);
+
+        for (let i=0; i<croppedRanks.length; i++) {
+            for (let j=croppedRanks[i].length-1; j>=0; j--) {
+                if (!rankPattern.includes(croppedRanks[i][j])) {
+                    console.log("excluded rank: ", croppedRanks[i][j]);
+                    croppedRanks[i].splice(j, 1);
+                    croppedLineages[i].splice(j, 1);
+                }
+            }
+        }
+
+        
         if (this.state.collapse) {
             croppedLineages = this.collapse(croppedLineages);
         }
 
+        var croppedLineagesStrings = croppedLineages.map(item => item.join(" "));
+        for (let i=croppedLineagesStrings.length-1; i>=0; i--) {
+            var lastOccurrence:number = i;
+            var firstOccurrence:number = croppedLineagesStrings.indexOf(croppedLineagesStrings[i]);
+            if (firstOccurrence !== lastOccurrence) {
+                console.log("lineage, fO, lO: ", croppedLineagesStrings[i], firstOccurrence, lastOccurrence, unassignedCounts[firstOccurrence], unassignedCounts[lastOccurrence])
+                unassignedCounts[firstOccurrence] += unassignedCounts[lastOccurrence];
+                console.log("result: ", unassignedCounts[firstOccurrence]);
+                unassignedCounts.splice(i, 1);
+                croppedLineages.splice(i, 1);
+                croppedRanks.splice(i, 1);
+            };
+        }
+
+        
+        var alignedCropppedLineages:string[][] = [];
+        var alignedCropppedRanks:string[][] = [];
+        
+        for (let i=0; i<croppedLineages.length; i++) {
+            var alignedLineage:any = new Array(rankPattern.length).fill(null);
+            var alignedRank:any = new Array(rankPattern.length).fill(null);
+            for (let j=0; j<croppedRanks[i].length; j++) {
+                var index = rankPattern.indexOf(croppedRanks[i][j]);
+                if (index > -1) { 
+                    alignedLineage.splice(index, 1, croppedLineages[i][j]);
+                    alignedRank.splice(index, 1, croppedRanks[i][j]);
+                }
+            }
+            alignedCropppedLineages.push(alignedLineage);
+            alignedCropppedRanks.push(alignedRank);
+        }
+
+        croppedLineages = alignedCropppedLineages;
+        console.log("alignedCropppedLineages: ", alignedCropppedLineages);
+        console.log("alignedCropppedRanks: ", alignedCropppedRanks);
+
+        
+
         if (croppedLineages.length > 1) {
-            this.assignDegrees({"root": root, "layer": layer ,"croppedLineages": croppedLineages, "ancestors": ancestors});
+            this.assignDegrees({"root": root, "layer": layer ,"croppedLineages": croppedLineages, "croppedRanks": croppedRanks, "unassignedCounts": unassignedCounts, "ancestors": ancestors});
         }
 
     }
 
     // Assign each cropped lineage a start and end degree.
     assignDegrees(newState:object):void {
-        var croppedLineagesCopy:string[] = JSON.parse(JSON.stringify(newState["croppedLineages"]));
-        var unassignedCounts:number[] = croppedLineagesCopy.map(item => allTaxa[item[item.length - 1]]["unassignedCount"]); // get unassigned count of every cropped lineage from the global object allTaxa
+        var unassignedCounts:number[] = newState["unassignedCounts"] === undefined ? this.state.unassignedCounts : newState["unassignedCounts"];
         var totalUnassignedCounts:number = unassignedCounts.reduce((accumulator, current) => {return accumulator + current;}, 0); // sum up
         var lineageStartDeg:number = 0;
         var lineageEndDeg:number;
@@ -227,8 +298,12 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
         var lineagesCopy:string[][] = JSON.parse(JSON.stringify(newState["croppedLineages"]));
         var layers:string[][] = getLayers(lineagesCopy);
         var layersUnique:string[][] = getLayers(lineagesCopy, true);
-        
-        console.log("at getStructureByTaxon(): ", layersUnique);
+
+        for (let i=1; i<layers.length; i++) {
+            for (let j=0; j<layers[i].length; j++) {
+                var key:string = layers[i][j];
+            }
+        }
 
         for (let i=1; i<layersUnique.length; i++) {
             for (let j=0; j<layersUnique[i].length; j++) {
@@ -239,28 +314,61 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
                 var startDegrees:number = Number(structureSectionsArray[firstOccurrenceInLayer].slice(0,structureSectionsArray[firstOccurrenceInLayer].length-4).split("-")[0]);
                 var potentialMidDegrees:number = Number(structureSectionsArray[firstOccurrenceInLayer].slice(0,structureSectionsArray[firstOccurrenceInLayer].length-4).split("-")[1]);
                 var endDegrees:number = Number(structureSectionsArray[lastOccurrenceInLayer].slice(0,structureSectionsArray[lastOccurrenceInLayer].length-4).split("-")[1]);
+                var actualIndex:number = i;
                 var verticalMin:number = i;
-                var verticalMax:number;
-                if (i != Object.keys(layersUnique).length-1) {
-                        if (!Boolean(layers[i+1][firstOccurrenceInLayer])) {
-                            verticalMax = Object.keys(layers).length;
+                var verticalMin0:boolean = true;
+                for (let k=1; k<i; k++) {
+                    verticalMin0 = verticalMin0 && layers[k][firstOccurrenceInLayer] === null;
+                }
+                if (verticalMin0) {
+                    verticalMin = 1;
+                }
+                var verticalMax:number = i+1;
+                var breakingPoints:number[] = [];
+                var breakingLayers:number[] = [];
+                for (let l=firstOccurrenceInLayer; l<=lastOccurrenceInLayer; l++) {
+                    var point:number = Number(structureSectionsArray[l].slice(0,structureSectionsArray[l].length-4).split("-")[1]);
+                    var layer:number = i+1;
+                    for (let m=i; m<layers.length-1; m++) {
+                        if (layers[m+1][l] === null) {
+                            layer++
                         } else {
-                            verticalMax = i+1;
+                            break;
                         }
-                } else {
-                    verticalMax = i+1;
+                    }
+                    breakingPoints.push(point);
+                    breakingLayers.push(layer);
+                }
+                var breakingPointsFiltered:number[] = [];
+                var breakingLayersFiltered:number[] = [];
+                for (let n=0; n<breakingLayers.length-1; n++) {
+                    if (!(breakingLayers[n] === breakingLayers[n+1])) {
+                        breakingLayersFiltered.push(breakingLayers[n]);
+                        breakingPointsFiltered.push(breakingPoints[n]);
+                    }
+                }
+                breakingLayersFiltered.push(breakingLayers[breakingLayers.length-1]);
+                breakingPointsFiltered.push(breakingPoints[breakingLayers.length-1]);
+                for (let k=i+1; k<layers.length; k++) {
+                    if (layers[k][firstOccurrenceInLayer] === null) {
+                        verticalMax++;
+                    }
                 }
                 
+
                 var breakingPoint:any = verticalMax === verticalMin + 1 || potentialMidDegrees === endDegrees ? null : potentialMidDegrees;
-                key += `_-_${i}`;
+                key += `_-_${verticalMin}`;
                 structureByTaxon[key] = {
                     "horizontalWidthInDeg": [round(startDegrees), round(endDegrees)],
                     "verticalWidthInLayerIndices": [verticalMin, verticalMax],
-                    "breakingPoint": breakingPoint === null ? breakingPoint : round(breakingPoint)
+                    "breakingLayers": breakingLayersFiltered,
+                    "breakingPoints": breakingPointsFiltered,
+                    "actualIndex": actualIndex
                 }; 
             }
         }
         newState["structureByTaxon"] = structureByTaxon;
+        console.log("newState[structureByTaxon]: ", newState["structureByTaxon"])
         this.calculateSVGPaths(newState);
     }
 
@@ -278,7 +386,6 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
         var croppedLineages = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
         var structureByTaxon = newState["structureByTaxon"] == undefined ? this.state.structureByTaxon : newState["structureByTaxon"];
         var dpmm = viewportDimensions["dpmm"];
-        console.log("resize cropped Lineages: ", croppedLineages)
         var lineagesCopy:string[][] = JSON.parse(JSON.stringify(croppedLineages));
         var layers:string[][] = getLayers(lineagesCopy);
         var numberOfLayers = Object.keys(layers).length;
@@ -290,7 +397,6 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
         var lastLayer = (key) => {return structureByTaxon[key].verticalWidthInLayerIndices[1]};
         var startDeg = (key) => {return structureByTaxon[key].horizontalWidthInDeg[0]};
         var endDeg = (key) => {return structureByTaxon[key].horizontalWidthInDeg[1]};
-        var breakingPt = (key) => {return structureByTaxon[key].breakingPoint};
         
 
         for (var key of Object.keys(structureByTaxon)) {
@@ -301,48 +407,29 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
             };
 
             var subpaths:string[] = [innerArcPath];
-
-            if (Boolean(breakingPt(key))) {
-                var outerArc:object = this.calculateArcEndpoints(lastLayer(key), layerWidth, startDeg(key), breakingPt(key));
-                var outerArcPath:string = `L ${outerArc["x2"]},${outerArc["y2"]} A ${outerArc["radius"]},${outerArc["radius"]} 0 0 0 ${outerArc["x1"]},${outerArc["y1"]}`;
-                if (Math.abs(breakingPt(key) - startDeg(key)) >= 180) {
-                    var outerArcPath:string = `L ${outerArc["x2"]},${outerArc["y2"]} A ${outerArc["radius"]},${outerArc["radius"]} 0 1 0 ${outerArc["x1"]},${outerArc["y1"]}`;
-                };
-
-                var midArc:object = this.calculateArcEndpoints((firstLayer(key)+1), layerWidth, breakingPt(key), endDeg(key));
+            var midArc:object = {};
+            for (let i=structureByTaxon[key].breakingLayers.length-1; i>=0; i--) {
+                var curr = structureByTaxon[key].breakingPoints[i];
+                var prev = i === 0 ? startDeg(key) : structureByTaxon[key].breakingPoints[i-1];
+                midArc = this.calculateArcEndpoints(structureByTaxon[key].breakingLayers[i], layerWidth, prev, curr);
                 var midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
-                if (Math.abs(endDeg(key) - breakingPt(key)) >= 180) {
+                if (Math.abs(curr - prev) >= 180) {
                     var midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
                 };
-                console.log("key, midArcPath: ", key, midArcPath);
-
-                var lineInnerToMid = `L ${innerArc["x2"]},${innerArc["y2"]} ${midArc["x2"]},${midArc["y2"]}`;
-                var lineOuterToMid = `L ${midArc["x1"]},${midArc["y1"]} ${outerArc["x2"]},${outerArc["y2"]}`;
-
-                subpaths.push(lineInnerToMid);
                 subpaths.push(midArcPath);
-                subpaths.push(lineOuterToMid);
-                subpaths.push(outerArcPath);
-            } else {
-                var outerArc:object = this.calculateArcEndpoints(lastLayer(key), layerWidth, startDeg(key), endDeg(key));
-                var outerArcPath:string = `L ${outerArc["x2"]},${outerArc["y2"]} A ${outerArc["radius"]},${outerArc["radius"]} 0 0 0 ${outerArc["x1"]},${outerArc["y1"]}`;
-                if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
-                    var outerArcPath:string = `L ${outerArc["x2"]},${outerArc["y2"]} A ${outerArc["radius"]},${outerArc["radius"]} 0 1 0 ${outerArc["x1"]},${outerArc["y1"]}`;
-                };
-
-                var lineInnerToOuter = `L ${innerArc["x2"]},${innerArc["y2"]} ${outerArc["x2"]},${outerArc["y2"]}`
-                subpaths.push(lineInnerToOuter);
-                subpaths.push(outerArcPath);
             }
-
-            var lineInnertoOuter = `L ${outerArc["x1"]},${outerArc["y1"]} ${innerArc["x1"]},${innerArc["y1"]}`;
+            
+            var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${innerArc["x1"]},${innerArc["y1"]}`;
             subpaths.push(lineInnertoOuter);
+
+            
 
             var d:string = subpaths.join(" ");
             
             svgPaths[key] = d;
         };
         newState["svgPaths"] = svgPaths;
+        console.log("newState[svgPaths]: ", newState["svgPaths"])
         this.calculateTaxonLabels(newState);
     }
 
@@ -361,17 +448,11 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
         var endDeg = (key) => {return structureByTaxon[key].horizontalWidthInDeg[1]};
         var breakingPt = (key) => {return structureByTaxon[key].breakingPoint};
         var taxonLabels:object = {};
-        console.log("at calculateTaxonLabels(): ", taxonLabels);
 
         for (var key of Object.keys(structureByTaxon)) {
             let centerDegree, centerRadius;
-            if (breakingPt(key) === null) {
-                centerDegree = startDeg(key) + (endDeg(key) - startDeg(key))/2;
-                centerRadius = firstLayer(key) + (lastLayer(key) - firstLayer(key)) / 2;
-            } else {
-                centerDegree = startDeg(key) + (endDeg(key) - startDeg(key))/2;
-                centerRadius = firstLayer(key) + 0.5;
-            }
+            centerDegree = startDeg(key) + (endDeg(key) - startDeg(key))/2;
+            centerRadius = structureByTaxon[key].actualIndex + 0.5;
             let centerX = centerRadius * layerWidthInPx * cos(centerDegree);
             centerX = round(centerX) + cx;
             let centerY = - centerRadius * layerWidthInPx * sin(centerDegree);
@@ -380,8 +461,10 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
             shapeCenters[key] = center;
         };
 
+        
+
         for (var key of Object.keys(structureByTaxon)) {
-            let direction = breakingPt(key) === null && lastLayer(key) === Object.keys(layers).length ? "radial" : "circumferential";
+            let direction = (Object.keys(layers).length - structureByTaxon[key].actualIndex === 1) ? "radial" : "circumferential";
             let twist, left, right, top, transform, transformOrigin;
             if (direction === "radial") {
                 twist = shapeCenters[key][2] <= 180 ? - shapeCenters[key][2] : + shapeCenters[key][2];
@@ -411,7 +494,6 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
                 "transformOrigin": transformOrigin
             }
         };
-        console.log("at calculateTaxonLabels() 2: ", taxonLabels);
         newState["taxonLabels"] = taxonLabels;
         this.getTaxonShapes(newState);
     }
@@ -420,7 +502,6 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
         // var colors:string[] = ["6CCFF6", "1B998B", "A1E887", "EA638C", "B33C86"];
         // var colors:string[] = ["1B998B", "A1E887", "1E96FC", "B33C86","003F91", ];
         if ("colors" in newState) {
-            console.log("newState colors: ", newState["colors"]);
             var newColors:any = newState["colors"];
             var colors:string[] = newColors.map(hexToRGB);
         } else {    
@@ -443,32 +524,43 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
         var layersUnique:string[][] = getLayers(lineagesCopy, true);
         var colorCalculationParameters:object = {};
         var taxonShapes:object = {};
-        console.log("colors: ", colors);
 
-        for (let i=0; i<layersUnique[1].length; i++) {
-            var firstAncestor = layersUnique[1][i];
-            if (firstAncestor) {   
-                taxonShapes[`${firstAncestor}_-_1`] = colors[i % colors.length];
+        for (let i=0; i<Object.keys(structureByTaxon).length; i++) {
+            var firstAncestor = Object.keys(structureByTaxon)[i];
+            if (firstAncestor.endsWith("_-_1")) {    
+                console.log("firstAncestor, firstAncestor.includes(_-_1): ", firstAncestor, firstAncestor.endsWith("_-_1"));
+                taxonShapes[`${firstAncestor}`] = colors[i % colors.length];
             }
         }
+        console.log("taxonShapes firstAncestors:", taxonShapes)
+
         for (let i=2; i<layers.length; i++) {
             for (let j=0; j<layers[i].length; j++) {
-                if (layers[i][j]) {
+                if (layers[i][j] && structureByTaxon[`${layers[i][j]}_-_${i}`]) {
                     var firstAncestor = layers[1][j];
+                    for (let k=1; k<i; k++) {
+                        if (layers[k][j] !== null) {
+                            firstAncestor = layers[k][j];
+                            break;
+                        }
+                    }
                     var ancestorColor = taxonShapes[`${firstAncestor}_-_1`];
                     var nextColorIndex = (colors.indexOf(ancestorColor) + 1) % colors.length;
                     var nextColor = colors[nextColorIndex];
                     var selfStartingDegree = structureByTaxon[`${layers[i][j]}_-_${i}`].horizontalWidthInDeg[0];
-                    var ancestorDegrees = structureByTaxon[`${layers[1][j]}_-_${1}`].horizontalWidthInDeg;
+                    var ancestorDegrees = structureByTaxon[`${firstAncestor}_-_${1}`].horizontalWidthInDeg;
                     var coef:number = (selfStartingDegree - ancestorDegrees[0]) / (ancestorDegrees[1] - ancestorDegrees[0]);
                     var tintFactor:number = (i-1) / 10;
                     colorCalculationParameters[layers[i][j]] = [ancestorColor, nextColor, coef, tintFactor];
                     var hue = midColor(ancestorColor, nextColor, coef);
                     var tintifiedHue = tintify(hue, tintFactor);
                     taxonShapes[`${layers[i][j]}_-_${i}`] = tintifiedHue;
-                }
+                    }
             }
         }
+
+
+
         newState["taxonShapes"] = taxonShapes;
         this.setState(newState, () => console.log("taxonShapes: ", this.state));
     }
@@ -476,19 +568,14 @@ class PlotDrawing extends React.Component<{lineages:string[][]}, {root:string, l
     changePalette() {
         var newPaletteInput:string = (document.getElementById("new-palette") as HTMLInputElement).value;
         var newPalette:string[] = Array.from(newPaletteInput.matchAll(/[0-9a-f]{6}/g)).map(String);
-        console.log("Palette changed: ", newPalette);
         this.getTaxonShapes({"colors": newPalette});
     }
 
     handleClick(shapeId):void {
-        console.log("shapeId: ", shapeId);
         var taxon:string = shapeId.match(/.+?(?=_)/)[0];
         var currLayer:number = parseInt(shapeId.match(/\d+/)[0]);
         var nextLayer:number = currLayer === 0 ? this.state.layer - 1 : currLayer + this.state.layer;
-        
-        console.log("Clicked! ", taxon, nextLayer);
         this.cropLineages(taxon, nextLayer);
-        
     }
 
 
@@ -578,7 +665,6 @@ function tintify(rgb:string, tintFactor:number):string {
 }
 
 function hoverHandler(id:string):void {
-    console.log("id: ", id);
     if (id.indexOf("-label") > -1) {
         var label = id;
         var shape = id.replace("-label", "");
@@ -593,7 +679,6 @@ function hoverHandler(id:string):void {
 }
 
 function onMouseOutHandler(id:string):void {
-    console.log("id: ", id);
     if (id.indexOf("-label") > -1) {
         var label = id;
         var shape = id.replace("-label", "");
@@ -667,14 +752,27 @@ class Taxon {
 var taxonList:Taxon[] = [];
 var currentState:object;
 var taxName:string;
+var lineagesRanksOnlyArray:string[][] = [];
+var lineagesFullInfo:string[][] = [];
 for (taxName of Object.keys(allTaxa)) {
     var newTaxon:Taxon = new Taxon(taxName);
     taxonList.push(newTaxon);
+    lineagesFullInfo.push(newTaxon.lineage.map(item => item[1] + "_*_" + item[0]));
     lineagesNamesOnlyArray.push(newTaxon.lineage.map(item => item[1]));
 }
+lineagesFullInfo.sort();
+lineagesRanksOnlyArray = lineagesFullInfo.map(item => item.map(item2 => item2.split("_*_")[1]));
+lineagesRanksOnlyArray.map(item => item.unshift("root"));
 lineagesNamesOnlyArray.sort();
 lineagesNamesOnlyArray.map(item => item.unshift("root"));
-console.log("taxNames: ", lineagesNamesOnlyArray);
+//var ranksUnique = lineagesRanksOnlyArray.reduce((accumulator, value) => accumulator.concat(value), []);
+//ranksUnique = ranksUnique.filter((value, index, self) => Boolean(value) && self.indexOf(value) === index);
+var ranks:string[] = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species", "subspecies", "strain"];
+//ranks = ranks.filter(item => ranksUnique.indexOf(item) > -1);
+console.log("allTaxa: ", allTaxa);
+console.log("lineagesFullInfo: ", lineagesFullInfo);
+console.log("lineagesRanksOnlyArray: ", lineagesRanksOnlyArray);
+console.log("taxNames: ", lineagesNamesOnlyArray.sort());
 // var fullPlot:Plot = new Plot();
 // var mycosphaerellalesPlot:Plot = new Plot("Bacteria", 0, true, viewportDimensions);
 // var mycosphaerellalesPlot:Plot = new Plot("Leotiomycetes", 6, true, viewportDimensions);
