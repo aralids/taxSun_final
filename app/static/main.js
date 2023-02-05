@@ -118,10 +118,10 @@ function getViewportDimensions() {
 'use strict';
 var e = React.createElement;
 function TaxonShape(props) {
-    return React.createElement("path", { id: props.id, d: props.d, onMouseOver: function () { return hoverHandler(props.id, props.percentage); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelOpacity, props.abbr, props.display); }, onClick: props.onClick, style: { "stroke": "#800080", "strokeWidth": "0.2vmin", "fill": props.fillColor } });
+    return React.createElement("path", { id: props.id, d: props.d, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelOpacity, props.abbr, props.display); }, onClick: props.onClick, style: { "stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor } });
 }
 function TaxonLabel(props) {
-    return React.createElement("p", { id: "".concat(props.taxon, "-label"), onMouseOver: function () { return hoverHandler(props.taxon, props.percentage); }, onMouseOut: function () { return onMouseOutHandler(props.taxon, props.opacity, props.abbr, props.display); }, onClick: props.onClick, style: { "backgroundColor": "white", "margin": "0", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "left": props.left, "right": props.right, "top": props.top, "transformOrigin": props.transformOrigin, "transform": props.transform, "border": "0.2vmin solid #800080", "opacity": props.opacity, "display": props.display } }, props.abbr);
+    return React.createElement("p", { id: "".concat(props.taxon, "-label"), onMouseOver: function () { return hoverHandler(props.taxon, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.taxon, props.opacity, props.abbr, props.display); }, onClick: props.onClick, style: { "margin": "0", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "left": props.left, "right": props.right, "top": props.top, "transformOrigin": props.transformOrigin, "transform": props.transform, "color": "#800080", "opacity": props.opacity, "display": props.display } }, props.abbr);
 }
 var PlotDrawing = /** @class */ (function (_super) {
     __extends(PlotDrawing, _super);
@@ -145,7 +145,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             taxonLabels: {},
             taxonShapes: {},
             colors: ["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
-            ancestors: [""],
+            ancestors: ["root"],
             rankPattern: []
         };
         return _this;
@@ -167,7 +167,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         //console.log("Acidobacteria bounding client? ", document.getElementById("Chthonomonadales bacterium_-_6-label")!.getBoundingClientRect());
         //console.log("Acidobacteria height? ", document.getElementById("Chthonomonadales bacterium_-_6-label")!.offsetHeight);
         var abbreviatables = this.checkTaxonLabelWidth();
-        console.log("abbreviatables: ", abbreviatables);
         if (abbreviatables.length > 0) {
             this.abbreviate(abbreviatables);
         }
@@ -363,7 +362,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var layers = getLayers(lineagesCopy);
         var numberOfLayers = Object.keys(layers).length;
         var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 7);
+        var layerWidth = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
         var svgPaths = {};
         var shapeComponents = {};
         var firstLayer = function (key) { return structureByTaxon[key].verticalWidthInLayerIndices[0]; };
@@ -401,6 +400,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             svgPaths[key] = d;
         }
         ;
+        svgPaths["".concat(newState["ancestors"][newState["ancestors"].length - 1], "_-_0")] = "M ".concat(this.state.horizontalShift, ", ").concat(this.state.verticalShift, " m -").concat(layerWidth, ", 0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 ").concat((layerWidth) * 2, ",0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 -").concat((layerWidth) * 2, ",0");
         newState["svgPaths"] = svgPaths;
         newState["shapeComponents"] = shapeComponents;
         this.calculateTaxonLabels(newState);
@@ -414,7 +414,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         ;
         var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
         var layers = getLayers(lineagesCopy);
-        var layerWidthInPx = Math.max((Math.min(cx, cy) - viewportDimensions["dpmm"] * 10) / Object.keys(layers).length, viewportDimensions["dpmm"] * 7);
+        var layerWidthInPx = Math.max((Math.min(cx, cy) - viewportDimensions["dpmm"] * 10) / Object.keys(layers).length, viewportDimensions["dpmm"] * 4);
         var firstLayer = function (key) { return structureByTaxon[key].verticalWidthInLayerIndices[0]; };
         var lastLayer = function (key) { return structureByTaxon[key].verticalWidthInLayerIndices[1]; };
         var startDeg = function (key) { return structureByTaxon[key].horizontalWidthInDeg[0]; };
@@ -467,10 +467,24 @@ var PlotDrawing = /** @class */ (function (_super) {
                 "opacity": "1",
                 "twist": twist,
                 "abbreviation": key.replace(/_-_\d+/, ""),
-                "display": "unset"
+                "display": "unset",
+                "fullLabel": key.replace(/_-_\d+/, "") + " ".concat(round(((structureByTaxon[key]["horizontalWidthInDeg"][1] - structureByTaxon[key]["horizontalWidthInDeg"][0]) / 360) * 100), "%")
             };
         }
         ;
+        taxonLabels["".concat(newState["ancestors"][newState["ancestors"].length - 1], "_-_0")] = {
+            "direction": "circumferential",
+            "left": this.state.horizontalShift,
+            "right": "unset",
+            "top": this.state.verticalShift,
+            "transform": "translate(-50%, -50%)",
+            "transformOrigin": "center center",
+            "opacity": "1",
+            "twist": 0,
+            "abbreviation": croppedLineages[0][0],
+            "display": "unset",
+            "fullLabel": croppedLineages[0][0]
+        };
         newState["taxonLabels"] = taxonLabels;
         newState["shapeCenters"] = shapeCenters;
         this.getTaxonShapes(newState);
@@ -504,7 +518,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         for (var i = 0; i < Object.keys(structureByTaxon).length; i++) {
             var firstAncestor = Object.keys(structureByTaxon)[i];
             if (firstAncestor.endsWith("_-_1")) {
-                taxonShapes["".concat(firstAncestor)] = colors[i % colors.length];
+                taxonShapes["".concat(firstAncestor)] = {};
+                taxonShapes["".concat(firstAncestor)]["fill"] = colors[i % colors.length];
+                taxonShapes["".concat(firstAncestor)]["stroke"] = "#800080";
             }
         }
         for (var i = 2; i < layers.length; i++) {
@@ -517,7 +533,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                             break;
                         }
                     }
-                    var ancestorColor = taxonShapes["".concat(firstAncestor, "_-_1")];
+                    var ancestorColor = taxonShapes["".concat(firstAncestor, "_-_1")]["fill"];
                     var nextColorIndex = (colors.indexOf(ancestorColor) + 1) % colors.length;
                     var nextColor = colors[nextColorIndex];
                     var selfStartingDegree = structureByTaxon["".concat(layers[i][j], "_-_").concat(i)].horizontalWidthInDeg[0];
@@ -527,10 +543,15 @@ var PlotDrawing = /** @class */ (function (_super) {
                     colorCalculationParameters[layers[i][j]] = [ancestorColor, nextColor, coef, tintFactor];
                     var hue = midColor(ancestorColor, nextColor, coef);
                     var tintifiedHue = tintify(hue, tintFactor);
-                    taxonShapes["".concat(layers[i][j], "_-_").concat(i)] = tintifiedHue;
+                    taxonShapes["".concat(layers[i][j], "_-_").concat(i)] = {};
+                    taxonShapes["".concat(layers[i][j], "_-_").concat(i)]["fill"] = tintifiedHue;
+                    taxonShapes["".concat(layers[i][j], "_-_").concat(i)]["stroke"] = "#800080";
                 }
             }
         }
+        taxonShapes["".concat(newState["ancestors"][newState["ancestors"].length - 1], "_-_0")] = {};
+        taxonShapes["".concat(newState["ancestors"][newState["ancestors"].length - 1], "_-_0")]["fill"] = "white";
+        taxonShapes["".concat(newState["ancestors"][newState["ancestors"].length - 1], "_-_0")]["stroke"] = "#800080";
         newState["taxonShapes"] = taxonShapes;
         this.setState(newState, function () { return console.log("taxonShapes: ", _this.state); });
     };
@@ -579,12 +600,14 @@ var PlotDrawing = /** @class */ (function (_super) {
                 }
             }
             else {
-                var topBeforeRotation = this.state.shapeCenters[key][1] - height / 2;
-                var bottomBeforeRotation = this.state.shapeCenters[key][1] + height / 2;
-                var leftBeforeRotation = this.state.shapeCenters[key][0] - width / 2;
-                var rightBeforeRotation = this.state.shapeCenters[key][0] + width / 2;
-                var cx = this.state.shapeCenters[key][0];
-                var cy = this.state.shapeCenters[key][1];
+                var shapeCenters0 = this.state.shapeCenters[key] ? this.state.shapeCenters[key][0] : this.state.horizontalShift;
+                var shapeCenters1 = this.state.shapeCenters[key] ? this.state.shapeCenters[key][1] : this.state.verticalShift;
+                var topBeforeRotation = shapeCenters1 - height / 2;
+                var bottomBeforeRotation = shapeCenters1 + height / 2;
+                var leftBeforeRotation = shapeCenters0 - width / 2;
+                var rightBeforeRotation = shapeCenters0 + width / 2;
+                var cx = shapeCenters0;
+                var cy = shapeCenters1;
                 var twist = this.state.taxonLabels[key]["twist"];
                 var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, twist);
                 var shape = document.getElementById(key);
@@ -616,7 +639,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             if (newAbbreviation.length === 0) {
                 newTaxonLabels[key]["display"] = "none";
             }
-            console.log("key, newAbbreviation: ", key, newAbbreviation);
             newTaxonLabels[key]["abbreviation"] = newAbbreviation;
         }
         this.setState({ taxonLabels: newTaxonLabels });
@@ -627,26 +649,18 @@ var PlotDrawing = /** @class */ (function (_super) {
         var shapes = [];
         var labels = [];
         var _loop_3 = function (item) {
-            percentage = "".concat(round(((this_1.state.structureByTaxon[item]["horizontalWidthInDeg"][1] - this_1.state.structureByTaxon[item]["horizontalWidthInDeg"][0]) / 360) * 100), "%");
-            shapes.push(React.createElement(TaxonShape, { id: item, abbr: this_1.state.taxonLabels[item]["abbreviation"], onClick: function () { return _this.handleClick(item); }, d: this_1.state.svgPaths[item], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: this_1.state.taxonShapes[item], labelOpacity: this_1.state.taxonLabels[item].opacity, display: this_1.state.taxonLabels[item]["display"], percentage: percentage }));
+            shapes.push(React.createElement(TaxonShape, { id: item, abbr: this_1.state.taxonLabels[item]["abbreviation"], onClick: function () { return _this.handleClick(item); }, d: this_1.state.svgPaths[item], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: this_1.state.taxonShapes[item]["fill"], labelOpacity: this_1.state.taxonLabels[item].opacity, display: this_1.state.taxonLabels[item]["display"], fullLabel: this_1.state.taxonLabels[item]["fullLabel"], stroke: this_1.state.taxonShapes[item]["stroke"] }));
         };
-        var this_1 = this, percentage;
+        var this_1 = this;
         for (var _i = 0, _a = Object.keys(this.state.svgPaths); _i < _a.length; _i++) {
             var item = _a[_i];
             _loop_3(item);
         }
-        var dpmm = viewportDimensions["dpmm"];
-        var layers = getLayers(this.state.croppedLineages);
-        var numberOfLayers = Object.keys(layers).length;
-        var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 7);
-        shapes.push(React.createElement("circle", { id: "".concat(this.state.ancestors[this.state.ancestors.length - 1], "_-_0"), onClick: function () { return _this.handleClick("".concat(_this.state.ancestors[_this.state.ancestors.length - 1], "_-_0")); }, strokeWidth: viewportDimensions["dpmm"] * 0.265, fill: "white", cx: this.state.horizontalShift, cy: this.state.verticalShift, r: "calc(".concat(layerWidth, "px - ").concat(dpmm * 0.265, "px)") }));
         var _loop_4 = function (item) {
-            percentage = "".concat(round(((this_2.state.structureByTaxon[item]["horizontalWidthInDeg"][1] - this_2.state.structureByTaxon[item]["horizontalWidthInDeg"][0]) / 360) * 100), "%");
-            labels.push(React.createElement(TaxonLabel, { taxon: item, abbr: this_2.state.taxonLabels[item]["abbreviation"], transform: this_2.state.taxonLabels[item]["transform"], left: this_2.state.taxonLabels[item]["left"], right: this_2.state.taxonLabels[item]["right"], top: this_2.state.taxonLabels[item]["top"], transformOrigin: this_2.state.taxonLabels[item]["transformOrigin"], opacity: this_2.state.taxonLabels[item]["opacity"], display: this_2.state.taxonLabels[item]["display"], onClick: function () { _this.handleClick(item); }, percentage: percentage }));
+            labels.push(React.createElement(TaxonLabel, { taxon: item, abbr: this_2.state.taxonLabels[item]["abbreviation"], transform: this_2.state.taxonLabels[item]["transform"], left: this_2.state.taxonLabels[item]["left"], right: this_2.state.taxonLabels[item]["right"], top: this_2.state.taxonLabels[item]["top"], transformOrigin: this_2.state.taxonLabels[item]["transformOrigin"], opacity: this_2.state.taxonLabels[item]["opacity"], display: this_2.state.taxonLabels[item]["display"], onClick: function () { _this.handleClick(item); }, fullLabel: this_2.state.taxonLabels[item]["fullLabel"] }));
         };
-        var this_2 = this, percentage;
-        for (var _b = 0, _c = Object.keys(this.state.taxonShapes); _b < _c.length; _b++) {
+        var this_2 = this;
+        for (var _b = 0, _c = Object.keys(this.state.taxonLabels); _b < _c.length; _b++) {
             var item = _c[_b];
             _loop_4(item);
         }
@@ -654,7 +668,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     return PlotDrawing;
 }(React.Component));
-addEventListener("mousemove", function (event) { return handleMouseMove(event); });
+//addEventListener("mousemove", (event) => handleMouseMove(event));
 function handleMouseMove(event) {
     var eventDoc, doc, body;
     event = event || window.event; // IE-ism
@@ -712,7 +726,7 @@ function tintify(rgb, tintFactor) {
     }
     return "rgb(".concat(newRgb[0], ", ").concat(newRgb[1], ", ").concat(newRgb[2], ")");
 }
-function hoverHandler(id, percentage) {
+function hoverHandler(id, fullLabel) {
     if (id.indexOf("-label") > -1) {
         var label = id;
         var shape = id.replace("-label", "");
@@ -728,7 +742,8 @@ function hoverHandler(id, percentage) {
     document.getElementById(label).style.border = "0.4vmin solid #800080";
     document.getElementById(label).style.opacity = "1";
     document.getElementById(label).style.display = "unset";
-    document.getElementById(label).innerText = id.replace(/_-_\d+/, "") + " " + percentage;
+    document.getElementById(label).style.backgroundColor = "white";
+    document.getElementById(label).innerText = fullLabel;
 }
 function onMouseOutHandler(id, usualOpacity, abbreviation, display) {
     if (id.indexOf("-label") > -1) {
@@ -742,7 +757,8 @@ function onMouseOutHandler(id, usualOpacity, abbreviation, display) {
     document.getElementById(shape).style.strokeWidth = "0.2vmin";
     document.getElementById(label).style.fontWeight = "normal";
     document.getElementById(label).style.zIndex = "unset";
-    document.getElementById(label).style.border = "0.2vmin solid #800080";
+    document.getElementById(label).style.border = "none";
+    document.getElementById(label).style.backgroundColor = "unset";
     document.getElementById(label).style.opacity = usualOpacity;
     document.getElementById(label).innerText = abbreviation;
     document.getElementById(label).style.display = display;

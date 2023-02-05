@@ -120,10 +120,10 @@ function getViewportDimensions():object {
 const e = React.createElement;
 
 function TaxonShape(props) {
-    return <path id={props.id} d={props.d} onMouseOver={() => hoverHandler(props.id, props.percentage)} onMouseOut={() => onMouseOutHandler(props.id, props.labelOpacity, props.abbr, props.display)} onClick={props.onClick} style={{"stroke": "#800080", "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
+    return <path id={props.id} d={props.d} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.labelOpacity, props.abbr, props.display)} onClick={props.onClick} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
 }
 function TaxonLabel(props) {
-    return <p id={`${props.taxon}-label`} onMouseOver={() => hoverHandler(props.taxon, props.percentage)} onMouseOut={() => onMouseOutHandler(props.taxon, props.opacity, props.abbr, props.display)} onClick={props.onClick} style={{"backgroundColor": "white", "margin": "0", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "left": props.left, "right": props.right, "top": props.top, "transformOrigin": props.transformOrigin, "transform": props.transform, "border": "0.2vmin solid #800080", "opacity": props.opacity, "display": props.display}}>{props.abbr}</p>
+    return <p id={`${props.taxon}-label`} onMouseOver={() => hoverHandler(props.taxon, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.taxon, props.opacity, props.abbr, props.display)} onClick={props.onClick} style={{"margin": "0", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "left": props.left, "right": props.right, "top": props.top, "transformOrigin": props.transformOrigin, "transform": props.transform, "color": "#800080", "opacity": props.opacity, "display": props.display}}>{props.abbr}</p>
 }
 
 
@@ -149,7 +149,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             taxonLabels: {},
             taxonShapes: {},
             colors: ["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
-            ancestors: [""],
+            ancestors: ["root"],
             rankPattern: []
         }
     }
@@ -172,7 +172,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         //console.log("Acidobacteria bounding client? ", document.getElementById("Chthonomonadales bacterium_-_6-label")!.getBoundingClientRect());
         //console.log("Acidobacteria height? ", document.getElementById("Chthonomonadales bacterium_-_6-label")!.offsetHeight);
         var abbreviatables:string[] = this.checkTaxonLabelWidth();
-        console.log("abbreviatables: ", abbreviatables)
         if (abbreviatables.length > 0) {
             this.abbreviate(abbreviatables);
         } 
@@ -360,6 +359,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 }; 
             }
         }
+        
         newState["structureByTaxon"] = structureByTaxon;
         
         this.calculateSVGPaths(newState);
@@ -383,7 +383,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var layers:string[][] = getLayers(lineagesCopy);
         var numberOfLayers = Object.keys(layers).length;
         var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth:number = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 7);
+        var layerWidth:number = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
         var svgPaths:object = {};
         var shapeComponents:object = {};
 
@@ -429,6 +429,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             
             svgPaths[key] = d;
         };
+        svgPaths[`${newState["ancestors"][newState["ancestors"].length-1]}_-_0`] = `M ${this.state.horizontalShift}, ${this.state.verticalShift} m -${layerWidth}, 0 a ${layerWidth},${layerWidth} 0 1,0 ${(layerWidth)* 2},0 a ${layerWidth},${layerWidth} 0 1,0 -${(layerWidth)* 2},0`;
         newState["svgPaths"] = svgPaths;
         newState["shapeComponents"] = shapeComponents;
         this.calculateTaxonLabels(newState);
@@ -442,7 +443,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var cy:number = this.state.verticalShift;;
         var lineagesCopy:string[][] = JSON.parse(JSON.stringify(croppedLineages));
         var layers:object = getLayers(lineagesCopy);
-        var layerWidthInPx:number = Math.max((Math.min(cx, cy) - viewportDimensions["dpmm"] * 10) / Object.keys(layers).length , viewportDimensions["dpmm"] * 7);
+        var layerWidthInPx:number = Math.max((Math.min(cx, cy) - viewportDimensions["dpmm"] * 10) / Object.keys(layers).length , viewportDimensions["dpmm"] * 4);
         var firstLayer = (key) => {return structureByTaxon[key].verticalWidthInLayerIndices[0]};
         var lastLayer = (key) => {return structureByTaxon[key].verticalWidthInLayerIndices[1]};
         var startDeg = (key) => {return structureByTaxon[key].horizontalWidthInDeg[0]};
@@ -500,9 +501,23 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 "opacity": "1",
                 "twist": twist,
                 "abbreviation": key.replace(/_-_\d+/, ""),
-                "display": "unset"
+                "display": "unset",
+                "fullLabel": key.replace(/_-_\d+/, "") + ` ${round(((structureByTaxon[key]["horizontalWidthInDeg"][1] - structureByTaxon[key]["horizontalWidthInDeg"][0])/360)*100)}%`
             }
         };
+        taxonLabels[`${newState["ancestors"][newState["ancestors"].length-1]}_-_0`] = {
+            "direction": "circumferential",
+            "left": this.state.horizontalShift,
+            "right": "unset",
+            "top": this.state.verticalShift,
+            "transform": "translate(-50%, -50%)",
+            "transformOrigin": "center center",
+            "opacity": "1",
+            "twist": 0,
+            "abbreviation": croppedLineages[0][0],
+            "display": "unset",
+            "fullLabel": croppedLineages[0][0]
+        }
         newState["taxonLabels"] = taxonLabels;
         newState["shapeCenters"] = shapeCenters;
         this.getTaxonShapes(newState);
@@ -537,7 +552,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (let i=0; i<Object.keys(structureByTaxon).length; i++) {
             var firstAncestor = Object.keys(structureByTaxon)[i];
             if (firstAncestor.endsWith("_-_1")) {    
-                taxonShapes[`${firstAncestor}`] = colors[i % colors.length];
+                taxonShapes[`${firstAncestor}`] = {};
+                taxonShapes[`${firstAncestor}`]["fill"] = colors[i % colors.length];
+                taxonShapes[`${firstAncestor}`]["stroke"] = "#800080";
             }
         }
 
@@ -551,7 +568,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                             break;
                         }
                     }
-                    var ancestorColor = taxonShapes[`${firstAncestor}_-_1`];
+                    var ancestorColor = taxonShapes[`${firstAncestor}_-_1`]["fill"];
                     var nextColorIndex = (colors.indexOf(ancestorColor) + 1) % colors.length;
                     var nextColor = colors[nextColorIndex];
                     var selfStartingDegree = structureByTaxon[`${layers[i][j]}_-_${i}`].horizontalWidthInDeg[0];
@@ -561,13 +578,16 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     colorCalculationParameters[layers[i][j]] = [ancestorColor, nextColor, coef, tintFactor];
                     var hue = midColor(ancestorColor, nextColor, coef);
                     var tintifiedHue = tintify(hue, tintFactor);
-                    taxonShapes[`${layers[i][j]}_-_${i}`] = tintifiedHue;
+                    taxonShapes[`${layers[i][j]}_-_${i}`] = {};
+                    taxonShapes[`${layers[i][j]}_-_${i}`]["fill"] = tintifiedHue;
+                    taxonShapes[`${layers[i][j]}_-_${i}`]["stroke"] = "#800080";
                     }
             }
         }
 
-
-
+        taxonShapes[`${newState["ancestors"][newState["ancestors"].length-1]}_-_0`] = {};
+        taxonShapes[`${newState["ancestors"][newState["ancestors"].length-1]}_-_0`]["fill"] = "white";
+        taxonShapes[`${newState["ancestors"][newState["ancestors"].length-1]}_-_0`]["stroke"] = "#800080";
         newState["taxonShapes"] = taxonShapes;
         this.setState(newState, () => console.log("taxonShapes: ", this.state));
     }
@@ -624,12 +644,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     tooWide.push(key);
                 }
             } else {
-                var topBeforeRotation = this.state.shapeCenters[key][1] - height/2;
-                var bottomBeforeRotation = this.state.shapeCenters[key][1] + height/2;
-                var leftBeforeRotation = this.state.shapeCenters[key][0] - width/2;
-                var rightBeforeRotation = this.state.shapeCenters[key][0] + width/2;
-                var cx = this.state.shapeCenters[key][0];
-                var cy = this.state.shapeCenters[key][1];
+                var shapeCenters0:number = this.state.shapeCenters[key] ? this.state.shapeCenters[key][0] : this.state.horizontalShift;
+                var shapeCenters1:number = this.state.shapeCenters[key] ? this.state.shapeCenters[key][1] : this.state.verticalShift;
+                var topBeforeRotation = shapeCenters1 - height/2;
+                var bottomBeforeRotation = shapeCenters1 + height/2;
+                var leftBeforeRotation = shapeCenters0 - width/2;
+                var rightBeforeRotation = shapeCenters0 + width/2;
+                var cx = shapeCenters0;
+                var cy = shapeCenters1;
                 var twist = this.state.taxonLabels[key]["twist"];
                 var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, twist);
 
@@ -666,7 +688,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             if (newAbbreviation.length === 0) {
                 newTaxonLabels[key]["display"] = "none";
             }
-            console.log("key, newAbbreviation: ", key, newAbbreviation)
             newTaxonLabels[key]["abbreviation"] = newAbbreviation;
         }
         this.setState({taxonLabels: newTaxonLabels});
@@ -678,26 +699,18 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var shapes:any = [];
         var labels:any = [];
         for (let item of Object.keys(this.state.svgPaths)) {
-            var percentage:string = `${round(((this.state.structureByTaxon[item]["horizontalWidthInDeg"][1] - this.state.structureByTaxon[item]["horizontalWidthInDeg"][0])/360)*100)}%`;
-            shapes.push(<TaxonShape id={item} abbr={this.state.taxonLabels[item]["abbreviation"]} onClick={() => this.handleClick(item)} d={this.state.svgPaths[item]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={this.state.taxonShapes[item]} labelOpacity={this.state.taxonLabels[item].opacity} display={this.state.taxonLabels[item]["display"]} percentage={percentage}/>);
+            shapes.push(<TaxonShape id={item} abbr={this.state.taxonLabels[item]["abbreviation"]} onClick={() => this.handleClick(item)} d={this.state.svgPaths[item]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={this.state.taxonShapes[item]["fill"]} labelOpacity={this.state.taxonLabels[item].opacity} display={this.state.taxonLabels[item]["display"]} fullLabel={this.state.taxonLabels[item]["fullLabel"]} stroke={this.state.taxonShapes[item]["stroke"]}/>);
         }
-        var dpmm = viewportDimensions["dpmm"];
-        var layers:string[][] = getLayers(this.state.croppedLineages);
-        var numberOfLayers = Object.keys(layers).length;
-        var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth:number = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 7);
-        shapes.push(<circle id={`${this.state.ancestors[this.state.ancestors.length-1]}_-_0`} onClick={() => this.handleClick(`${this.state.ancestors[this.state.ancestors.length-1]}_-_0`)} strokeWidth={viewportDimensions["dpmm"] * 0.265} fill="white" cx={this.state.horizontalShift} cy={this.state.verticalShift} r={`calc(${layerWidth}px - ${dpmm * 0.265}px)`}></circle>);
         
-        for (let item of Object.keys(this.state.taxonShapes)) {
-            var percentage:string = `${round(((this.state.structureByTaxon[item]["horizontalWidthInDeg"][1] - this.state.structureByTaxon[item]["horizontalWidthInDeg"][0])/360)*100)}%`;
-            labels.push(<TaxonLabel taxon={item} abbr={this.state.taxonLabels[item]["abbreviation"]} transform={this.state.taxonLabels[item]["transform"]} left={this.state.taxonLabels[item]["left"]} right={this.state.taxonLabels[item]["right"]} top={this.state.taxonLabels[item]["top"]} transformOrigin={this.state.taxonLabels[item]["transformOrigin"]} opacity={this.state.taxonLabels[item]["opacity"]} display={this.state.taxonLabels[item]["display"]} onClick={() => {this.handleClick(item)}} percentage={percentage}/>)
+        for (let item of Object.keys(this.state.taxonLabels)) {
+            labels.push(<TaxonLabel taxon={item} abbr={this.state.taxonLabels[item]["abbreviation"]} transform={this.state.taxonLabels[item]["transform"]} left={this.state.taxonLabels[item]["left"]} right={this.state.taxonLabels[item]["right"]} top={this.state.taxonLabels[item]["top"]} transformOrigin={this.state.taxonLabels[item]["transformOrigin"]} opacity={this.state.taxonLabels[item]["opacity"]} display={this.state.taxonLabels[item]["display"]} onClick={() => {this.handleClick(item)}} fullLabel={this.state.taxonLabels[item]["fullLabel"]}/>)
         }
 
         return [<svg style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes}</svg>,<div id="labels">{labels}</div>]
     }
 }
 
-addEventListener("mousemove", (event) => handleMouseMove(event));
+//addEventListener("mousemove", (event) => handleMouseMove(event));
 
 function handleMouseMove(event):void {
     var eventDoc, doc, body;
@@ -763,7 +776,7 @@ function tintify(rgb:string, tintFactor:number):string {
     return `rgb(${newRgb[0]}, ${newRgb[1]}, ${newRgb[2]})`;
 }
 
-function hoverHandler(id:string, percentage:string):void {
+function hoverHandler(id:string, fullLabel:string):void {
     if (id.indexOf("-label") > -1) {
         var label = id;
         var shape = id.replace("-label", "");
@@ -778,7 +791,8 @@ function hoverHandler(id:string, percentage:string):void {
     document.getElementById(label)!.style.border = "0.4vmin solid #800080";
     document.getElementById(label)!.style.opacity = "1";
     document.getElementById(label)!.style.display = "unset";
-    document.getElementById(label)!.innerText = id.replace(/_-_\d+/, "") + " " + percentage;
+    document.getElementById(label)!.style.backgroundColor = "white";
+    document.getElementById(label)!.innerText = fullLabel;
 }
 
 function onMouseOutHandler(id:string, usualOpacity:string, abbreviation:string, display:string):void {
@@ -792,7 +806,8 @@ function onMouseOutHandler(id:string, usualOpacity:string, abbreviation:string, 
     document.getElementById(shape)!.style.strokeWidth = "0.2vmin";
     document.getElementById(label)!.style.fontWeight = "normal";
     document.getElementById(label)!.style.zIndex = "unset";
-    document.getElementById(label)!.style.border = "0.2vmin solid #800080";
+    document.getElementById(label)!.style.border = "none";
+    document.getElementById(label)!.style.backgroundColor = "unset";
     document.getElementById(label)!.style.opacity = usualOpacity;
     document.getElementById(label)!.innerText = abbreviation;
     document.getElementById(label)!.style.display = display;
