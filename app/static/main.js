@@ -14,6 +14,15 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 exports.__esModule = true;
 var React = require("react");
 var ReactDOM = require("react-dom/client");
@@ -116,12 +125,14 @@ function getViewportDimensions() {
     };
 }
 'use strict';
-var e = React.createElement;
 function TaxonShape(props) {
-    return React.createElement("path", { id: props.id, d: props.d, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelOpacity, props.abbr, props.display); }, onClick: props.onClick, style: { "stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor } });
+    return React.createElement("path", { id: props.taxon, d: props.d, onMouseOver: function () { return hoverHandler(props.taxon, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.taxon, props.labelOpacity, props.abbr, props.display); }, onClick: props.onClick, style: { "stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor } });
 }
 function TaxonLabel(props) {
     return React.createElement("p", { id: "".concat(props.taxon, "-label"), onMouseOver: function () { return hoverHandler(props.taxon, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.taxon, props.opacity, props.abbr, props.display); }, onClick: props.onClick, style: { "margin": "0", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "left": props.left, "right": props.right, "top": props.top, "transformOrigin": props.transformOrigin, "transform": props.transform, "color": "#800080", "opacity": props.opacity, "display": props.display } }, props.abbr);
+}
+function AncestorLabel(props) {
+    return React.createElement("p", { id: props.id, className: "ancestor", style: { "margin": "0", "position": "fixed", "fontFamily": "calibri", "fontSize": "2vmin", "top": props.top, "left": 0, "color": "#800080" }, onClick: props.onClick }, props.taxon);
 }
 var PlotDrawing = /** @class */ (function (_super) {
     __extends(PlotDrawing, _super);
@@ -145,7 +156,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             taxonLabels: {},
             taxonShapes: {},
             colors: ["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
-            ancestors: ["root"],
+            ancestors: [],
             rankPattern: []
         };
         return _this;
@@ -157,24 +168,23 @@ var PlotDrawing = /** @class */ (function (_super) {
             _this.changePalette();
         });
         addEventListener("resize", function (event) {
-            console.log("resize event");
+            console.log("resize event", _this.state);
             var newViewportDimensions = getViewportDimensions();
             viewportDimensions = newViewportDimensions;
-            _this.setState({ horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"] }, function () { return _this.calculateSVGPaths({}); });
+            _this.setState({ horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"] }, function () { return _this.calculateSVGPaths({ "ancestors": _this.state.ancestors }); });
         });
     };
     PlotDrawing.prototype.componentDidUpdate = function () {
-        //console.log("Acidobacteria bounding client? ", document.getElementById("Chthonomonadales bacterium_-_6-label")!.getBoundingClientRect());
-        //console.log("Acidobacteria height? ", document.getElementById("Chthonomonadales bacterium_-_6-label")!.offsetHeight);
         var abbreviatables = this.checkTaxonLabelWidth();
         if (abbreviatables.length > 0) {
             this.abbreviate(abbreviatables);
         }
     };
     // Leave only relevant lineages and crop them if necessary.
-    PlotDrawing.prototype.cropLineages = function (root, layer) {
+    PlotDrawing.prototype.cropLineages = function (root, layer, reducedCroppedLineages) {
         if (root === void 0) { root = this.state.root; }
         if (layer === void 0) { layer = this.state.layer; }
+        if (reducedCroppedLineages === void 0) { reducedCroppedLineages = undefined; }
         // Get only relevant lineages.
         var croppedLineages = [];
         var croppedRanks = [];
@@ -215,6 +225,10 @@ var PlotDrawing = /** @class */ (function (_super) {
             alignedCropppedLineages.push(alignedLineage);
             alignedCropppedRanks.push(alignedRank);
         }
+        if (reducedCroppedLineages) {
+            alignedCropppedLineages = reducedCroppedLineages;
+            croppedLineages = alignedCropppedLineages.map(function (item) { return item.filter(function (item1) { return Boolean(item1); }); });
+        }
         // Save in state object taxonSpecifics.
         var taxonSpecifics = {};
         for (var i = 0; i < croppedLineages.length; i++) {
@@ -223,16 +237,31 @@ var PlotDrawing = /** @class */ (function (_super) {
             taxonSpecifics[taxName].croppedLineage = croppedLineages[i];
             taxonSpecifics[taxName].alignedCroppedLineage = alignedCropppedLineages[i];
             taxonSpecifics[taxName].unassignedCount = allTaxaReduced[taxName].unassignedCount;
+            taxonSpecifics[taxName].leaf = true;
+        }
+        var noUnassignedCounts = [];
+        for (var i = 0; i < croppedLineages.length; i++) {
+            for (var j = croppedLineages[i].length - 2; j >= 0; j--) {
+                if (!taxonSpecifics[croppedLineages[i][j]]) {
+                    noUnassignedCounts.push(croppedLineages[i][j]);
+                    taxonSpecifics[croppedLineages[i][j]] = {};
+                    taxonSpecifics[croppedLineages[i][j]].croppedLineage = croppedLineages[i].slice(0, j + 1);
+                    //taxonSpecifics[croppedLineages[i][j]].alignedCroppedLineage = alignedCropppedLineages[i];
+                    //taxonSpecifics[croppedLineages[i][j]].unassignedCount = allTaxaReduced[croppedLineages[i][j]].unassignedCount;
+                    taxonSpecifics[croppedLineages[i][j]].leaf = false;
+                }
+            }
         }
         if (croppedLineages.length > 1) {
-            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": alignedCropppedLineages, "ancestors": ancestors });
+            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": alignedCropppedLineages, "ancestors": ancestors }, Boolean(reducedCroppedLineages));
         }
     };
     // Assign each cropped lineage a start and end degree.
-    PlotDrawing.prototype.assignDegrees = function (newState) {
+    PlotDrawing.prototype.assignDegrees = function (newState, bypassReducing) {
+        if (bypassReducing === void 0) { bypassReducing = false; }
         var taxonSpecifics = newState["taxonSpecifics"] ? newState["taxonSpecifics"] : this.state.taxonSpecifics;
         var totalUnassignedCounts = 0;
-        for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
+        for (var _i = 0, _a = Object.keys(taxonSpecifics).filter(function (item) { return taxonSpecifics[item]["leaf"]; }); _i < _a.length; _i++) {
             var taxName = _a[_i];
             totalUnassignedCounts += taxonSpecifics[taxName]["unassignedCount"];
         }
@@ -240,7 +269,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var lineageEndDeg;
         var structureByDegrees = {};
         var key;
-        for (var _b = 0, _c = Object.keys(taxonSpecifics); _b < _c.length; _b++) {
+        for (var _b = 0, _c = Object.keys(taxonSpecifics).filter(function (item) { return taxonSpecifics[item]["leaf"]; }); _b < _c.length; _b++) {
             var taxName = _c[_b];
             lineageEndDeg = lineageStartDeg + taxonSpecifics[taxName]["unassignedCount"] * 360 / totalUnassignedCounts;
             // !!!!!!
@@ -253,7 +282,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             lineageStartDeg = lineageEndDeg;
         }
         newState["structureByDegrees"] = structureByDegrees;
-        this.getStructureByTaxon(newState);
+        this.getStructureByTaxon(newState, bypassReducing);
     };
     // If collapse=true, remove taxa that only come up in the lineage of one other taxon and have no unassigned counts of their own.
     PlotDrawing.prototype.collapse = function (croppedLineages) {
@@ -277,7 +306,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         return lineagesCopy;
     };
-    PlotDrawing.prototype.getStructureByTaxon = function (newState) {
+    PlotDrawing.prototype.getStructureByTaxon = function (newState, bypassReducing) {
+        if (bypassReducing === void 0) { bypassReducing = false; }
         var taxonSpecifics = newState["taxonSpecifics"] ? newState["taxonSpecifics"] : this.state.taxonSpecifics;
         var croppedLineages = newState["croppedLineages"] ? newState["croppedLineages"] : this.state.taxonSpecifics;
         var structureByTaxon = {};
@@ -333,18 +363,76 @@ var PlotDrawing = /** @class */ (function (_super) {
                         verticalMax++;
                     }
                 }
+                //console.log("Does it work? ", key, taxonSpecifics[key]["croppedLineage"].indexOf(key));
+                var redirectTo = key + "_-_".concat(taxonSpecifics[key]["croppedLineage"].indexOf(key));
                 key += "_-_".concat(verticalMin);
                 structureByTaxon[key] = {
                     "horizontalWidthInDeg": [round(startDegrees), round(endDegrees)],
                     "verticalWidthInLayerIndices": [verticalMin, verticalMax],
                     "breakingLayers": breakingLayersFiltered,
                     "breakingPoints": breakingPointsFiltered,
-                    "actualIndex": actualIndex
+                    "actualIndex": actualIndex,
+                    "redirectTo": redirectTo
                 };
             }
         }
         newState["structureByTaxon"] = structureByTaxon;
-        this.calculateSVGPaths(newState);
+        if (!bypassReducing) {
+            this.calculateSVGPaths(newState);
+            //this.reduceIfNecessary(newState);
+        }
+        else {
+            this.calculateSVGPaths(newState);
+        }
+    };
+    PlotDrawing.prototype.reduceIfNecessary = function (newState) {
+        var _a;
+        var root = newState["root"] ? newState["root"] : this.state.root;
+        var layer = newState["layer"];
+        var croppedLineages = newState["croppedLineages"] ? newState["croppedLineages"] : this.state.taxonSpecifics;
+        croppedLineages = JSON.parse(JSON.stringify(croppedLineages));
+        var lineageLengthPre = croppedLineages[0].length;
+        var structureByTaxon = newState["structureByTaxon"] == undefined ? this.state.structureByTaxon : newState["structureByTaxon"];
+        var taxonSpecifics = newState["taxonSpecifics"] ? newState["taxonSpecifics"] : this.state.taxonSpecifics;
+        var reducibleShapes = [];
+        for (var _i = 0, _b = Object.keys(structureByTaxon); _i < _b.length; _i++) {
+            var key = _b[_i];
+            if (round(((structureByTaxon[key]["horizontalWidthInDeg"][1] - structureByTaxon[key]["horizontalWidthInDeg"][0]) / 360) * 100) < 0.38) {
+                reducibleShapes.push(key);
+                structureByTaxon[key]["toBeDeleted"] = true;
+            }
+        }
+        for (var i = reducibleShapes.length - 1; i >= 0; i--) {
+            var reducible = reducibleShapes[i].split("_-_")[0];
+            var reducibleIndex = parseInt(reducibleShapes[i].split("_-_")[1]);
+            for (var j = 0; j < croppedLineages.length; j++) {
+                if (croppedLineages[j][reducibleIndex] === reducible) {
+                    (_a = croppedLineages[j]).splice.apply(_a, __spreadArray([reducibleIndex + 1, lineageLengthPre - (reducibleIndex + 1)], new Array(lineageLengthPre - (reducibleIndex + 1)).fill(null), false));
+                }
+            }
+        }
+        for (var i = croppedLineages.length - 1; i >= 0; i--) {
+            var croppedLineage = JSON.stringify(croppedLineages[i]);
+            var croppedLineagesJSON = croppedLineages.map(function (item) { return JSON.stringify(item); });
+            var lastOccurrence = i;
+            var firstOccurrence = croppedLineagesJSON.indexOf(croppedLineage);
+            if (firstOccurrence !== lastOccurrence) {
+                croppedLineages.splice(i, 1);
+            }
+        }
+        // Shrink if possible.
+        for (var i = croppedLineages[0].length - 1; i >= 0; i--) {
+            var shrinkableIndex = true;
+            for (var j = 0; j < croppedLineages.length - 1; j++) {
+                var shrinkableIndex = shrinkableIndex && (croppedLineages[j][i] === null);
+            }
+            if (shrinkableIndex) {
+                //croppedLineages.map(item => item.splice(i, 1))
+            }
+        }
+        //console.log("croppedLineages post2: ", croppedLineages)
+        var reducedCroppedLineages = croppedLineages;
+        this.cropLineages(root, layer, reducedCroppedLineages);
     };
     PlotDrawing.prototype.calculateArcEndpoints = function (layer, layerWidthInPx, deg1, deg2) {
         var radius = layer * layerWidthInPx; // in px
@@ -415,11 +503,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
         var layers = getLayers(lineagesCopy);
         var layerWidthInPx = Math.max((Math.min(cx, cy) - viewportDimensions["dpmm"] * 10) / Object.keys(layers).length, viewportDimensions["dpmm"] * 4);
-        var firstLayer = function (key) { return structureByTaxon[key].verticalWidthInLayerIndices[0]; };
-        var lastLayer = function (key) { return structureByTaxon[key].verticalWidthInLayerIndices[1]; };
         var startDeg = function (key) { return structureByTaxon[key].horizontalWidthInDeg[0]; };
         var endDeg = function (key) { return structureByTaxon[key].horizontalWidthInDeg[1]; };
-        var breakingPt = function (key) { return structureByTaxon[key].breakingPoint; };
         var taxonLabels = {};
         for (var _i = 0, _a = Object.keys(structureByTaxon); _i < _a.length; _i++) {
             var key = _a[_i];
@@ -428,7 +513,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             centerDegree = startDeg(key) + (endDeg(key) - startDeg(key)) / 2;
             centerRadius = structureByTaxon[key].actualIndex + 0.5;
             var centerX = centerRadius * layerWidthInPx * cos(centerDegree);
-            var point1 = getPointAtLength(centerRadius * layerWidthInPx, viewportDimensions["cx"], viewportDimensions["cy"], leftBorder[2], leftBorder[3]);
             centerX = round(centerX) + cx;
             var centerY = -centerRadius * layerWidthInPx * sin(centerDegree);
             centerY = round(centerY) + cy;
@@ -561,9 +645,12 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.getTaxonShapes({ "colors": newPalette });
     };
     PlotDrawing.prototype.handleClick = function (shapeId) {
+        console.log("shapeId: ", shapeId);
         var taxon = shapeId.match(/.+?(?=_)/)[0];
-        var currLayer = parseInt(shapeId.match(/\d+/)[0]);
-        var nextLayer = currLayer === 0 ? this.state.layer - 1 : currLayer + this.state.layer;
+        var currLayer = parseInt(shapeId.match(/-?\d+/)[0]);
+        console.log("currLayer: ", currLayer, shapeId);
+        var nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : currLayer + this.state.layer;
+        console.log("taxon, nextLayer hC: ", taxon, nextLayer);
         this.cropLineages(taxon, nextLayer);
     };
     PlotDrawing.prototype.checkTaxonLabelWidth = function () {
@@ -649,20 +736,31 @@ var PlotDrawing = /** @class */ (function (_super) {
         var shapes = [];
         var labels = [];
         var _loop_3 = function (item) {
-            shapes.push(React.createElement(TaxonShape, { id: item, abbr: this_1.state.taxonLabels[item]["abbreviation"], onClick: function () { return _this.handleClick(item); }, d: this_1.state.svgPaths[item], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: this_1.state.taxonShapes[item]["fill"], labelOpacity: this_1.state.taxonLabels[item].opacity, display: this_1.state.taxonLabels[item]["display"], fullLabel: this_1.state.taxonLabels[item]["fullLabel"], stroke: this_1.state.taxonShapes[item]["stroke"] }));
+            redirectTo = this_1.state.structureByTaxon[item] ? this_1.state.structureByTaxon[item]["redirectTo"] : item;
+            shapes.push(React.createElement(TaxonShape, { id: redirectTo, taxon: item, abbr: this_1.state.taxonLabels[item]["abbreviation"], onClick: function () { return _this.handleClick(item); }, d: this_1.state.svgPaths[item], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: this_1.state.taxonShapes[item]["fill"], labelOpacity: this_1.state.taxonLabels[item].opacity, display: this_1.state.taxonLabels[item]["display"], fullLabel: this_1.state.taxonLabels[item]["fullLabel"], stroke: this_1.state.taxonShapes[item]["stroke"] }));
         };
-        var this_1 = this;
+        var this_1 = this, redirectTo;
         for (var _i = 0, _a = Object.keys(this.state.svgPaths); _i < _a.length; _i++) {
             var item = _a[_i];
             _loop_3(item);
         }
         var _loop_4 = function (item) {
-            labels.push(React.createElement(TaxonLabel, { taxon: item, abbr: this_2.state.taxonLabels[item]["abbreviation"], transform: this_2.state.taxonLabels[item]["transform"], left: this_2.state.taxonLabels[item]["left"], right: this_2.state.taxonLabels[item]["right"], top: this_2.state.taxonLabels[item]["top"], transformOrigin: this_2.state.taxonLabels[item]["transformOrigin"], opacity: this_2.state.taxonLabels[item]["opacity"], display: this_2.state.taxonLabels[item]["display"], onClick: function () { _this.handleClick(item); }, fullLabel: this_2.state.taxonLabels[item]["fullLabel"] }));
+            redirectTo = this_2.state.structureByTaxon[item] ? this_2.state.structureByTaxon[item]["redirectTo"] : item;
+            labels.push(React.createElement(TaxonLabel, { id: redirectTo, taxon: item, abbr: this_2.state.taxonLabels[item]["abbreviation"], transform: this_2.state.taxonLabels[item]["transform"], left: this_2.state.taxonLabels[item]["left"], right: this_2.state.taxonLabels[item]["right"], top: this_2.state.taxonLabels[item]["top"], transformOrigin: this_2.state.taxonLabels[item]["transformOrigin"], opacity: this_2.state.taxonLabels[item]["opacity"], display: this_2.state.taxonLabels[item]["display"], onClick: function () { _this.handleClick(item); }, fullLabel: this_2.state.taxonLabels[item]["fullLabel"] }));
         };
-        var this_2 = this;
+        var this_2 = this, redirectTo;
         for (var _b = 0, _c = Object.keys(this.state.taxonLabels); _b < _c.length; _b++) {
             var item = _c[_b];
             _loop_4(item);
+        }
+        var _loop_5 = function (i) {
+            ancestor = this_3.state.ancestors[i];
+            actualI = i - this_3.state.ancestors.length;
+            labels.push(React.createElement(AncestorLabel, { id: "".concat(ancestor, "_-_").concat(actualI + 1), taxon: ancestor, top: "".concat(3 + 2.5 * (this_3.state.ancestors.length - i), "vmin"), onClick: function () { _this.handleClick("".concat(_this.state.ancestors[i], "_-_").concat((i - _this.state.ancestors.length) + 1)); } }));
+        };
+        var this_3 = this, ancestor, actualI;
+        for (var i = this.state.ancestors.length - 1; i >= 0; i--) {
+            _loop_5(i);
         }
         return [React.createElement("svg", { style: { "height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none" }, id: "shapes" }, shapes), React.createElement("div", { id: "labels" }, labels)];
     };
@@ -735,7 +833,6 @@ function hoverHandler(id, fullLabel) {
         var shape = id;
         var label = id + "-label";
     }
-    console.log("id: ", id);
     document.getElementById(shape).style.strokeWidth = "0.4vmin";
     document.getElementById(label).style.fontWeight = "bold";
     document.getElementById(label).style.zIndex = "1000";
@@ -913,6 +1010,28 @@ for (var _k = 0, lineagesFull_1 = lineagesFull; _k < lineagesFull_1.length; _k++
     lineagesNames.push(lineageNames);
     lineagesRanks.push(lineageRanks);
 }
+var newlyAdded = [];
+for (var _l = 0, _m = Object.keys(allTaxaReduced); _l < _m.length; _l++) {
+    var taxName = _m[_l];
+    var unassignedCount = allTaxaReduced[taxName].unassignedCount;
+    var lineage = allTaxaReduced[taxName].lineageNames;
+    for (var _o = 0, lineage_1 = lineage; _o < lineage_1.length; _o++) {
+        var predecessor = lineage_1[_o];
+        if (!allTaxaReduced[predecessor[1]]) {
+            newlyAdded.push(predecessor[1]);
+            allTaxaReduced[predecessor[1]] = {};
+            allTaxaReduced[predecessor[1]]["rank"] = predecessor[0];
+            // lineage
+            allTaxaReduced[predecessor[1]]["totalCount"] = unassignedCount;
+            allTaxaReduced[predecessor[1]]["unassignedCount"] = unassignedCount;
+        }
+        else if (newlyAdded.indexOf(predecessor[1]) > -1) {
+            allTaxaReduced[predecessor[1]]["totalCount"] += unassignedCount;
+            allTaxaReduced[predecessor[1]]["unassignedCount"] += unassignedCount;
+        }
+    }
+}
+newlyAdded = newlyAdded.filter(function (v, i, a) { return a.indexOf(v) === i; });
 // var fullPlot:Plot = new Plot();
 // var mycosphaerellalesPlot:Plot = new Plot("Bacteria", 0, true, viewportDimensions);
 // var mycosphaerellalesPlot:Plot = new Plot("Leotiomycetes", 6, true, viewportDimensions);

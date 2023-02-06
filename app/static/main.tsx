@@ -117,13 +117,15 @@ function getViewportDimensions():object {
 
 'use strict';
 
-const e = React.createElement;
-
 function TaxonShape(props) {
-    return <path id={props.id} d={props.d} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.labelOpacity, props.abbr, props.display)} onClick={props.onClick} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
+    return <path id={props.taxon} d={props.d} onMouseOver={() => hoverHandler(props.taxon, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.taxon, props.labelOpacity, props.abbr, props.display)} onClick={props.onClick} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
 }
 function TaxonLabel(props) {
     return <p id={`${props.taxon}-label`} onMouseOver={() => hoverHandler(props.taxon, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.taxon, props.opacity, props.abbr, props.display)} onClick={props.onClick} style={{"margin": "0", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "left": props.left, "right": props.right, "top": props.top, "transformOrigin": props.transformOrigin, "transform": props.transform, "color": "#800080", "opacity": props.opacity, "display": props.display}}>{props.abbr}</p>
+}
+
+function AncestorLabel(props) {
+    return <p id={props.id} className="ancestor" style={{"margin": "0", "position": "fixed", "fontFamily": "calibri", "fontSize": "2vmin", "top": props.top, "left": 0, "color": "#800080"}} onClick={props.onClick}>{props.taxon}</p>
 }
 
 
@@ -149,7 +151,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             taxonLabels: {},
             taxonShapes: {},
             colors: ["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
-            ancestors: ["root"],
+            ancestors: [],
             rankPattern: []
         }
     }
@@ -160,17 +162,15 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             this.changePalette();
         })
         addEventListener("resize", (event) => {
-            console.log("resize event");
+            console.log("resize event", this.state);
             var newViewportDimensions = getViewportDimensions();
             viewportDimensions = newViewportDimensions;
-            this.setState({horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"]}, () => this.calculateSVGPaths({}));
+            this.setState({horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"]}, () => this.calculateSVGPaths({"ancestors": this.state.ancestors}));
         })
             
     }
 
     componentDidUpdate() {
-        //console.log("Acidobacteria bounding client? ", document.getElementById("Chthonomonadales bacterium_-_6-label")!.getBoundingClientRect());
-        //console.log("Acidobacteria height? ", document.getElementById("Chthonomonadales bacterium_-_6-label")!.offsetHeight);
         var abbreviatables:string[] = this.checkTaxonLabelWidth();
         if (abbreviatables.length > 0) {
             this.abbreviate(abbreviatables);
@@ -178,7 +178,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     // Leave only relevant lineages and crop them if necessary.
-    cropLineages(root=this.state.root, layer=this.state.layer):void {
+    cropLineages(root=this.state.root, layer=this.state.layer, reducedCroppedLineages:any=undefined):void {
 
         // Get only relevant lineages.
         var croppedLineages:string[][] = [];
@@ -225,28 +225,47 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             alignedCropppedRanks.push(alignedRank);
         }
 
+        if (reducedCroppedLineages) {
+            alignedCropppedLineages = reducedCroppedLineages;
+            croppedLineages = alignedCropppedLineages.map(item => item.filter(item1 => Boolean(item1)));
+        }
+
         // Save in state object taxonSpecifics.
         var taxonSpecifics:object = {};
         for (let i=0; i<croppedLineages.length; i++) {
             var taxName:string = croppedLineages[i][croppedLineages[i].length-1];
-            
             taxonSpecifics[taxName] = {};
             taxonSpecifics[taxName].croppedLineage = croppedLineages[i];
             taxonSpecifics[taxName].alignedCroppedLineage = alignedCropppedLineages[i];
             taxonSpecifics[taxName].unassignedCount = allTaxaReduced[taxName].unassignedCount;
+            taxonSpecifics[taxName].leaf = true;
+        }
+
+        var noUnassignedCounts:string[] = [];
+        for (let i=0; i<croppedLineages.length; i++) {
+            for (let j=croppedLineages[i].length-2; j>=0; j--) {
+                if (!taxonSpecifics[croppedLineages[i][j]]) {
+                    noUnassignedCounts.push(croppedLineages[i][j]);
+                    taxonSpecifics[croppedLineages[i][j]] = {};
+                    taxonSpecifics[croppedLineages[i][j]].croppedLineage = croppedLineages[i].slice(0, j+1);
+                    //taxonSpecifics[croppedLineages[i][j]].alignedCroppedLineage = alignedCropppedLineages[i];
+                    //taxonSpecifics[croppedLineages[i][j]].unassignedCount = allTaxaReduced[croppedLineages[i][j]].unassignedCount;
+                    taxonSpecifics[croppedLineages[i][j]].leaf = false;
+                }
+            }
         }
 
         if (croppedLineages.length > 1) {
-            this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": alignedCropppedLineages, "ancestors": ancestors});
+            this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": alignedCropppedLineages, "ancestors": ancestors}, Boolean(reducedCroppedLineages));
         }
 
     }
 
     // Assign each cropped lineage a start and end degree.
-    assignDegrees(newState:object):void {
+    assignDegrees(newState:object, bypassReducing:boolean=false):void {
         var taxonSpecifics = newState["taxonSpecifics"] ? newState["taxonSpecifics"] : this.state.taxonSpecifics;
         var totalUnassignedCounts:number = 0;
-        for (let taxName of Object.keys(taxonSpecifics)) {
+        for (let taxName of Object.keys(taxonSpecifics).filter(item => taxonSpecifics[item]["leaf"])) {
             totalUnassignedCounts += taxonSpecifics[taxName]["unassignedCount"];
         }
         
@@ -255,7 +274,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var lineageEndDeg:number;
         var structureByDegrees:object = {};
         var key:string;
-        for (let taxName of Object.keys(taxonSpecifics)) {
+        for (let taxName of Object.keys(taxonSpecifics).filter(item => taxonSpecifics[item]["leaf"])) {
             lineageEndDeg = lineageStartDeg + taxonSpecifics[taxName]["unassignedCount"] * 360 / totalUnassignedCounts;
             // !!!!!!
             if (lineageStartDeg === 0 && lineageEndDeg === 360) {
@@ -264,10 +283,11 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             key = `${lineageStartDeg}-${lineageEndDeg} deg`; // name section
             structureByDegrees[key] = taxonSpecifics[taxName]["alignedCroppedLineage"]; // assign
             lineageStartDeg = lineageEndDeg;
+
         }
 
         newState["structureByDegrees"] = structureByDegrees;
-        this.getStructureByTaxon(newState);
+        this.getStructureByTaxon(newState, bypassReducing);
     }
 
     // If collapse=true, remove taxa that only come up in the lineage of one other taxon and have no unassigned counts of their own.
@@ -288,7 +308,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         return lineagesCopy;
     }
 
-    getStructureByTaxon(newState:object):void {
+    getStructureByTaxon(newState:object, bypassReducing:boolean=false):void {
         var taxonSpecifics:object = newState["taxonSpecifics"] ? newState["taxonSpecifics"] : this.state.taxonSpecifics;
         var croppedLineages:string[][] = newState["croppedLineages"] ? newState["croppedLineages"] : this.state.taxonSpecifics;
         
@@ -348,6 +368,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                         verticalMax++;
                     }
                 }
+
+                //console.log("Does it work? ", key, taxonSpecifics[key]["croppedLineage"].indexOf(key));
+                var redirectTo:string = key + `_-_${taxonSpecifics[key]["croppedLineage"].indexOf(key)}`;
                 
                 key += `_-_${verticalMin}`;
                 structureByTaxon[key] = {
@@ -355,14 +378,79 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "verticalWidthInLayerIndices": [verticalMin, verticalMax],
                     "breakingLayers": breakingLayersFiltered,
                     "breakingPoints": breakingPointsFiltered,
-                    "actualIndex": actualIndex
+                    "actualIndex": actualIndex,
+                    "redirectTo": redirectTo
                 }; 
+                
             }
         }
         
         newState["structureByTaxon"] = structureByTaxon;
         
-        this.calculateSVGPaths(newState);
+        if (!bypassReducing) {
+            this.calculateSVGPaths(newState);
+            //this.reduceIfNecessary(newState);
+        } else {
+            this.calculateSVGPaths(newState);
+        }
+    }
+
+    reduceIfNecessary(newState) {
+        var root:string = newState["root"] ? newState["root"] : this.state.root;
+        var layer:number = newState["layer"];
+        var croppedLineages:string[][] = newState["croppedLineages"] ? newState["croppedLineages"] : this.state.taxonSpecifics;
+        croppedLineages = JSON.parse(JSON.stringify(croppedLineages));
+        var lineageLengthPre:number = croppedLineages[0].length;
+        var structureByTaxon = newState["structureByTaxon"] == undefined ? this.state.structureByTaxon : newState["structureByTaxon"];
+        var taxonSpecifics = newState["taxonSpecifics"] ? newState["taxonSpecifics"] : this.state.taxonSpecifics;
+        
+        var reducibleShapes:string[] = [];
+
+        for (let key of Object.keys(structureByTaxon)) {
+            if (round(((structureByTaxon[key]["horizontalWidthInDeg"][1] - structureByTaxon[key]["horizontalWidthInDeg"][0])/360)*100) < 0.38) {
+                reducibleShapes.push(key);
+                structureByTaxon[key]["toBeDeleted"] = true;
+            }
+        }
+
+        for (let i=reducibleShapes.length-1; i>=0; i--) {
+            let reducible:string = reducibleShapes[i].split("_-_")[0];
+            let reducibleIndex:number = parseInt(reducibleShapes[i].split("_-_")[1]);
+            for (let j=0; j<croppedLineages.length; j++) {
+                if (croppedLineages[j][reducibleIndex] === reducible) {
+                    croppedLineages[j].splice(reducibleIndex+1, lineageLengthPre-(reducibleIndex+1), ...new Array(lineageLengthPre-(reducibleIndex+1)).fill(null))
+                }
+            }
+        }
+        
+
+        for (let i=croppedLineages.length-1; i>=0; i--) {
+            let croppedLineage:string = JSON.stringify(croppedLineages[i]);
+            let croppedLineagesJSON:string[] = croppedLineages.map(item => JSON.stringify(item))
+            let lastOccurrence:number = i;
+            let firstOccurrence:number = croppedLineagesJSON.indexOf(croppedLineage);
+            if (firstOccurrence !== lastOccurrence) {
+                croppedLineages.splice(i,1)
+            }
+        }
+
+        // Shrink if possible.
+        
+        for (let i=croppedLineages[0].length-1; i>=0; i--) {
+            var shrinkableIndex:boolean = true;
+            for (let j=0; j<croppedLineages.length-1; j++) {
+                var shrinkableIndex = shrinkableIndex && (croppedLineages[j][i] === null);
+            }
+            if (shrinkableIndex) {
+                //croppedLineages.map(item => item.splice(i, 1))
+            }
+        }
+        
+        //console.log("croppedLineages post2: ", croppedLineages)
+        
+        var reducedCroppedLineages:string[][] = croppedLineages;
+
+        this.cropLineages(root, layer, reducedCroppedLineages);
     }
 
     calculateArcEndpoints(layer:number, layerWidthInPx:number, deg1:number, deg2:number):object {
@@ -444,11 +532,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var lineagesCopy:string[][] = JSON.parse(JSON.stringify(croppedLineages));
         var layers:object = getLayers(lineagesCopy);
         var layerWidthInPx:number = Math.max((Math.min(cx, cy) - viewportDimensions["dpmm"] * 10) / Object.keys(layers).length , viewportDimensions["dpmm"] * 4);
-        var firstLayer = (key) => {return structureByTaxon[key].verticalWidthInLayerIndices[0]};
-        var lastLayer = (key) => {return structureByTaxon[key].verticalWidthInLayerIndices[1]};
         var startDeg = (key) => {return structureByTaxon[key].horizontalWidthInDeg[0]};
         var endDeg = (key) => {return structureByTaxon[key].horizontalWidthInDeg[1]};
-        var breakingPt = (key) => {return structureByTaxon[key].breakingPoint};
         var taxonLabels:object = {};
 
         for (var key of Object.keys(structureByTaxon)) {
@@ -458,7 +543,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             centerRadius = structureByTaxon[key].actualIndex + 0.5;
             let centerX = centerRadius * layerWidthInPx * cos(centerDegree);
             
-            var point1:number[] = getPointAtLength(centerRadius * layerWidthInPx, viewportDimensions["cx"], viewportDimensions["cy"], leftBorder[2], leftBorder[3]);
             centerX = round(centerX) + cx;
             
             let centerY = - centerRadius * layerWidthInPx * sin(centerDegree);
@@ -599,16 +683,18 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     handleClick(shapeId):void {
+        console.log("shapeId: ", shapeId)
         var taxon:string = shapeId.match(/.+?(?=_)/)[0];
-        var currLayer:number = parseInt(shapeId.match(/\d+/)[0]);
-        var nextLayer:number = currLayer === 0 ? this.state.layer - 1 : currLayer + this.state.layer;
+        var currLayer:number = parseInt(shapeId.match(/-?\d+/)[0]);
+        console.log("currLayer: ", currLayer, shapeId);
+        var nextLayer:number = currLayer <= 0 ? this.state.layer + (currLayer-1) : currLayer + this.state.layer;
+        console.log("taxon, nextLayer hC: ", taxon, nextLayer);
         this.cropLineages(taxon, nextLayer);
     }
 
     checkTaxonLabelWidth():string[] {
         var taxonLabels:object = this.state.taxonLabels;
         var tooWide:string[] = [];
-
         for (let key of Object.keys(taxonLabels)) {
             let height = document.getElementById(key + "-label")!.offsetHeight;
             let width = document.getElementById(key + "-label")!.offsetWidth;
@@ -699,11 +785,19 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var shapes:any = [];
         var labels:any = [];
         for (let item of Object.keys(this.state.svgPaths)) {
-            shapes.push(<TaxonShape id={item} abbr={this.state.taxonLabels[item]["abbreviation"]} onClick={() => this.handleClick(item)} d={this.state.svgPaths[item]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={this.state.taxonShapes[item]["fill"]} labelOpacity={this.state.taxonLabels[item].opacity} display={this.state.taxonLabels[item]["display"]} fullLabel={this.state.taxonLabels[item]["fullLabel"]} stroke={this.state.taxonShapes[item]["stroke"]}/>);
+            var redirectTo = this.state.structureByTaxon[item] ? this.state.structureByTaxon[item]["redirectTo"] : item;
+            shapes.push(<TaxonShape id={redirectTo} taxon={item} abbr={this.state.taxonLabels[item]["abbreviation"]} onClick={() => this.handleClick(item)} d={this.state.svgPaths[item]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={this.state.taxonShapes[item]["fill"]} labelOpacity={this.state.taxonLabels[item].opacity} display={this.state.taxonLabels[item]["display"]} fullLabel={this.state.taxonLabels[item]["fullLabel"]} stroke={this.state.taxonShapes[item]["stroke"]}/>);
         }
         
         for (let item of Object.keys(this.state.taxonLabels)) {
-            labels.push(<TaxonLabel taxon={item} abbr={this.state.taxonLabels[item]["abbreviation"]} transform={this.state.taxonLabels[item]["transform"]} left={this.state.taxonLabels[item]["left"]} right={this.state.taxonLabels[item]["right"]} top={this.state.taxonLabels[item]["top"]} transformOrigin={this.state.taxonLabels[item]["transformOrigin"]} opacity={this.state.taxonLabels[item]["opacity"]} display={this.state.taxonLabels[item]["display"]} onClick={() => {this.handleClick(item)}} fullLabel={this.state.taxonLabels[item]["fullLabel"]}/>)
+            var redirectTo = this.state.structureByTaxon[item] ? this.state.structureByTaxon[item]["redirectTo"] : item;
+            labels.push(<TaxonLabel id={redirectTo} taxon={item} abbr={this.state.taxonLabels[item]["abbreviation"]} transform={this.state.taxonLabels[item]["transform"]} left={this.state.taxonLabels[item]["left"]} right={this.state.taxonLabels[item]["right"]} top={this.state.taxonLabels[item]["top"]} transformOrigin={this.state.taxonLabels[item]["transformOrigin"]} opacity={this.state.taxonLabels[item]["opacity"]} display={this.state.taxonLabels[item]["display"]} onClick={() => {this.handleClick(item)}} fullLabel={this.state.taxonLabels[item]["fullLabel"]}/>)
+        }
+
+        for (let i=this.state.ancestors.length-1; i>=0; i--) {
+            var ancestor = this.state.ancestors[i];
+            var actualI = i - this.state.ancestors.length;
+            labels.push(<AncestorLabel id={`${ancestor}_-_${actualI+1}`} taxon={ancestor} top={`${3+2.5*(this.state.ancestors.length-i)}vmin`} onClick={() => {this.handleClick(`${this.state.ancestors[i]}_-_${(i-this.state.ancestors.length)+1}`)}}/>)
         }
 
         return [<svg style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes}</svg>,<div id="labels">{labels}</div>]
@@ -784,7 +878,7 @@ function hoverHandler(id:string, fullLabel:string):void {
         var shape = id;
         var label = id + "-label";
     }
-    console.log("id: ", id)
+
     document.getElementById(shape)!.style.strokeWidth = "0.4vmin";
     document.getElementById(label)!.style.fontWeight = "bold";
     document.getElementById(label)!.style.zIndex = "1000";
@@ -972,6 +1066,27 @@ for (let lineage of lineagesFull) {
     lineagesNames.push(lineageNames);
     lineagesRanks.push(lineageRanks);
 }
+
+var newlyAdded:string[] = [];
+for (let taxName of Object.keys(allTaxaReduced)) {
+    let unassignedCount = allTaxaReduced[taxName].unassignedCount;
+    let lineage:string[] = allTaxaReduced[taxName].lineageNames;
+    for (let predecessor of lineage) {
+        if (!allTaxaReduced[predecessor[1]]) {
+            newlyAdded.push(predecessor[1]);
+            allTaxaReduced[predecessor[1]] = {};
+            allTaxaReduced[predecessor[1]]["rank"] = predecessor[0];
+            // lineage
+            allTaxaReduced[predecessor[1]]["totalCount"] = unassignedCount;
+            allTaxaReduced[predecessor[1]]["unassignedCount"] = unassignedCount;
+        }
+        else if (newlyAdded.indexOf(predecessor[1]) > -1) {
+            allTaxaReduced[predecessor[1]]["totalCount"] += unassignedCount;
+            allTaxaReduced[predecessor[1]]["unassignedCount"] += unassignedCount;
+        }
+    }
+}
+newlyAdded = newlyAdded.filter((v, i, a) => a.indexOf(v) === i);
 
 // var fullPlot:Plot = new Plot();
 // var mycosphaerellalesPlot:Plot = new Plot("Bacteria", 0, true, viewportDimensions);
