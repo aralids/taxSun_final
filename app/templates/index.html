@@ -6,7 +6,7 @@
         <title>KRONA plot</title>
         <link rel="stylesheet" href=""/>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin></script>
         
         <script>var exports = {};</script>
         
@@ -14,14 +14,14 @@
         
     </head>
     <body id="body-1" style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
-        <div id="input" style="display: flex; position: fixed; top: 0; left: 0; height: 3vmin;">
+        <div id="input" style="display: flex; position: fixed; top: 0; left: 2vmin; height: 3vmin;">
             <input id="new-palette" type="text">
             <button id="change-palette">Try palette</button>
             <button id="take-snapshot">Send Snapshot</button>
         </div>
         <main style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
             <div id="dpmm" style="height: 1mm; width: 1mm; left: 100%; position: fixed; top: 100%;"></div>
-            <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+            <script src="https://unpkg.com/babel-standalone@6/babel.min.js" crossorigin></script>
             <div style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; " id="plot-container"></div>
             <div id="labels" style="float: right;"></div>
             <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
