@@ -441,8 +441,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         // Get only relevant lineages.
         var croppedLineages = [];
         var croppedRanks = [];
+        var rootTaxa = root.split(" & ");
         for (var i = 0; i < this.props.lineages.length; i++) {
-            if (this.props.lineages[i][layer] === root) {
+            if (rootTaxa.indexOf(this.props.lineages[i][layer]) > -1) {
                 croppedLineages.push(this.props.lineages[i]);
                 croppedRanks.push(this.props.ranks[i]);
             }
@@ -452,12 +453,77 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (croppedLineages[0]) {
             ancestors = croppedLineages[0].slice(0, layer);
         }
-        croppedLineages = croppedLineages.map(function (item) { return item.slice(layer); });
-        croppedRanks = croppedRanks.map(function (item) { return item.slice(layer); });
+        if (rootTaxa.length > 1) {
+            croppedLineages = croppedLineages.map(function (item) { return item.slice(layer - 1); });
+            croppedRanks = croppedRanks.map(function (item) { return item.slice(layer - 1); });
+        }
+        else {
+            croppedLineages = croppedLineages.map(function (item) { return item.slice(layer); });
+            croppedRanks = croppedRanks.map(function (item) { return item.slice(layer); });
+        }
         // Get minimal rank pattern for this particular plot to prepare for aligning sequences.
         var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []);
         ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; });
         var rankPattern = rankPatternFull.filter(function (item) { return ranksUnique.indexOf(item) > -1; });
+        // Mary taxa.
+        var totalUnassignedCounts = 0;
+        for (var _i = 0, croppedLineages_1 = croppedLineages; _i < croppedLineages_1.length; _i++) {
+            var lineage = croppedLineages_1[_i];
+            totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
+        }
+        var reducibleLineages = [];
+        var treshold = 0.04;
+        for (var _a = 0, croppedLineages_2 = croppedLineages; _a < croppedLineages_2.length; _a++) {
+            var lineage = croppedLineages_2[_a];
+            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < treshold) {
+                var lineageNumber = croppedLineages.indexOf(lineage);
+                var lastWayTooThinLayer = lineage.length - 1;
+                for (var i = lineage.length - 2; i >= 0; i--) {
+                    if (allTaxaReduced[lineage[i]]["totalCount"] / totalUnassignedCounts >= treshold) {
+                        lastWayTooThinLayer = i + 1;
+                        break;
+                    }
+                }
+                ;
+                var partialLineage = lineage.slice(0, lastWayTooThinLayer);
+                reducibleLineages.push([lineageNumber, partialLineage]);
+            }
+        }
+        var reductionGroups = {};
+        for (var _b = 0, reducibleLineages_1 = reducibleLineages; _b < reducibleLineages_1.length; _b++) {
+            var item = reducibleLineages_1[_b];
+            if (!reductionGroups[item[1].join("")]) {
+                reductionGroups[item[1].join("")] = {};
+                reductionGroups[item[1].join("")]["spliceAt"] = item[1].length;
+                reductionGroups[item[1].join("")]["index"] = [item[0]];
+                reductionGroups[item[1].join("")]["commonName"] = croppedLineages[item[0]][item[1].length];
+            }
+            else {
+                reductionGroups[item[1].join("")]["index"].push(item[0]);
+                var taxa = reductionGroups[item[1].join("")]["commonName"].split(" & ");
+                if (taxa.indexOf(croppedLineages[item[0]][item[1].length]) === -1) {
+                    reductionGroups[item[1].join("")]["commonName"] += " & ".concat(croppedLineages[item[0]][item[1].length]);
+                }
+            }
+        }
+        for (var _c = 0, _d = Object.keys(reductionGroups).filter(function (item) { return reductionGroups[item]["index"].length > 1; }); _c < _d.length; _c++) {
+            var group = _d[_c];
+            for (var _e = 0, _f = reductionGroups[group]["index"]; _e < _f.length; _e++) {
+                var index_1 = _f[_e];
+                croppedLineages[index_1].splice(reductionGroups[group]["spliceAt"], croppedLineages[index_1].length - reductionGroups[group]["spliceAt"], reductionGroups[group]["commonName"]);
+                croppedRanks[index_1].splice(reductionGroups[group]["spliceAt"] + 1);
+            }
+        }
+        for (var i = croppedLineages.length - 1; i >= 0; i--) {
+            var croppedLineageCopy = croppedLineages.map(function (item) { return JSON.stringify(item); });
+            var lineage = croppedLineageCopy[i];
+            var lastIndex = i;
+            var firstIndex = croppedLineageCopy.indexOf(lineage);
+            if (firstIndex !== lastIndex) {
+                croppedLineages.splice(lastIndex, 1);
+                croppedRanks.splice(lastIndex, 1);
+            }
+        }
         // !!!!!!
         if (this.state.collapse) {
             //croppedLineages = this.collapse(croppedLineages);
@@ -482,13 +548,26 @@ var PlotDrawing = /** @class */ (function (_super) {
         var taxonSpecifics = {};
         for (var i = 0; i < croppedLineages.length; i++) {
             var taxName = croppedLineages[i][croppedLineages[i].length - 1];
-            taxonSpecifics[taxName] = {};
-            taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length - 1];
-            taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
-            taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
-            taxonSpecifics[taxName]["unassignedCount"] = allTaxaReduced[taxName].unassignedCount;
-            taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
-            taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
+            if (taxName.includes("&")) {
+                taxonSpecifics[taxName] = {};
+                taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length - 1];
+                taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
+                taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
+                var taxa = taxName.split(" & ");
+                var unassignedCount = taxa.map(function (item) { return allTaxaReduced[item]["totalCount"]; }).reduce(function (accumulator, value) { return accumulator + value; }, 0);
+                taxonSpecifics[taxName]["unassignedCount"] = unassignedCount;
+                taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
+                taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
+            }
+            else {
+                taxonSpecifics[taxName] = {};
+                taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length - 1];
+                taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
+                taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
+                taxonSpecifics[taxName]["unassignedCount"] = allTaxaReduced[taxName].unassignedCount;
+                taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
+                taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
+            }
         }
         for (var i = 0; i < croppedLineages.length; i++) {
             for (var j = croppedLineages[i].length - 2; j >= 0; j--) {
@@ -504,6 +583,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 }
             }
         }
+        console.log("ancestors: ", ancestors, root);
         if (croppedLineages.length > 1) {
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors });
         }
@@ -523,10 +603,11 @@ var PlotDrawing = /** @class */ (function (_super) {
         for (var i = 0; i < croppedLineages.length; i++) {
             for (var j = 0; j < croppedLineages[i].length; j++) {
                 var currentTaxon = croppedLineages[i][j];
-                var alignedIndex = alignedCroppedLineages[i].indexOf(currentTaxon);
+                var alignedIndex = taxonSpecifics[currentTaxon]["firstLayerAligned"];
                 if (!ranges[currentTaxon]) {
                     ranges[currentTaxon] = {};
-                    ranges[currentTaxon]["layers"] = [alignedIndex];
+                    var firstLayer = taxonSpecifics[currentTaxon]["firstLayerUnaligned"] === 1 ? 1 : alignedIndex;
+                    ranges[currentTaxon]["layers"] = [firstLayer];
                     ranges[currentTaxon]["degrees"] = [startDeg];
                 }
                 var lastLayer = void 0;
@@ -635,6 +716,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     PlotDrawing.prototype.calculateTaxonLabels = function (newState) {
         var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
+        var root = newState["root"] ? newState["root"] : this.state.root;
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
         var numberOfLayers = alignedCroppedLineages[0].length;
         var cx = this.state.horizontalShift;
@@ -667,9 +749,9 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "transformOrigin": "center center",
                     "opacity": "1",
                     "twist": 0,
-                    "abbreviation": key,
+                    "abbreviation": root,
                     "display": "unset",
-                    "fullLabel": key
+                    "fullLabel": root
                 };
             }
             else {
@@ -708,7 +790,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
         }
         ;
-        console.log("newState[taxonSpecifics] for Bacteria: ", newState["taxonSpecifics"]);
         this.getTaxonShapes(newState);
     };
     PlotDrawing.prototype.getTaxonShapes = function (newState) {
@@ -760,7 +841,13 @@ var PlotDrawing = /** @class */ (function (_super) {
         var taxon = shapeId.match(/.+?(?=_)/)[0];
         var currLayer = parseInt(shapeId.match(/-?\d+/)[0]);
         console.log("currLayer: ", currLayer, shapeId);
-        var nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : currLayer + this.state.layer;
+        var nextLayer;
+        if (this.state.root.includes("&")) {
+            nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : (currLayer + this.state.layer) - 1;
+        }
+        else {
+            nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : currLayer + this.state.layer;
+        }
         console.log("taxon, nextLayer hC: ", taxon, nextLayer);
         this.cropLineages(taxon, nextLayer);
     };
@@ -826,21 +913,25 @@ var PlotDrawing = /** @class */ (function (_super) {
                 }
             }
         }
-        console.log("tooWide: ", tooWide);
         return tooWide;
     };
     PlotDrawing.prototype.abbreviate = function (abbreviatables) {
         var newTaxonSpecifics = JSON.parse(JSON.stringify(this.state.taxonSpecifics));
         for (var _i = 0, abbreviatables_1 = abbreviatables; _i < abbreviatables_1.length; _i++) {
             var key = abbreviatables_1[_i];
-            var newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length - 2) + ".";
+            var newAbbreviation = void 0;
+            if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 15) {
+                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 14) + ".";
+            }
+            else {
+                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length - 2) + ".";
+            }
             newAbbreviation = newAbbreviation.length < 4 ? "" : newAbbreviation;
             if (newAbbreviation.length === 0) {
                 newTaxonSpecifics[key]["label"]["display"] = "none";
             }
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
         }
-        console.log("newTaxonSpecifics: ", newTaxonSpecifics);
         this.setState({ taxonSpecifics: newTaxonSpecifics });
     };
     PlotDrawing.prototype.render = function () {
@@ -1121,14 +1212,13 @@ for (var _h = 0, _j = Object.keys(allTaxaReduced); _h < _j.length; _h++) {
         _loop_1(predecessor);
     }
 }
+// Replace names in lineages with new names from previous step.
 for (var _l = 0, _m = Object.keys(allTaxaReduced); _l < _m.length; _l++) {
     var taxName = _m[_l];
     var lineage = allTaxaReduced[taxName].lineageNames;
-    console.log("lineage: ", lineage);
     var _loop_2 = function (predecessor) {
         if (Object.keys(allTaxaReduced).filter(function (item) { return item.startsWith(predecessor[1]); }).length > 1) {
             var newName = Object.keys(allTaxaReduced).filter(function (item) { return item.startsWith(predecessor[1]); }).filter(function (item1) { return allTaxaReduced[item1]["rank"] === predecessor[0]; })[0];
-            //console.log("predecessor: ", predecessor, Object.keys(allTaxaReduced).filter(item => item.startsWith(predecessor[1])), Object.keys(allTaxaReduced).filter(item => item.startsWith(predecessor[1])).filter(item1 => allTaxaReduced[item1]["rank"] === predecessor[0])[0]);
             predecessor[1] = newName;
         }
     };
@@ -1137,18 +1227,25 @@ for (var _l = 0, _m = Object.keys(allTaxaReduced); _l < _m.length; _l++) {
         _loop_2(predecessor);
     }
 }
-// Sort before separating rank from taxon.
-var lineagesFull = [];
+// Do not consider taxa without unassigned counts in croppedLineages() later.
 for (var _p = 0, _q = Object.keys(allTaxaReduced); _p < _q.length; _p++) {
     var taxName = _q[_p];
+    if (allTaxaReduced[taxName]["unassignedCount"] === 0) {
+        allTaxaReduced[taxName]["skip"] = true;
+    }
+}
+// Sort before separating rank from taxon.
+var lineagesFull = [];
+for (var _r = 0, _s = Object.keys(allTaxaReduced).filter(function (item) { return !allTaxaReduced[item]["skip"]; }); _r < _s.length; _r++) {
+    var taxName = _s[_r];
     lineagesFull.push(allTaxaReduced[taxName].lineageNames.map(function (item) { return item[1] + "_*_" + item[0]; }));
 }
 lineagesFull.sort();
 // Separate.
 var lineagesNames = [];
 var lineagesRanks = [];
-for (var _r = 0, lineagesFull_1 = lineagesFull; _r < lineagesFull_1.length; _r++) {
-    var lineage = lineagesFull_1[_r];
+for (var _t = 0, lineagesFull_1 = lineagesFull; _t < lineagesFull_1.length; _t++) {
+    var lineage = lineagesFull_1[_t];
     var lineageNames = lineage.map(function (item) { return item.split("_*_")[0]; });
     var lineageRanks = lineage.map(function (item) { return item.split("_*_")[1]; });
     lineagesNames.push(lineageNames);
