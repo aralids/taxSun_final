@@ -411,7 +411,8 @@ var PlotDrawing = /** @class */ (function (_super) {
             taxonShapes: {},
             colors: ["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
             ancestors: ["root"],
-            rankPattern: []
+            rankPattern: [],
+            alteration: "marriedTaxa"
         };
         return _this;
     }
@@ -427,6 +428,11 @@ var PlotDrawing = /** @class */ (function (_super) {
             viewportDimensions = newViewportDimensions;
             _this.setState({ horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"] }, function () { return _this.calculateSVGPaths({ "ancestors": _this.state.ancestors }); });
         });
+        document.getElementById("radio-input").addEventListener("change", function () {
+            var alteration = document.querySelector('input[name="radio"]:checked').getAttribute("id");
+            console.log("radio button clicked!", document.querySelector('input[name="radio"]:checked').getAttribute("id"));
+            _this.cropLineages(_this.state.root, _this.state.layer, alteration);
+        });
     };
     PlotDrawing.prototype.componentDidUpdate = function () {
         var abbreviatables = this.checkTaxonLabelWidth();
@@ -435,9 +441,10 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
     };
     // Leave only relevant lineages and crop them if necessary.
-    PlotDrawing.prototype.cropLineages = function (root, layer) {
+    PlotDrawing.prototype.cropLineages = function (root, layer, alteration) {
         if (root === void 0) { root = this.state.root; }
         if (layer === void 0) { layer = this.state.layer; }
+        if (alteration === void 0) { alteration = "marriedTaxa"; }
         // Get only relevant lineages.
         var croppedLineages = [];
         var croppedRanks = [];
@@ -466,63 +473,10 @@ var PlotDrawing = /** @class */ (function (_super) {
         ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; });
         var rankPattern = rankPatternFull.filter(function (item) { return ranksUnique.indexOf(item) > -1; });
         // Mary taxa.
-        var totalUnassignedCounts = 0;
-        for (var _i = 0, croppedLineages_1 = croppedLineages; _i < croppedLineages_1.length; _i++) {
-            var lineage = croppedLineages_1[_i];
-            totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
-        }
-        var reducibleLineages = [];
-        var treshold = 0.04;
-        for (var _a = 0, croppedLineages_2 = croppedLineages; _a < croppedLineages_2.length; _a++) {
-            var lineage = croppedLineages_2[_a];
-            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < treshold) {
-                var lineageNumber = croppedLineages.indexOf(lineage);
-                var lastWayTooThinLayer = lineage.length - 1;
-                for (var i = lineage.length - 2; i >= 0; i--) {
-                    if (allTaxaReduced[lineage[i]]["totalCount"] / totalUnassignedCounts >= treshold) {
-                        lastWayTooThinLayer = i + 1;
-                        break;
-                    }
-                }
-                ;
-                var partialLineage = lineage.slice(0, lastWayTooThinLayer);
-                reducibleLineages.push([lineageNumber, partialLineage]);
-            }
-        }
-        var reductionGroups = {};
-        for (var _b = 0, reducibleLineages_1 = reducibleLineages; _b < reducibleLineages_1.length; _b++) {
-            var item = reducibleLineages_1[_b];
-            if (!reductionGroups[item[1].join("")]) {
-                reductionGroups[item[1].join("")] = {};
-                reductionGroups[item[1].join("")]["spliceAt"] = item[1].length;
-                reductionGroups[item[1].join("")]["index"] = [item[0]];
-                reductionGroups[item[1].join("")]["commonName"] = croppedLineages[item[0]][item[1].length];
-            }
-            else {
-                reductionGroups[item[1].join("")]["index"].push(item[0]);
-                var taxa = reductionGroups[item[1].join("")]["commonName"].split(" & ");
-                if (taxa.indexOf(croppedLineages[item[0]][item[1].length]) === -1) {
-                    reductionGroups[item[1].join("")]["commonName"] += " & ".concat(croppedLineages[item[0]][item[1].length]);
-                }
-            }
-        }
-        for (var _c = 0, _d = Object.keys(reductionGroups).filter(function (item) { return reductionGroups[item]["index"].length > 1; }); _c < _d.length; _c++) {
-            var group = _d[_c];
-            for (var _e = 0, _f = reductionGroups[group]["index"]; _e < _f.length; _e++) {
-                var index_1 = _f[_e];
-                croppedLineages[index_1].splice(reductionGroups[group]["spliceAt"], croppedLineages[index_1].length - reductionGroups[group]["spliceAt"], reductionGroups[group]["commonName"]);
-                croppedRanks[index_1].splice(reductionGroups[group]["spliceAt"] + 1);
-            }
-        }
-        for (var i = croppedLineages.length - 1; i >= 0; i--) {
-            var croppedLineageCopy = croppedLineages.map(function (item) { return JSON.stringify(item); });
-            var lineage = croppedLineageCopy[i];
-            var lastIndex = i;
-            var firstIndex = croppedLineageCopy.indexOf(lineage);
-            if (firstIndex !== lastIndex) {
-                croppedLineages.splice(lastIndex, 1);
-                croppedRanks.splice(lastIndex, 1);
-            }
+        if (alteration === "marriedTaxa") {
+            var cropped = this.marryTaxa(croppedLineages, croppedRanks);
+            croppedLineages = cropped[0];
+            croppedRanks = cropped[1];
         }
         // !!!!!!
         if (this.state.collapse) {
@@ -585,8 +539,73 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         console.log("ancestors: ", ancestors, root);
         if (croppedLineages.length > 1) {
-            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors });
+            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration });
         }
+    };
+    PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks) {
+        var totalUnassignedCounts = 0;
+        for (var _i = 0, croppedLineages_1 = croppedLineages; _i < croppedLineages_1.length; _i++) {
+            var lineage = croppedLineages_1[_i];
+            totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
+        }
+        var reducibleLineages = [];
+        var treshold = 0.04;
+        for (var _a = 0, croppedLineages_2 = croppedLineages; _a < croppedLineages_2.length; _a++) {
+            var lineage = croppedLineages_2[_a];
+            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < treshold) {
+                var lineageNumber = croppedLineages.indexOf(lineage);
+                var lastWayTooThinLayer = lineage.length - 1;
+                for (var i = lineage.length - 2; i >= 0; i--) {
+                    if (allTaxaReduced[lineage[i]]["totalCount"] / totalUnassignedCounts >= treshold) {
+                        lastWayTooThinLayer = i + 1;
+                        break;
+                    }
+                }
+                ;
+                var partialLineage = lineage.slice(0, lastWayTooThinLayer);
+                reducibleLineages.push([lineageNumber, partialLineage]);
+            }
+        }
+        var reductionGroups = {};
+        for (var _b = 0, reducibleLineages_1 = reducibleLineages; _b < reducibleLineages_1.length; _b++) {
+            var item = reducibleLineages_1[_b];
+            if (!reductionGroups[item[1].join("")]) {
+                reductionGroups[item[1].join("")] = {};
+                reductionGroups[item[1].join("")]["spliceAt"] = item[1].length;
+                reductionGroups[item[1].join("")]["index"] = [item[0]];
+                reductionGroups[item[1].join("")]["commonName"] = croppedLineages[item[0]][item[1].length];
+            }
+            else {
+                reductionGroups[item[1].join("")]["index"].push(item[0]);
+                var taxa = reductionGroups[item[1].join("")]["commonName"].split(" & ");
+                if (taxa.indexOf(croppedLineages[item[0]][item[1].length]) === -1) {
+                    reductionGroups[item[1].join("")]["commonName"] += " & ".concat(croppedLineages[item[0]][item[1].length]);
+                }
+            }
+        }
+        for (var _c = 0, _d = Object.keys(reductionGroups); _c < _d.length; _c++) {
+            var group = _d[_c];
+            console.log("group: ", group, reductionGroups[group]);
+        }
+        for (var _e = 0, _f = Object.keys(reductionGroups).filter(function (item) { return reductionGroups[item]["index"].length > 1; }); _e < _f.length; _e++) {
+            var group = _f[_e];
+            for (var _g = 0, _h = reductionGroups[group]["index"]; _g < _h.length; _g++) {
+                var index = _h[_g];
+                croppedLineages[index].splice(reductionGroups[group]["spliceAt"], croppedLineages[index].length - reductionGroups[group]["spliceAt"], reductionGroups[group]["commonName"]);
+                croppedRanks[index].splice(reductionGroups[group]["spliceAt"] + 1);
+            }
+        }
+        for (var i = croppedLineages.length - 1; i >= 0; i--) {
+            var croppedLineageCopy = croppedLineages.map(function (item) { return JSON.stringify(item); });
+            var lineage = croppedLineageCopy[i];
+            var lastIndex = i;
+            var firstIndex = croppedLineageCopy.indexOf(lineage);
+            if (firstIndex !== lastIndex) {
+                croppedLineages.splice(lastIndex, 1);
+                croppedRanks.splice(lastIndex, 1);
+            }
+        }
+        return [croppedLineages, croppedRanks];
     };
     // Assign each cropped lineage a start and end degree.
     PlotDrawing.prototype.assignDegrees = function (newState) {
@@ -849,7 +868,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : currLayer + this.state.layer;
         }
         console.log("taxon, nextLayer hC: ", taxon, nextLayer);
-        this.cropLineages(taxon, nextLayer);
+        this.cropLineages(taxon, nextLayer, this.state.alteration);
     };
     PlotDrawing.prototype.checkTaxonLabelWidth = function () {
         var taxonSpecifics = this.state.taxonSpecifics;
@@ -964,7 +983,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_7 = function (i) {
             ancestor = this_3.state.ancestors[i];
             actualI = i - this_3.state.ancestors.length;
-            labels.push(React.createElement(AncestorLabel, { id: "".concat(ancestor, "_-_").concat(actualI + 1), taxon: ancestor, top: "".concat(3 + 2.5 * (this_3.state.ancestors.length - i), "vmin"), onClick: function () { _this.handleClick("".concat(_this.state.ancestors[i], "_-_").concat((i - _this.state.ancestors.length) + 1)); } }));
+            labels.push(React.createElement(AncestorLabel, { id: "".concat(ancestor, "_-_").concat(actualI + 1), taxon: ancestor, top: "".concat(7 + 2.5 * (this_3.state.ancestors.length - i), "vmin"), onClick: function () { _this.handleClick("".concat(_this.state.ancestors[i], "_-_").concat((i - _this.state.ancestors.length) + 1)); } }));
         };
         var this_3 = this, ancestor, actualI;
         for (var i = this.state.ancestors.length - 1; i >= 0; i--) {

@@ -19,6 +19,12 @@
             <button id="change-palette">Try palette</button>
             <button id="take-snapshot">Send Snapshot</button>
         </div>
+        <fieldset id="radio-input" style="display: flex; position: fixed; top: 3vmin; left: 2vmin; height: 3vmin; border:none;">
+            <input type="radio" id="unaltered" name="radio">
+            <label for="unaltered">Unaltered</label>
+            <input type="radio" id="marriedTaxa" name="radio" checked>
+            <label for="married-taxa">Married taxa</label>
+        </fieldset>
         <main style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
             <div id="dpmm" style="height: 1mm; width: 1mm; left: 100%; position: fixed; top: 100%;"></div>
             <script src="https://unpkg.com/babel-standalone@6/babel.min.js" crossorigin></script>
