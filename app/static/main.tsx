@@ -648,14 +648,15 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "fullLabel": root
                 }
             } else {
-                let direction = (numberOfLayers - taxonSpecifics[key]["firstLayerAligned"] === 1) ? "radial" : "circumferential";
+                let direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "circumferential";
+                //let direction = (numberOfLayers - taxonSpecifics[key]["firstLayerAligned"] === 1) ? "radial" : "circumferential";
                 let twist, left, right, top, transform, transformOrigin;
                 if (direction === "radial") {
                     twist = taxonSpecifics[key]["center"][2] <= 180 ? - taxonSpecifics[key]["center"][2] : + taxonSpecifics[key]["center"][2];
                     left = twist > 0 ? taxonSpecifics[key]["center"][0] : "unset";
                     right = left === "unset" ? cx*2 - taxonSpecifics[key]["center"][0] : "unset";
                     twist = left === "unset" ? 270 - twist : 360 - (270 - twist);
-                    top = taxonSpecifics[key]["center"][1] - 9;
+                    top = right === "unset" ? taxonSpecifics[key]["center"][1] - 9 : taxonSpecifics[key]["center"][1] - 9;
                     transform = `rotate(${twist}deg)`
                     transformOrigin = left === "unset" ? "center right" : "center left";
                 } else {
@@ -836,16 +837,19 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     abbreviate(abbreviatables:string[]) {
         let newTaxonSpecifics:object = JSON.parse(JSON.stringify(this.state.taxonSpecifics))
         for (let key of abbreviatables) {
+            console.log("abbr key: ", key)
             let newAbbreviation:string;
-            if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 15) {
-                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 14) + ".";
+            if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 20) {
+                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 19) + ".";
             } else {
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length-2) + ".";
             }
             newAbbreviation = newAbbreviation.length < 4 ? "" : newAbbreviation;
             if (newAbbreviation.length === 0) {
                 newTaxonSpecifics[key]["label"]["display"] = "none";
+                newTaxonSpecifics[key]["label"]["direction"] = "circumferential";
             }
+            console.log(newTaxonSpecifics[key])
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
         }
 

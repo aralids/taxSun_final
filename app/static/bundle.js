@@ -921,14 +921,15 @@ var PlotDrawing = /** @class */ (function (_super) {
                 };
             }
             else {
-                var direction = (numberOfLayers - taxonSpecifics[key]["firstLayerAligned"] === 1) ? "radial" : "circumferential";
+                var direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "circumferential";
+                //let direction = (numberOfLayers - taxonSpecifics[key]["firstLayerAligned"] === 1) ? "radial" : "circumferential";
                 var twist = void 0, left = void 0, right = void 0, top_1 = void 0, transform = void 0, transformOrigin = void 0;
                 if (direction === "radial") {
                     twist = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : +taxonSpecifics[key]["center"][2];
                     left = twist > 0 ? taxonSpecifics[key]["center"][0] : "unset";
                     right = left === "unset" ? cx * 2 - taxonSpecifics[key]["center"][0] : "unset";
                     twist = left === "unset" ? 270 - twist : 360 - (270 - twist);
-                    top_1 = taxonSpecifics[key]["center"][1] - 9;
+                    top_1 = right === "unset" ? taxonSpecifics[key]["center"][1] - 9 : taxonSpecifics[key]["center"][1] - 9;
                     transform = "rotate(".concat(twist, "deg)");
                     transformOrigin = left === "unset" ? "center right" : "center left";
                 }
@@ -1098,9 +1099,10 @@ var PlotDrawing = /** @class */ (function (_super) {
         var newTaxonSpecifics = JSON.parse(JSON.stringify(this.state.taxonSpecifics));
         for (var _i = 0, abbreviatables_1 = abbreviatables; _i < abbreviatables_1.length; _i++) {
             var key = abbreviatables_1[_i];
+            console.log("abbr key: ", key);
             var newAbbreviation = void 0;
-            if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 15) {
-                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 14) + ".";
+            if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 20) {
+                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 19) + ".";
             }
             else {
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length - 2) + ".";
@@ -1108,7 +1110,9 @@ var PlotDrawing = /** @class */ (function (_super) {
             newAbbreviation = newAbbreviation.length < 4 ? "" : newAbbreviation;
             if (newAbbreviation.length === 0) {
                 newTaxonSpecifics[key]["label"]["display"] = "none";
+                newTaxonSpecifics[key]["label"]["direction"] = "circumferential";
             }
+            console.log(newTaxonSpecifics[key]);
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
         }
         this.setState({ taxonSpecifics: newTaxonSpecifics });
