@@ -166,7 +166,13 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         document.getElementById("radio-input")!.addEventListener("change", () => {
             let alteration:any = document.querySelector('input[name="radio"]:checked')!.getAttribute("id");
             console.log("radio button clicked!", document.querySelector('input[name="radio"]:checked')!.getAttribute("id"));
-            this.cropLineages(this.state.root, this.state.layer, alteration);
+            this.cropLineages(this.state.root, this.state.layer, alteration, this.state.collapse);
+        })
+        document.getElementById("checkbox-input")!.addEventListener("change", () => {
+            let element:any =  document.getElementById("checkbox-input")!;
+            let checked:boolean = element.checked;
+            console.log("checked or not? ", checked)
+            this.cropLineages(this.state.root, this.state.layer, this.state.alteration, checked);
         })
     }
 
@@ -178,7 +184,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     // Leave only relevant lineages and crop them if necessary.
-    cropLineages(root=this.state.root, layer=this.state.layer, alteration="marriedTaxaI"):void {
+    cropLineages(root=this.state.root, layer=this.state.layer, alteration="marriedTaxaI", collapse=this.state.collapse):void {
 
         // Get only relevant lineages.
         var croppedLineages:string[][] = [];
@@ -218,8 +224,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
 
         // !!!!!!
-        if (this.state.collapse) {
-            //croppedLineages = this.collapse(croppedLineages);
+        if (collapse) {
+            croppedLineages = this.collapse(croppedLineages);
         }
         
         // Align cropped lineages by adding null as placeholder for missing ranks.
@@ -265,6 +271,12 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             }
         }
 
+        if (alteration === "allEqual") {
+            for (let taxName of Object.keys(taxonSpecifics)) {
+                taxonSpecifics[taxName]["unassignedCount"] = 1;
+            }
+        }
+
         for (let i=0; i<croppedLineages.length; i++) {
             for (let j=croppedLineages[i].length-2; j>=0; j--) {
                 if (!taxonSpecifics[croppedLineages[i][j]]) {
@@ -279,6 +291,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 }
             }
         }
+
+        
 
         console.log("ancestors: ", ancestors, root);
         if (croppedLineages.length > 1) {
@@ -716,7 +730,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             nextLayer = currLayer <= 0 ? this.state.layer + (currLayer-1) : currLayer + this.state.layer;
         }
         console.log("taxon, nextLayer hC: ", taxon, nextLayer);
-        this.cropLineages(taxon, nextLayer, this.state.alteration);
+        this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     }
 
     checkTaxonLabelWidth():string[] {
@@ -832,7 +846,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (let i=this.state.ancestors.length-1; i>=0; i--) {
             var ancestor = this.state.ancestors[i];
             var actualI = i - this.state.ancestors.length;
-            labels.push(<AncestorLabel id={`${ancestor}_-_${actualI+1}`} taxon={ancestor} top={`${7+2.5*(this.state.ancestors.length-i)}vmin`} onClick={() => {this.handleClick(`${this.state.ancestors[i]}_-_${(i-this.state.ancestors.length)+1}`)}}/>)
+            labels.push(<AncestorLabel id={`${ancestor}_-_${actualI+1}`} taxon={ancestor} top={`${10+2.5*(this.state.ancestors.length-i)}vmin`} onClick={() => {this.handleClick(`${this.state.ancestors[i]}_-_${(i-this.state.ancestors.length)+1}`)}}/>)
         }
 
         return [<svg style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes}</svg>,<div id="labels">{labels}</div>]

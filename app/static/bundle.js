@@ -431,7 +431,13 @@ var PlotDrawing = /** @class */ (function (_super) {
         document.getElementById("radio-input").addEventListener("change", function () {
             var alteration = document.querySelector('input[name="radio"]:checked').getAttribute("id");
             console.log("radio button clicked!", document.querySelector('input[name="radio"]:checked').getAttribute("id"));
-            _this.cropLineages(_this.state.root, _this.state.layer, alteration);
+            _this.cropLineages(_this.state.root, _this.state.layer, alteration, _this.state.collapse);
+        });
+        document.getElementById("checkbox-input").addEventListener("change", function () {
+            var element = document.getElementById("checkbox-input");
+            var checked = element.checked;
+            console.log("checked or not? ", checked);
+            _this.cropLineages(_this.state.root, _this.state.layer, _this.state.alteration, checked);
         });
     };
     PlotDrawing.prototype.componentDidUpdate = function () {
@@ -441,10 +447,11 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
     };
     // Leave only relevant lineages and crop them if necessary.
-    PlotDrawing.prototype.cropLineages = function (root, layer, alteration) {
+    PlotDrawing.prototype.cropLineages = function (root, layer, alteration, collapse) {
         if (root === void 0) { root = this.state.root; }
         if (layer === void 0) { layer = this.state.layer; }
         if (alteration === void 0) { alteration = "marriedTaxaI"; }
+        if (collapse === void 0) { collapse = this.state.collapse; }
         // Get only relevant lineages.
         var croppedLineages = [];
         var croppedRanks = [];
@@ -479,8 +486,8 @@ var PlotDrawing = /** @class */ (function (_super) {
             croppedRanks = cropped[1];
         }
         // !!!!!!
-        if (this.state.collapse) {
-            //croppedLineages = this.collapse(croppedLineages);
+        if (collapse) {
+            croppedLineages = this.collapse(croppedLineages);
         }
         // Align cropped lineages by adding null as placeholder for missing ranks.
         var alignedCropppedLineages = [];
@@ -521,6 +528,12 @@ var PlotDrawing = /** @class */ (function (_super) {
                 taxonSpecifics[taxName]["unassignedCount"] = allTaxaReduced[taxName].unassignedCount;
                 taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
                 taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
+            }
+        }
+        if (alteration === "allEqual") {
+            for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
+                var taxName_1 = _a[_i];
+                taxonSpecifics[taxName_1]["unassignedCount"] = 1;
             }
         }
         for (var i = 0; i < croppedLineages.length; i++) {
@@ -985,7 +998,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : currLayer + this.state.layer;
         }
         console.log("taxon, nextLayer hC: ", taxon, nextLayer);
-        this.cropLineages(taxon, nextLayer, this.state.alteration);
+        this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     };
     PlotDrawing.prototype.checkTaxonLabelWidth = function () {
         var taxonSpecifics = this.state.taxonSpecifics;
@@ -1100,7 +1113,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_10 = function (i) {
             ancestor = this_3.state.ancestors[i];
             actualI = i - this_3.state.ancestors.length;
-            labels.push(React.createElement(AncestorLabel, { id: "".concat(ancestor, "_-_").concat(actualI + 1), taxon: ancestor, top: "".concat(7 + 2.5 * (this_3.state.ancestors.length - i), "vmin"), onClick: function () { _this.handleClick("".concat(_this.state.ancestors[i], "_-_").concat((i - _this.state.ancestors.length) + 1)); } }));
+            labels.push(React.createElement(AncestorLabel, { id: "".concat(ancestor, "_-_").concat(actualI + 1), taxon: ancestor, top: "".concat(10 + 2.5 * (this_3.state.ancestors.length - i), "vmin"), onClick: function () { _this.handleClick("".concat(_this.state.ancestors[i], "_-_").concat((i - _this.state.ancestors.length) + 1)); } }));
         };
         var this_3 = this, ancestor, actualI;
         for (var i = this.state.ancestors.length - 1; i >= 0; i--) {
