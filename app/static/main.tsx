@@ -178,7 +178,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     // Leave only relevant lineages and crop them if necessary.
-    cropLineages(root=this.state.root, layer=this.state.layer, alteration="marriedTaxa"):void {
+    cropLineages(root=this.state.root, layer=this.state.layer, alteration="marriedTaxaI"):void {
 
         // Get only relevant lineages.
         var croppedLineages:string[][] = [];
@@ -211,8 +211,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var rankPattern:string[] = rankPatternFull.filter(item => ranksUnique.indexOf(item) > -1);
 
         // Mary taxa.
-        if (alteration === "marriedTaxa") {
-            let cropped = this.marryTaxa(croppedLineages, croppedRanks);
+        if (alteration.startsWith("marriedTaxa")) {
+            let cropped = this.marryTaxa(croppedLineages, croppedRanks, alteration);
             croppedLineages = cropped[0];
             croppedRanks = cropped[1];
         }
@@ -286,13 +286,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
     }
 
-    marryTaxa(croppedLineages:string[][], croppedRanks:string[][]) {
+    marryTaxa(croppedLineages:string[][], croppedRanks:string[][], alteration="marriedTaxaI") {
         var totalUnassignedCounts:number = 0;
+        alteration = "marriedTaxaI";
         for (let lineage of croppedLineages) {
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages:any = [];
-        var treshold:number = 0.04;
+        var treshold:number = 0.01;
         for (let lineage of croppedLineages) {
             if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < treshold) {
                 let lineageNumber:number = croppedLineages.indexOf(lineage);
@@ -308,23 +309,128 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             }
         }
         var reductionGroups:object = {};
-        for (let item of reducibleLineages) {
-            if (!reductionGroups[item[1].join("")]) {
-                reductionGroups[item[1].join("")] = {};
-                reductionGroups[item[1].join("")]["spliceAt"] = item[1].length;
-                reductionGroups[item[1].join("")]["index"] = [item[0]];
-                reductionGroups[item[1].join("")]["commonName"] = croppedLineages[item[0]][item[1].length];
-            } else {
-                reductionGroups[item[1].join("")]["index"].push(item[0]);
-                let taxa:string = reductionGroups[item[1].join("")]["commonName"].split(" & ");
-                if (taxa.indexOf(croppedLineages[item[0]][item[1].length]) === -1) {
-                    reductionGroups[item[1].join("")]["commonName"] += ` & ${croppedLineages[item[0]][item[1].length]}`;
+        if (alteration === "marriedTaxaI") {
+            console.log("alteration: ", alteration)
+            for (let item of reducibleLineages) {
+                if (!reductionGroups[item[1].join("")]) {
+                    reductionGroups[item[1].join("")] = {};
+                    reductionGroups[item[1].join("")]["spliceAt"] = item[1].length;
+                    reductionGroups[item[1].join("")]["index"] = [item[0]];
+                    reductionGroups[item[1].join("")]["commonName"] = croppedLineages[item[0]][item[1].length];
+                } else {
+                    reductionGroups[item[1].join("")]["index"].push(item[0]);
+                    let taxa:string = reductionGroups[item[1].join("")]["commonName"].split(" & ");
+                    if (taxa.indexOf(croppedLineages[item[0]][item[1].length]) === -1) {
+                        reductionGroups[item[1].join("")]["commonName"] += ` & ${croppedLineages[item[0]][item[1].length]}`;
+                    }
                 }
             }
         }
-        for (let group of Object.keys(reductionGroups)) {
-            console.log("group: ", group, reductionGroups[group])
+        else {
+            
+            console.log("alteration2: ", alteration)
+            for (let item of reducibleLineages) {
+                if (!reductionGroups[item[1].join("")]) {
+                    reductionGroups[item[1].join("")] = {};
+                    reductionGroups[item[1].join("")]["spliceAt"] = item[1].length;
+                    reductionGroups[item[1].join("")]["index"] = [item[0]];
+                } else {
+                    reductionGroups[item[1].join("")]["index"].push(item[0]);
+                }
+            }
+
+            // Sort indices of reduction groups in ascending order.
+            for (let group of Object.keys(reductionGroups)) {
+                let spliceAt:number = reductionGroups[group]["spliceAt"];
+                reductionGroups[group]["index"].sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
+                console.log("group: ", group)
+                let renameables:string[] = reductionGroups[group]["index"].map(item => croppedLineages[item][spliceAt]);
+                let temporaryObject:object = {};
+                for (let i=0; i<renameables.length; i++) {
+                    let renameable:string = renameables[i];
+                    if (!temporaryObject[renameable]) {
+                        temporaryObject[renameable] = [reductionGroups[group]["index"][i]]
+                    }
+                    else {
+                        temporaryObject[renameable].push(reductionGroups[group]["index"][i])
+                    }
+                }
+                let permanentObject:object = {};
+                for (let key of Object.keys(temporaryObject)) {
+                    permanentObject[temporaryObject[key][0]] = temporaryObject[key];
+                }
+                console.log("permanentObject: ", permanentObject);
+                reductionGroups[group]["references"] = permanentObject;
+                reductionGroups[group]["minimalIndexArray"] = Object.keys(permanentObject).sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
+            }
+            for (let group of Object.keys(reductionGroups)) {
+                console.log("group, indices: ", group, reductionGroups[group]["index"])
+                let minimalIndexArray:number[] = reductionGroups[group]["minimalIndexArray"].map(item => parseInt(item));
+                let indexBeginning:number = 0;
+                let indexEnd:number = minimalIndexArray.length - 1;
+                let addNext:string = "indexBeginning";
+                let sum:number = 0;
+                let newIndexGroup:number[] = [];
+                let newGroups:any = [];
+                let iterations:number = minimalIndexArray.length % 2 === 0 ? minimalIndexArray.length / 2 : Math.floor(minimalIndexArray.length / 2) + 1;
+                let spliceAt:number = reductionGroups[group]["spliceAt"];
+                console.log("iterations: ", iterations);
+                while ((minimalIndexArray.length % 2 === 0 && indexBeginning <= iterations && (minimalIndexArray.length - 1) - indexEnd < iterations) || (minimalIndexArray.length % 2 === 1 && indexBeginning !== iterations && (minimalIndexArray.length - 1) - indexEnd < iterations)) {
+
+                    if (addNext === "indexBeginning") {
+                        let newIndex:number = minimalIndexArray[indexBeginning];
+                        console.log("indexBeginning. newIndex: ", newIndex, spliceAt)
+                        newIndexGroup.push(newIndex);
+                        let totalCount:number = allTaxaReduced[croppedLineages[newIndex][spliceAt]]["totalCount"];
+                        let additive:number = totalCount / totalUnassignedCounts;
+                        sum += additive;
+                        addNext = "indexEnd";
+                        indexBeginning++;
+                    }
+                    else {
+                        let newIndex:number = minimalIndexArray[indexEnd];
+                        console.log("indexEnd. newIndex: ", newIndex, spliceAt)
+                        newIndexGroup.push(newIndex);
+                        let totalCount:number = allTaxaReduced[croppedLineages[newIndex][spliceAt]]["totalCount"];
+                        let additive:number = totalCount / totalUnassignedCounts;
+                        sum += additive;
+                        addNext = "indexBeginning";
+                        indexEnd--;
+                    }
+
+                    if (sum >= treshold) {
+                        newGroups.push(newIndexGroup);
+                        newIndexGroup = [];
+                        sum = 0;
+                    }
+                }
+                if (newIndexGroup.length !== 0) {
+                    if (newGroups.length === 0) {
+                        //newGroups = [[]];
+                    }
+                    let lastGroup:number[] = newGroups[newGroups.length - 1];
+                    //lastGroup.splice(lastGroup.length, 0, ...newIndexGroup);
+                    newGroups.push(newIndexGroup);
+                }
+                newGroups = newGroups.map(item => item.map(item1 => reductionGroups[group]["references"][item1]));
+                newGroups = newGroups.map(item => item.reduce((accumulator, value) => accumulator.concat(value), []));
+                reductionGroups[group]["newGroups"] = newGroups;
+            }
+            console.log("reductionGroups: ", reductionGroups)
+            let newReductionGroups:object = {};
+            for (let group of Object.keys(reductionGroups)) {
+                for (let i=0; i<reductionGroups[group]["newGroups"].length; i++) {
+                    newReductionGroups[`${group}-${i}`] = {};
+                    newReductionGroups[`${group}-${i}`]["spliceAt"] = reductionGroups[group]["spliceAt"];
+                    newReductionGroups[`${group}-${i}`]["index"] = reductionGroups[group]["newGroups"][i];
+                    var names:string[] = reductionGroups[group]["newGroups"][i].map(item => croppedLineages[item][reductionGroups[group]["spliceAt"]]).filter((v, i, a) => a.indexOf(v) === i);
+                    newReductionGroups[`${group}-${i}`]["commonName"] = names.join(" & ");
+                }
+            }
+            console.log("newReductionGroups: ", newReductionGroups);
+            reductionGroups = newReductionGroups;
         }
+
         for (let group of Object.keys(reductionGroups).filter(item => reductionGroups[item]["index"].length > 1)) {
             for (let index of reductionGroups[group]["index"]) {
                 croppedLineages[index].splice(reductionGroups[group]["spliceAt"], croppedLineages[index].length - reductionGroups[group]["spliceAt"], reductionGroups[group]["commonName"]);
@@ -341,7 +447,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 croppedRanks.splice(lastIndex, 1);
             }
         }
-
         return [croppedLineages, croppedRanks];
     }
 

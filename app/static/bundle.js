@@ -444,7 +444,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     PlotDrawing.prototype.cropLineages = function (root, layer, alteration) {
         if (root === void 0) { root = this.state.root; }
         if (layer === void 0) { layer = this.state.layer; }
-        if (alteration === void 0) { alteration = "marriedTaxa"; }
+        if (alteration === void 0) { alteration = "marriedTaxaI"; }
         // Get only relevant lineages.
         var croppedLineages = [];
         var croppedRanks = [];
@@ -473,8 +473,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; });
         var rankPattern = rankPatternFull.filter(function (item) { return ranksUnique.indexOf(item) > -1; });
         // Mary taxa.
-        if (alteration === "marriedTaxa") {
-            var cropped = this.marryTaxa(croppedLineages, croppedRanks);
+        if (alteration.startsWith("marriedTaxa")) {
+            var cropped = this.marryTaxa(croppedLineages, croppedRanks, alteration);
             croppedLineages = cropped[0];
             croppedRanks = cropped[1];
         }
@@ -542,14 +542,16 @@ var PlotDrawing = /** @class */ (function (_super) {
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration });
         }
     };
-    PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks) {
+    PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
+        if (alteration === void 0) { alteration = "marriedTaxaI"; }
         var totalUnassignedCounts = 0;
+        alteration = "marriedTaxaI";
         for (var _i = 0, croppedLineages_1 = croppedLineages; _i < croppedLineages_1.length; _i++) {
             var lineage = croppedLineages_1[_i];
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages = [];
-        var treshold = 0.04;
+        var treshold = 0.01;
         for (var _a = 0, croppedLineages_2 = croppedLineages; _a < croppedLineages_2.length; _a++) {
             var lineage = croppedLineages_2[_a];
             if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < treshold) {
@@ -567,30 +569,145 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
         }
         var reductionGroups = {};
-        for (var _b = 0, reducibleLineages_1 = reducibleLineages; _b < reducibleLineages_1.length; _b++) {
-            var item = reducibleLineages_1[_b];
-            if (!reductionGroups[item[1].join("")]) {
-                reductionGroups[item[1].join("")] = {};
-                reductionGroups[item[1].join("")]["spliceAt"] = item[1].length;
-                reductionGroups[item[1].join("")]["index"] = [item[0]];
-                reductionGroups[item[1].join("")]["commonName"] = croppedLineages[item[0]][item[1].length];
-            }
-            else {
-                reductionGroups[item[1].join("")]["index"].push(item[0]);
-                var taxa = reductionGroups[item[1].join("")]["commonName"].split(" & ");
-                if (taxa.indexOf(croppedLineages[item[0]][item[1].length]) === -1) {
-                    reductionGroups[item[1].join("")]["commonName"] += " & ".concat(croppedLineages[item[0]][item[1].length]);
+        if (alteration === "marriedTaxaI") {
+            console.log("alteration: ", alteration);
+            for (var _b = 0, reducibleLineages_1 = reducibleLineages; _b < reducibleLineages_1.length; _b++) {
+                var item = reducibleLineages_1[_b];
+                if (!reductionGroups[item[1].join("")]) {
+                    reductionGroups[item[1].join("")] = {};
+                    reductionGroups[item[1].join("")]["spliceAt"] = item[1].length;
+                    reductionGroups[item[1].join("")]["index"] = [item[0]];
+                    reductionGroups[item[1].join("")]["commonName"] = croppedLineages[item[0]][item[1].length];
+                }
+                else {
+                    reductionGroups[item[1].join("")]["index"].push(item[0]);
+                    var taxa = reductionGroups[item[1].join("")]["commonName"].split(" & ");
+                    if (taxa.indexOf(croppedLineages[item[0]][item[1].length]) === -1) {
+                        reductionGroups[item[1].join("")]["commonName"] += " & ".concat(croppedLineages[item[0]][item[1].length]);
+                    }
                 }
             }
         }
-        for (var _c = 0, _d = Object.keys(reductionGroups); _c < _d.length; _c++) {
-            var group = _d[_c];
-            console.log("group: ", group, reductionGroups[group]);
+        else {
+            console.log("alteration2: ", alteration);
+            for (var _c = 0, reducibleLineages_2 = reducibleLineages; _c < reducibleLineages_2.length; _c++) {
+                var item = reducibleLineages_2[_c];
+                if (!reductionGroups[item[1].join("")]) {
+                    reductionGroups[item[1].join("")] = {};
+                    reductionGroups[item[1].join("")]["spliceAt"] = item[1].length;
+                    reductionGroups[item[1].join("")]["index"] = [item[0]];
+                }
+                else {
+                    reductionGroups[item[1].join("")]["index"].push(item[0]);
+                }
+            }
+            var _loop_3 = function (group) {
+                var spliceAt = reductionGroups[group]["spliceAt"];
+                reductionGroups[group]["index"].sort(function (index1, index2) { return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"]; });
+                console.log("group: ", group);
+                var renameables = reductionGroups[group]["index"].map(function (item) { return croppedLineages[item][spliceAt]; });
+                var temporaryObject = {};
+                for (var i = 0; i < renameables.length; i++) {
+                    var renameable = renameables[i];
+                    if (!temporaryObject[renameable]) {
+                        temporaryObject[renameable] = [reductionGroups[group]["index"][i]];
+                    }
+                    else {
+                        temporaryObject[renameable].push(reductionGroups[group]["index"][i]);
+                    }
+                }
+                var permanentObject = {};
+                for (var _p = 0, _q = Object.keys(temporaryObject); _p < _q.length; _p++) {
+                    var key = _q[_p];
+                    permanentObject[temporaryObject[key][0]] = temporaryObject[key];
+                }
+                console.log("permanentObject: ", permanentObject);
+                reductionGroups[group]["references"] = permanentObject;
+                reductionGroups[group]["minimalIndexArray"] = Object.keys(permanentObject).sort(function (index1, index2) { return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"]; });
+            };
+            // Sort indices of reduction groups in ascending order.
+            for (var _d = 0, _e = Object.keys(reductionGroups); _d < _e.length; _d++) {
+                var group = _e[_d];
+                _loop_3(group);
+            }
+            var _loop_4 = function (group) {
+                console.log("group, indices: ", group, reductionGroups[group]["index"]);
+                var minimalIndexArray = reductionGroups[group]["minimalIndexArray"].map(function (item) { return parseInt(item); });
+                var indexBeginning = 0;
+                var indexEnd = minimalIndexArray.length - 1;
+                var addNext = "indexBeginning";
+                var sum = 0;
+                var newIndexGroup = [];
+                var newGroups = [];
+                var iterations = minimalIndexArray.length % 2 === 0 ? minimalIndexArray.length / 2 : Math.floor(minimalIndexArray.length / 2) + 1;
+                var spliceAt = reductionGroups[group]["spliceAt"];
+                console.log("iterations: ", iterations);
+                while ((minimalIndexArray.length % 2 === 0 && indexBeginning <= iterations && (minimalIndexArray.length - 1) - indexEnd < iterations) || (minimalIndexArray.length % 2 === 1 && indexBeginning !== iterations && (minimalIndexArray.length - 1) - indexEnd < iterations)) {
+                    if (addNext === "indexBeginning") {
+                        var newIndex = minimalIndexArray[indexBeginning];
+                        console.log("indexBeginning. newIndex: ", newIndex, spliceAt);
+                        newIndexGroup.push(newIndex);
+                        var totalCount = allTaxaReduced[croppedLineages[newIndex][spliceAt]]["totalCount"];
+                        var additive = totalCount / totalUnassignedCounts;
+                        sum += additive;
+                        addNext = "indexEnd";
+                        indexBeginning++;
+                    }
+                    else {
+                        var newIndex = minimalIndexArray[indexEnd];
+                        console.log("indexEnd. newIndex: ", newIndex, spliceAt);
+                        newIndexGroup.push(newIndex);
+                        var totalCount = allTaxaReduced[croppedLineages[newIndex][spliceAt]]["totalCount"];
+                        var additive = totalCount / totalUnassignedCounts;
+                        sum += additive;
+                        addNext = "indexBeginning";
+                        indexEnd--;
+                    }
+                    if (sum >= treshold) {
+                        newGroups.push(newIndexGroup);
+                        newIndexGroup = [];
+                        sum = 0;
+                    }
+                }
+                if (newIndexGroup.length !== 0) {
+                    if (newGroups.length === 0) {
+                        //newGroups = [[]];
+                    }
+                    var lastGroup = newGroups[newGroups.length - 1];
+                    //lastGroup.splice(lastGroup.length, 0, ...newIndexGroup);
+                    newGroups.push(newIndexGroup);
+                }
+                newGroups = newGroups.map(function (item) { return item.map(function (item1) { return reductionGroups[group]["references"][item1]; }); });
+                newGroups = newGroups.map(function (item) { return item.reduce(function (accumulator, value) { return accumulator.concat(value); }, []); });
+                reductionGroups[group]["newGroups"] = newGroups;
+            };
+            for (var _f = 0, _g = Object.keys(reductionGroups); _f < _g.length; _f++) {
+                var group = _g[_f];
+                _loop_4(group);
+            }
+            console.log("reductionGroups: ", reductionGroups);
+            var newReductionGroups = {};
+            var _loop_5 = function (group) {
+                for (var i = 0; i < reductionGroups[group]["newGroups"].length; i++) {
+                    newReductionGroups["".concat(group, "-").concat(i)] = {};
+                    newReductionGroups["".concat(group, "-").concat(i)]["spliceAt"] = reductionGroups[group]["spliceAt"];
+                    newReductionGroups["".concat(group, "-").concat(i)]["index"] = reductionGroups[group]["newGroups"][i];
+                    names = reductionGroups[group]["newGroups"][i].map(function (item) { return croppedLineages[item][reductionGroups[group]["spliceAt"]]; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
+                    newReductionGroups["".concat(group, "-").concat(i)]["commonName"] = names.join(" & ");
+                }
+            };
+            var names;
+            for (var _h = 0, _j = Object.keys(reductionGroups); _h < _j.length; _h++) {
+                var group = _j[_h];
+                _loop_5(group);
+            }
+            console.log("newReductionGroups: ", newReductionGroups);
+            reductionGroups = newReductionGroups;
         }
-        for (var _e = 0, _f = Object.keys(reductionGroups).filter(function (item) { return reductionGroups[item]["index"].length > 1; }); _e < _f.length; _e++) {
-            var group = _f[_e];
-            for (var _g = 0, _h = reductionGroups[group]["index"]; _g < _h.length; _g++) {
-                var index = _h[_g];
+        for (var _k = 0, _l = Object.keys(reductionGroups).filter(function (item) { return reductionGroups[item]["index"].length > 1; }); _k < _l.length; _k++) {
+            var group = _l[_k];
+            for (var _m = 0, _o = reductionGroups[group]["index"]; _m < _o.length; _m++) {
+                var index = _o[_m];
                 croppedLineages[index].splice(reductionGroups[group]["spliceAt"], croppedLineages[index].length - reductionGroups[group]["spliceAt"], reductionGroups[group]["commonName"]);
                 croppedRanks[index].splice(reductionGroups[group]["spliceAt"] + 1);
             }
@@ -663,18 +780,18 @@ var PlotDrawing = /** @class */ (function (_super) {
     PlotDrawing.prototype.collapse = function (croppedLineages) {
         var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
         var layers = getLayers(lineagesCopy);
-        var _loop_3 = function (i) {
-            var _loop_4 = function (j) {
+        var _loop_6 = function (i) {
+            var _loop_7 = function (j) {
                 if (layers[i].filter(function (item) { return item === layers[i][j]; }).length === 1 && Boolean(layers[i + 1][j])) {
                     lineagesCopy[j].splice(i, 1, "toBeDeleted");
                 }
             };
             for (var j = 0; j < layers[i].length; j++) {
-                _loop_4(j);
+                _loop_7(j);
             }
         };
         for (var i = 0; i < layers.length - 1; i++) {
-            _loop_3(i);
+            _loop_6(i);
         }
         for (var i = 0; i < lineagesCopy.length; i++) {
             lineagesCopy[i] = lineagesCopy[i].filter(function (item) { return item !== "toBeDeleted"; });
@@ -959,7 +1076,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var shapes = [];
         var labels = [];
         var tS = this.state.taxonSpecifics;
-        var _loop_5 = function (item) {
+        var _loop_8 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_1.state.ancestors[this_1.state.ancestors.length - 1], "_-_0") : id;
             shapes.push(React.createElement(TaxonShape, { id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"] }));
@@ -967,9 +1084,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         var this_1 = this;
         for (var _i = 0, _a = Object.keys(tS); _i < _a.length; _i++) {
             var item = _a[_i];
-            _loop_5(item);
+            _loop_8(item);
         }
-        var _loop_6 = function (item) {
+        var _loop_9 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_2.state.ancestors[this_2.state.ancestors.length - 1], "_-_0") : id;
             var label = React.createElement(TaxonLabel, { id: id, abbr: tS[item]["label"]["abbreviation"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], right: tS[item]["label"]["right"], top: tS[item]["label"]["top"], transformOrigin: tS[item]["label"]["transformOrigin"], opacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"] });
@@ -978,16 +1095,16 @@ var PlotDrawing = /** @class */ (function (_super) {
         var this_2 = this;
         for (var _b = 0, _c = Object.keys(tS); _b < _c.length; _b++) {
             var item = _c[_b];
-            _loop_6(item);
+            _loop_9(item);
         }
-        var _loop_7 = function (i) {
+        var _loop_10 = function (i) {
             ancestor = this_3.state.ancestors[i];
             actualI = i - this_3.state.ancestors.length;
             labels.push(React.createElement(AncestorLabel, { id: "".concat(ancestor, "_-_").concat(actualI + 1), taxon: ancestor, top: "".concat(7 + 2.5 * (this_3.state.ancestors.length - i), "vmin"), onClick: function () { _this.handleClick("".concat(_this.state.ancestors[i], "_-_").concat((i - _this.state.ancestors.length) + 1)); } }));
         };
         var this_3 = this, ancestor, actualI;
         for (var i = this.state.ancestors.length - 1; i >= 0; i--) {
-            _loop_7(i);
+            _loop_10(i);
         }
         return [React.createElement("svg", { style: { "height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none" }, id: "shapes" }, shapes), React.createElement("div", { id: "labels" }, labels)];
     };
