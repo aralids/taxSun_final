@@ -681,6 +681,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "display": "unset",
                     "fullLabel": key + ` ${percentage}%`
                 }
+
+                if (taxonSpecifics[key]["rank"] === "species") {
+                    let abbr:string = taxonSpecifics[key]["label"]["abbreviation"];
+                    if (abbr.split(" ").length >= 2 && !(abbr.split(" ")[1] === "sp.")) {
+                        let newAbbr:string = abbr.split(" ")[0].slice(0, 1) + ". " + abbr.split(" ").slice(1, abbr.split(" ").length).join(" ");
+                        taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
+                    }
+                }
             }
         };
         this.getTaxonShapes(newState);
@@ -1082,7 +1090,6 @@ for (let taxName of reducibleTaxa) {
         delete allTaxaReduced[taxName];
     }
 }
-
 
 
 // Add taxa with no unassignedCounts as objects in allTaxaReduced, accounting for the fact that there are different taxa with the same name.

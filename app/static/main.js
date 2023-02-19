@@ -689,6 +689,13 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "display": "unset",
                     "fullLabel": key + " ".concat(percentage, "%")
                 };
+                if (taxonSpecifics[key]["rank"] === "species") {
+                    var abbr = taxonSpecifics[key]["label"]["abbreviation"];
+                    if (abbr.split(" ").length >= 2 && !(abbr.split(" ")[1] === "sp.")) {
+                        var newAbbr = abbr.split(" ")[0].slice(0, 1) + ". " + abbr.split(" ").slice(1, abbr.split(" ").length).join(" ");
+                        taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
+                    }
+                }
             }
         }
         ;
