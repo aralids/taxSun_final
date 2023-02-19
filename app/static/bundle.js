@@ -412,7 +412,8 @@ var PlotDrawing = /** @class */ (function (_super) {
             colors: ["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
             ancestors: ["root"],
             rankPattern: [],
-            alteration: "marriedTaxa"
+            alteration: "marriedTaxa",
+            totalUnassignedCount: 0
         };
         return _this;
     }
@@ -487,7 +488,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         // !!!!!!
         if (collapse) {
-            croppedLineages = this.collapse(croppedLineages);
+            var arr = this.collapse(croppedLineages, croppedRanks);
+            croppedLineages = arr[0];
+            croppedRanks = arr[1];
         }
         // Align cropped lineages by adding null as placeholder for missing ranks.
         var alignedCropppedLineages = [];
@@ -517,6 +520,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var taxa = taxName.split(" & ");
                 var unassignedCount = taxa.map(function (item) { return allTaxaReduced[item]["totalCount"]; }).reduce(function (accumulator, value) { return accumulator + value; }, 0);
                 taxonSpecifics[taxName]["unassignedCount"] = unassignedCount;
+                taxonSpecifics[taxName]["totalCount"] = unassignedCount;
                 taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
                 taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
             }
@@ -526,14 +530,21 @@ var PlotDrawing = /** @class */ (function (_super) {
                 taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
                 taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
                 taxonSpecifics[taxName]["unassignedCount"] = allTaxaReduced[taxName].unassignedCount;
+                taxonSpecifics[taxName]["totalCount"] = allTaxaReduced[taxName]["totalCount"];
                 taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
                 taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
             }
         }
+        var totalUnassignedCount = 0;
+        for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
+            var taxName_1 = _a[_i];
+            totalUnassignedCount += taxonSpecifics[taxName_1]["unassignedCount"];
+        }
+        console.log("totalUnassignedCount: ", totalUnassignedCount);
         if (alteration === "allEqual") {
-            for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
-                var taxName_1 = _a[_i];
-                taxonSpecifics[taxName_1]["unassignedCount"] = 1;
+            for (var _b = 0, _c = Object.keys(taxonSpecifics); _b < _c.length; _b++) {
+                var taxName_2 = _c[_b];
+                taxonSpecifics[taxName_2]["unassignedCount"] = 1;
             }
         }
         for (var i = 0; i < croppedLineages.length; i++) {
@@ -545,6 +556,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     var index = alignedCropppedLineages[i].indexOf(croppedLineages[i][j]);
                     taxonSpecifics[croppedLineages[i][j]]["alignedCroppedLineage"] = alignedCropppedLineages[i].slice(0, index + 1);
                     taxonSpecifics[croppedLineages[i][j]]["unassignedCount"] = 0;
+                    taxonSpecifics[croppedLineages[i][j]]["totalCount"] = allTaxaReduced[croppedLineages[i][j]]["totalCount"];
                     taxonSpecifics[croppedLineages[i][j]]["firstLayerUnaligned"] = j;
                     taxonSpecifics[croppedLineages[i][j]]["firstLayerAligned"] = index;
                 }
@@ -552,7 +564,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         console.log("ancestors: ", ancestors, root);
         if (croppedLineages.length > 1) {
-            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse });
+            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount });
         }
     };
     PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
@@ -790,13 +802,15 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.calculateSVGPaths(newState);
     };
     // If collapse=true, remove taxa that only come up in the lineage of one other taxon and have no unassigned counts of their own.
-    PlotDrawing.prototype.collapse = function (croppedLineages) {
+    PlotDrawing.prototype.collapse = function (croppedLineages, croppedRanks) {
         var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
+        var ranksCopy = JSON.parse(JSON.stringify(croppedRanks));
         var layers = getLayers(lineagesCopy);
         var _loop_6 = function (i) {
             var _loop_7 = function (j) {
                 if (layers[i].filter(function (item) { return item === layers[i][j]; }).length === 1 && Boolean(layers[i + 1][j])) {
                     lineagesCopy[j].splice(i, 1, "toBeDeleted");
+                    ranksCopy[j].splice(i, 1, "toBeDeleted");
                 }
             };
             for (var j = 0; j < layers[i].length; j++) {
@@ -808,8 +822,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         for (var i = 0; i < lineagesCopy.length; i++) {
             lineagesCopy[i] = lineagesCopy[i].filter(function (item) { return item !== "toBeDeleted"; });
+            ranksCopy[i] = ranksCopy[i].filter(function (item) { return item !== "toBeDeleted"; });
         }
-        return lineagesCopy;
+        return [lineagesCopy, ranksCopy];
     };
     PlotDrawing.prototype.calculateArcEndpoints = function (layer, layerWidthInPx, deg1, deg2) {
         var radius = layer * layerWidthInPx; // in px
@@ -865,6 +880,8 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     PlotDrawing.prototype.calculateTaxonLabels = function (newState) {
         var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
+        var totalUnassignedCount = newState["totalUnassignedCount"] ? newState["totalUnassignedCount"] : this.state.totalUnassignedCount;
+        console.log("totalUnassignedCount at calculateTaxonLabels: ", totalUnassignedCount);
         var root = newState["root"] ? newState["root"] : this.state.root;
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
         var numberOfLayers = alignedCroppedLineages[0].length;
@@ -923,6 +940,8 @@ var PlotDrawing = /** @class */ (function (_super) {
                     transform = "translate(-50%, 0) rotate(".concat(twist, "deg)");
                     transformOrigin = "center center";
                 }
+                var percentage = round((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
+                var oldPercentage = round(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100);
                 taxonSpecifics[key]["label"] = {
                     "direction": direction,
                     "left": left,
@@ -934,7 +953,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "twist": twist,
                     "abbreviation": key,
                     "display": "unset",
-                    "fullLabel": key + " ".concat(round(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100), "%")
+                    "fullLabel": key + " ".concat(percentage, "%")
                 };
             }
         }
@@ -1259,7 +1278,7 @@ function getFourCorners(top, bottom, left, right, cx, cy, twist) {
     return { topLeft: topLeft, topRight: topRight, bottomLeft: bottomLeft, bottomRight: bottomRight };
 }
 // console.log("lineIntersect: ", lineIntersect(0, 0, 0, 5, 1, 3, 3, 4));
-var rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species", "subspecies", "strain"];
+var rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];
 var allTaxaReduced = JSON.parse(JSON.stringify(allTaxa));
 var reducibleTaxa = [];
 var taxaWithReducibleLineages = [];

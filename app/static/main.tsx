@@ -124,7 +124,7 @@ function AncestorLabel(props) {
 
 
 
-class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string}> {
+class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -148,7 +148,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             colors: ["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
             ancestors: ["root"],
             rankPattern: [],
-            alteration: "marriedTaxa"
+            alteration: "marriedTaxa",
+            totalUnassignedCount: 0
         }
     }
 
@@ -260,6 +261,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 let taxa:string[] = taxName.split(" & ");
                 let unassignedCount:number = taxa.map(item => allTaxaReduced[item]["totalCount"]).reduce((accumulator, value) => accumulator + value, 0);
                 taxonSpecifics[taxName]["unassignedCount"] = unassignedCount;
+                taxonSpecifics[taxName]["totalCount"] = unassignedCount;
                 taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length-1;
                 taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
             } else {
@@ -268,10 +270,17 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
                 taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
                 taxonSpecifics[taxName]["unassignedCount"] = allTaxaReduced[taxName].unassignedCount;
+                taxonSpecifics[taxName]["totalCount"] = allTaxaReduced[taxName]["totalCount"];
                 taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length-1;
                 taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
             }
         }
+
+        let totalUnassignedCount:number = 0;
+        for (let taxName of Object.keys(taxonSpecifics)) {
+            totalUnassignedCount += taxonSpecifics[taxName]["unassignedCount"];
+        }
+        console.log("totalUnassignedCount: ", totalUnassignedCount)
 
         if (alteration === "allEqual") {
             for (let taxName of Object.keys(taxonSpecifics)) {
@@ -288,6 +297,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     var index = alignedCropppedLineages[i].indexOf(croppedLineages[i][j]);
                     taxonSpecifics[croppedLineages[i][j]]["alignedCroppedLineage"] = alignedCropppedLineages[i].slice(0, index+1);
                     taxonSpecifics[croppedLineages[i][j]]["unassignedCount"] = 0;
+                    taxonSpecifics[croppedLineages[i][j]]["totalCount"] = allTaxaReduced[croppedLineages[i][j]]["totalCount"];
                     taxonSpecifics[croppedLineages[i][j]]["firstLayerUnaligned"] = j;
                     taxonSpecifics[croppedLineages[i][j]]["firstLayerAligned"] = index;
                 }
@@ -295,7 +305,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
         console.log("ancestors: ", ancestors, root);
         if (croppedLineages.length > 1) {
-            this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse});
+            this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount});
         }
     }
 
@@ -597,6 +607,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
     calculateTaxonLabels(newState:object):void {
         var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
+        var totalUnassignedCount = newState["totalUnassignedCount"] ? newState["totalUnassignedCount"] : this.state.totalUnassignedCount;
+        console.log("totalUnassignedCount at calculateTaxonLabels: ", totalUnassignedCount)
         var root:string = newState["root"] ? newState["root"] : this.state.root;
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
         var numberOfLayers:number = alignedCroppedLineages[0].length;
@@ -654,6 +666,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     transform = `translate(-50%, 0) rotate(${twist}deg)`;
                     transformOrigin = "center center";
                 }
+                let percentage:number = round((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
+                let oldPercentage:number = round(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100);
                 taxonSpecifics[key]["label"] = {
                     "direction": direction,
                     "left": left,
@@ -665,7 +679,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "twist": twist,
                     "abbreviation": key,
                     "display": "unset",
-                    "fullLabel": key + ` ${round(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100)}%`
+                    "fullLabel": key + ` ${percentage}%`
                 }
             }
         };
@@ -1004,7 +1018,7 @@ function getFourCorners(top:number, bottom:number, left:number, right:number, cx
 
 // console.log("lineIntersect: ", lineIntersect(0, 0, 0, 5, 1, 3, 3, 4));
 
-var rankPatternFull:string[] = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species", "subspecies", "strain"];
+var rankPatternFull:string[] = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];
 
 var allTaxaReduced:object = JSON.parse(JSON.stringify(allTaxa));
 var reducibleTaxa:string[] = [];
