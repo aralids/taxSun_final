@@ -688,6 +688,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                         let newAbbr:string = abbr.split(" ")[0].slice(0, 1) + ". " + abbr.split(" ").slice(1, abbr.split(" ").length).join(" ");
                         taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
                     }
+                    else if (abbr.split(" ").indexOf("sp.") !== -1) {
+                        let newAbbr:string = abbr.split(" ").slice(0, abbr.split(" ").indexOf("sp.") + 1).join(" ");
+                        taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
+                    }
                 }
             }
         };

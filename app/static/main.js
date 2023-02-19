@@ -695,6 +695,10 @@ var PlotDrawing = /** @class */ (function (_super) {
                         var newAbbr = abbr.split(" ")[0].slice(0, 1) + ". " + abbr.split(" ").slice(1, abbr.split(" ").length).join(" ");
                         taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
                     }
+                    else if (abbr.split(" ").indexOf("sp.") !== -1) {
+                        var newAbbr = abbr.split(" ").slice(0, abbr.split(" ").indexOf("sp.") + 1).join(" ");
+                        taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
+                    }
                 }
             }
         }
