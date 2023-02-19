@@ -225,7 +225,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         // !!!!!!
         if (collapse) {
-            croppedLineages = this.collapse(croppedLineages);
+            let arr:any = this.collapse(croppedLineages, croppedRanks);
+            croppedLineages = arr[0];
+            croppedRanks = arr[1];
         }
         
         // Align cropped lineages by adding null as placeholder for missing ranks.
@@ -291,9 +293,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 }
             }
         }
-
-        
-
         console.log("ancestors: ", ancestors, root);
         if (croppedLineages.length > 1) {
             this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse});
@@ -521,21 +520,24 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     // If collapse=true, remove taxa that only come up in the lineage of one other taxon and have no unassigned counts of their own.
-    collapse(croppedLineages:string[][]):string[][] {
+    collapse(croppedLineages:string[][], croppedRanks:string[][]):string[][][] {
         var lineagesCopy:string[][] = JSON.parse(JSON.stringify(croppedLineages));
+        var ranksCopy:string[][] = JSON.parse(JSON.stringify(croppedRanks));
         var layers = getLayers(lineagesCopy);
 
         for (let i=0; i<layers.length-1; i++) {
             for (let j=0; j<layers[i].length; j++) {
                 if (layers[i].filter(item => item === layers[i][j]).length === 1 && Boolean(layers[i+1][j])) {
                     lineagesCopy[j].splice(i,1, "toBeDeleted");
+                    ranksCopy[j].splice(i,1, "toBeDeleted");
                 }
             }
         }
         for (let i=0; i<lineagesCopy.length; i++) {
             lineagesCopy[i] = lineagesCopy[i].filter(item => item !== "toBeDeleted");
+            ranksCopy[i] = ranksCopy[i].filter(item => item !== "toBeDeleted");
         }
-        return lineagesCopy;
+        return [lineagesCopy, ranksCopy];
     }
 
     calculateArcEndpoints(layer:number, layerWidthInPx:number, deg1:number, deg2:number):object {
