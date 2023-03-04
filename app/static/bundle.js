@@ -431,13 +431,11 @@ var PlotDrawing = /** @class */ (function (_super) {
         });
         document.getElementById("radio-input").addEventListener("change", function () {
             var alteration = document.querySelector('input[name="radio"]:checked').getAttribute("id");
-            console.log("radio button clicked!", document.querySelector('input[name="radio"]:checked').getAttribute("id"));
             _this.cropLineages(_this.state.root, _this.state.layer, alteration, _this.state.collapse);
         });
         document.getElementById("checkbox-input").addEventListener("change", function () {
             var element = document.getElementById("checkbox-input");
             var checked = element.checked;
-            console.log("checked or not? ", checked);
             _this.cropLineages(_this.state.root, _this.state.layer, _this.state.alteration, checked);
         });
     };
@@ -540,7 +538,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             var taxName_1 = _a[_i];
             totalUnassignedCount += taxonSpecifics[taxName_1]["unassignedCount"];
         }
-        console.log("totalUnassignedCount: ", totalUnassignedCount);
         if (alteration === "allEqual") {
             for (var _b = 0, _c = Object.keys(taxonSpecifics); _b < _c.length; _b++) {
                 var taxName_2 = _c[_b];
@@ -562,7 +559,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 }
             }
         }
-        console.log("ancestors: ", ancestors, root);
         if (croppedLineages.length > 1) {
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount });
         }
@@ -570,7 +566,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
         if (alteration === void 0) { alteration = "marriedTaxaI"; }
         var totalUnassignedCounts = 0;
-        alteration = "marriedTaxaI";
+        alteration = "marriedTaxaII";
         for (var _i = 0, croppedLineages_1 = croppedLineages; _i < croppedLineages_1.length; _i++) {
             var lineage = croppedLineages_1[_i];
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
@@ -595,7 +591,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         var reductionGroups = {};
         if (alteration === "marriedTaxaI") {
-            console.log("alteration: ", alteration);
             for (var _b = 0, reducibleLineages_1 = reducibleLineages; _b < reducibleLineages_1.length; _b++) {
                 var item = reducibleLineages_1[_b];
                 if (!reductionGroups[item[1].join("")]) {
@@ -614,7 +609,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
         }
         else {
-            console.log("alteration2: ", alteration);
             for (var _c = 0, reducibleLineages_2 = reducibleLineages; _c < reducibleLineages_2.length; _c++) {
                 var item = reducibleLineages_2[_c];
                 if (!reductionGroups[item[1].join("")]) {
@@ -629,7 +623,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             var _loop_3 = function (group) {
                 var spliceAt = reductionGroups[group]["spliceAt"];
                 reductionGroups[group]["index"].sort(function (index1, index2) { return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"]; });
-                console.log("group: ", group);
                 var renameables = reductionGroups[group]["index"].map(function (item) { return croppedLineages[item][spliceAt]; });
                 var temporaryObject = {};
                 for (var i = 0; i < renameables.length; i++) {
@@ -646,7 +639,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                     var key = _q[_p];
                     permanentObject[temporaryObject[key][0]] = temporaryObject[key];
                 }
-                console.log("permanentObject: ", permanentObject);
                 reductionGroups[group]["references"] = permanentObject;
                 reductionGroups[group]["minimalIndexArray"] = Object.keys(permanentObject).sort(function (index1, index2) { return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"]; });
             };
@@ -656,7 +648,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 _loop_3(group);
             }
             var _loop_4 = function (group) {
-                console.log("group, indices: ", group, reductionGroups[group]["index"]);
                 var minimalIndexArray = reductionGroups[group]["minimalIndexArray"].map(function (item) { return parseInt(item); });
                 var indexBeginning = 0;
                 var indexEnd = minimalIndexArray.length - 1;
@@ -666,11 +657,9 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var newGroups = [];
                 var iterations = minimalIndexArray.length % 2 === 0 ? minimalIndexArray.length / 2 : Math.floor(minimalIndexArray.length / 2) + 1;
                 var spliceAt = reductionGroups[group]["spliceAt"];
-                console.log("iterations: ", iterations);
                 while ((minimalIndexArray.length % 2 === 0 && indexBeginning <= iterations && (minimalIndexArray.length - 1) - indexEnd < iterations) || (minimalIndexArray.length % 2 === 1 && indexBeginning !== iterations && (minimalIndexArray.length - 1) - indexEnd < iterations)) {
                     if (addNext === "indexBeginning") {
                         var newIndex = minimalIndexArray[indexBeginning];
-                        console.log("indexBeginning. newIndex: ", newIndex, spliceAt);
                         newIndexGroup.push(newIndex);
                         var totalCount = allTaxaReduced[croppedLineages[newIndex][spliceAt]]["totalCount"];
                         var additive = totalCount / totalUnassignedCounts;
@@ -680,7 +669,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                     }
                     else {
                         var newIndex = minimalIndexArray[indexEnd];
-                        console.log("indexEnd. newIndex: ", newIndex, spliceAt);
                         newIndexGroup.push(newIndex);
                         var totalCount = allTaxaReduced[croppedLineages[newIndex][spliceAt]]["totalCount"];
                         var additive = totalCount / totalUnassignedCounts;
@@ -710,7 +698,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var group = _g[_f];
                 _loop_4(group);
             }
-            console.log("reductionGroups: ", reductionGroups);
             var newReductionGroups = {};
             var _loop_5 = function (group) {
                 for (var i = 0; i < reductionGroups[group]["newGroups"].length; i++) {
@@ -726,7 +713,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var group = _j[_h];
                 _loop_5(group);
             }
-            console.log("newReductionGroups: ", newReductionGroups);
             reductionGroups = newReductionGroups;
         }
         for (var _k = 0, _l = Object.keys(reductionGroups).filter(function (item) { return reductionGroups[item]["index"].length > 1; }); _k < _l.length; _k++) {
@@ -881,7 +867,6 @@ var PlotDrawing = /** @class */ (function (_super) {
     PlotDrawing.prototype.calculateTaxonLabels = function (newState) {
         var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
         var totalUnassignedCount = newState["totalUnassignedCount"] ? newState["totalUnassignedCount"] : this.state.totalUnassignedCount;
-        console.log("totalUnassignedCount at calculateTaxonLabels: ", totalUnassignedCount);
         var root = newState["root"] ? newState["root"] : this.state.root;
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
         var numberOfLayers = alignedCroppedLineages[0].length;
@@ -927,10 +912,11 @@ var PlotDrawing = /** @class */ (function (_super) {
                 if (direction === "radial") {
                     twist = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : +taxonSpecifics[key]["center"][2];
                     left = twist > 0 ? taxonSpecifics[key]["center"][0] : "unset";
-                    right = left === "unset" ? cx * 2 - taxonSpecifics[key]["center"][0] : "unset";
+                    console.log("width: ", window.innerWidth, document.documentElement.clientWidth);
+                    right = left === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["center"][0]) : "unset";
                     twist = left === "unset" ? 270 - twist : 360 - (270 - twist);
-                    top_1 = right === "unset" ? taxonSpecifics[key]["center"][1] - 9 : taxonSpecifics[key]["center"][1] - 9;
-                    transform = "rotate(".concat(twist, "deg)");
+                    top_1 = taxonSpecifics[key]["center"][1];
+                    transform = "translate(0, -50%) rotate(".concat(twist, "deg)");
                     transformOrigin = left === "unset" ? "center right" : "center left";
                 }
                 else {
@@ -1017,10 +1003,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.getTaxonShapes({ "colors": newPalette });
     };
     PlotDrawing.prototype.handleClick = function (shapeId) {
-        console.log("shapeId: ", shapeId);
         var taxon = shapeId.match(/.+?(?=_)/)[0];
         var currLayer = parseInt(shapeId.match(/-?\d+/)[0]);
-        console.log("currLayer: ", currLayer, shapeId);
         var nextLayer;
         if (this.state.root.includes("&")) {
             nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : (currLayer + this.state.layer) - 1;
@@ -1028,7 +1012,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         else {
             nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : currLayer + this.state.layer;
         }
-        console.log("taxon, nextLayer hC: ", taxon, nextLayer);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     };
     PlotDrawing.prototype.checkTaxonLabelWidth = function () {
@@ -1099,10 +1082,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         var newTaxonSpecifics = JSON.parse(JSON.stringify(this.state.taxonSpecifics));
         for (var _i = 0, abbreviatables_1 = abbreviatables; _i < abbreviatables_1.length; _i++) {
             var key = abbreviatables_1[_i];
-            console.log("abbr key: ", key);
             var newAbbreviation = void 0;
-            if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 20) {
-                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 19) + ".";
+            if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 25) {
+                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 24) + ".";
             }
             else {
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length - 2) + ".";
@@ -1112,7 +1094,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 newTaxonSpecifics[key]["label"]["display"] = "none";
                 newTaxonSpecifics[key]["label"]["direction"] = "circumferential";
             }
-            console.log(newTaxonSpecifics[key]);
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
         }
         this.setState({ taxonSpecifics: newTaxonSpecifics });
@@ -1292,7 +1273,6 @@ function getFourCorners(top, bottom, left, right, cx, cy, twist) {
     var bottomRight = [((right - cx) * Math.cos(twist * (Math.PI / 180)) - (bottom - cy) * Math.sin(twist * (Math.PI / 180))) + cx, ((right - cx) * Math.sin(twist * (Math.PI / 180)) + (bottom - cy) * Math.cos(twist * (Math.PI / 180))) + cy];
     return { topLeft: topLeft, topRight: topRight, bottomLeft: bottomLeft, bottomRight: bottomRight };
 }
-// console.log("lineIntersect: ", lineIntersect(0, 0, 0, 5, 1, 3, 3, 4));
 var rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];
 var allTaxaReduced = JSON.parse(JSON.stringify(allTaxa));
 var reducibleTaxa = [];
@@ -1434,7 +1414,6 @@ for (var _t = 0, lineagesFull_1 = lineagesFull; _t < lineagesFull_1.length; _t++
     lineagesNames.push(lineageNames);
     lineagesRanks.push(lineageRanks);
 }
-console.log("allTaxaReduced: ", allTaxaReduced);
 newlyAdded = newlyAdded.filter(function (v, i, a) { return a.indexOf(v) === i; });
 // var fullPlot:Plot = new Plot();
 // var mycosphaerellalesPlot:Plot = new Plot("Bacteria", 0, true, viewportDimensions);

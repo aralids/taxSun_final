@@ -88,8 +88,6 @@ class Plot {
     updateviewportDimensions(newDimensions):void {
         this.viewportDimensions = newDimensions;
     }
-
-
 }
 
 function radians(degrees):number {
@@ -166,13 +164,11 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         })
         document.getElementById("radio-input")!.addEventListener("change", () => {
             let alteration:any = document.querySelector('input[name="radio"]:checked')!.getAttribute("id");
-            console.log("radio button clicked!", document.querySelector('input[name="radio"]:checked')!.getAttribute("id"));
             this.cropLineages(this.state.root, this.state.layer, alteration, this.state.collapse);
         })
         document.getElementById("checkbox-input")!.addEventListener("change", () => {
             let element:any =  document.getElementById("checkbox-input")!;
             let checked:boolean = element.checked;
-            console.log("checked or not? ", checked)
             this.cropLineages(this.state.root, this.state.layer, this.state.alteration, checked);
         })
     }
@@ -280,7 +276,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (let taxName of Object.keys(taxonSpecifics)) {
             totalUnassignedCount += taxonSpecifics[taxName]["unassignedCount"];
         }
-        console.log("totalUnassignedCount: ", totalUnassignedCount)
 
         if (alteration === "allEqual") {
             for (let taxName of Object.keys(taxonSpecifics)) {
@@ -303,7 +298,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 }
             }
         }
-        console.log("ancestors: ", ancestors, root);
         if (croppedLineages.length > 1) {
             this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount});
         }
@@ -311,7 +305,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
     marryTaxa(croppedLineages:string[][], croppedRanks:string[][], alteration="marriedTaxaI") {
         var totalUnassignedCounts:number = 0;
-        alteration = "marriedTaxaI";
+        alteration = "marriedTaxaII";
         for (let lineage of croppedLineages) {
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
@@ -333,7 +327,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
         var reductionGroups:object = {};
         if (alteration === "marriedTaxaI") {
-            console.log("alteration: ", alteration)
             for (let item of reducibleLineages) {
                 if (!reductionGroups[item[1].join("")]) {
                     reductionGroups[item[1].join("")] = {};
@@ -350,8 +343,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             }
         }
         else {
-            
-            console.log("alteration2: ", alteration)
             for (let item of reducibleLineages) {
                 if (!reductionGroups[item[1].join("")]) {
                     reductionGroups[item[1].join("")] = {};
@@ -366,7 +357,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             for (let group of Object.keys(reductionGroups)) {
                 let spliceAt:number = reductionGroups[group]["spliceAt"];
                 reductionGroups[group]["index"].sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
-                console.log("group: ", group)
                 let renameables:string[] = reductionGroups[group]["index"].map(item => croppedLineages[item][spliceAt]);
                 let temporaryObject:object = {};
                 for (let i=0; i<renameables.length; i++) {
@@ -382,12 +372,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 for (let key of Object.keys(temporaryObject)) {
                     permanentObject[temporaryObject[key][0]] = temporaryObject[key];
                 }
-                console.log("permanentObject: ", permanentObject);
                 reductionGroups[group]["references"] = permanentObject;
                 reductionGroups[group]["minimalIndexArray"] = Object.keys(permanentObject).sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
             }
             for (let group of Object.keys(reductionGroups)) {
-                console.log("group, indices: ", group, reductionGroups[group]["index"])
                 let minimalIndexArray:number[] = reductionGroups[group]["minimalIndexArray"].map(item => parseInt(item));
                 let indexBeginning:number = 0;
                 let indexEnd:number = minimalIndexArray.length - 1;
@@ -397,12 +385,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 let newGroups:any = [];
                 let iterations:number = minimalIndexArray.length % 2 === 0 ? minimalIndexArray.length / 2 : Math.floor(minimalIndexArray.length / 2) + 1;
                 let spliceAt:number = reductionGroups[group]["spliceAt"];
-                console.log("iterations: ", iterations);
                 while ((minimalIndexArray.length % 2 === 0 && indexBeginning <= iterations && (minimalIndexArray.length - 1) - indexEnd < iterations) || (minimalIndexArray.length % 2 === 1 && indexBeginning !== iterations && (minimalIndexArray.length - 1) - indexEnd < iterations)) {
 
                     if (addNext === "indexBeginning") {
                         let newIndex:number = minimalIndexArray[indexBeginning];
-                        console.log("indexBeginning. newIndex: ", newIndex, spliceAt)
                         newIndexGroup.push(newIndex);
                         let totalCount:number = allTaxaReduced[croppedLineages[newIndex][spliceAt]]["totalCount"];
                         let additive:number = totalCount / totalUnassignedCounts;
@@ -412,7 +398,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     }
                     else {
                         let newIndex:number = minimalIndexArray[indexEnd];
-                        console.log("indexEnd. newIndex: ", newIndex, spliceAt)
                         newIndexGroup.push(newIndex);
                         let totalCount:number = allTaxaReduced[croppedLineages[newIndex][spliceAt]]["totalCount"];
                         let additive:number = totalCount / totalUnassignedCounts;
@@ -439,7 +424,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 newGroups = newGroups.map(item => item.reduce((accumulator, value) => accumulator.concat(value), []));
                 reductionGroups[group]["newGroups"] = newGroups;
             }
-            console.log("reductionGroups: ", reductionGroups)
             let newReductionGroups:object = {};
             for (let group of Object.keys(reductionGroups)) {
                 for (let i=0; i<reductionGroups[group]["newGroups"].length; i++) {
@@ -450,7 +434,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     newReductionGroups[`${group}-${i}`]["commonName"] = names.join(" & ");
                 }
             }
-            console.log("newReductionGroups: ", newReductionGroups);
             reductionGroups = newReductionGroups;
         }
 
@@ -608,7 +591,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     calculateTaxonLabels(newState:object):void {
         var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
         var totalUnassignedCount = newState["totalUnassignedCount"] ? newState["totalUnassignedCount"] : this.state.totalUnassignedCount;
-        console.log("totalUnassignedCount at calculateTaxonLabels: ", totalUnassignedCount)
         var root:string = newState["root"] ? newState["root"] : this.state.root;
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
         var numberOfLayers:number = alignedCroppedLineages[0].length;
@@ -654,10 +636,11 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 if (direction === "radial") {
                     twist = taxonSpecifics[key]["center"][2] <= 180 ? - taxonSpecifics[key]["center"][2] : + taxonSpecifics[key]["center"][2];
                     left = twist > 0 ? taxonSpecifics[key]["center"][0] : "unset";
-                    right = left === "unset" ? cx*2 - taxonSpecifics[key]["center"][0] : "unset";
+                    console.log("width: ", window.innerWidth, document.documentElement.clientWidth);
+                    right = left === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["center"][0]) : "unset";
                     twist = left === "unset" ? 270 - twist : 360 - (270 - twist);
-                    top = right === "unset" ? taxonSpecifics[key]["center"][1] - 9 : taxonSpecifics[key]["center"][1] - 9;
-                    transform = `rotate(${twist}deg)`
+                    top = taxonSpecifics[key]["center"][1];
+                    transform = `translate(0, -50%) rotate(${twist}deg)`
                     transformOrigin = left === "unset" ? "center right" : "center left";
                 } else {
                     twist = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
@@ -747,10 +730,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     handleClick(shapeId):void {
-        console.log("shapeId: ", shapeId)
         var taxon:string = shapeId.match(/.+?(?=_)/)[0];
         var currLayer:number = parseInt(shapeId.match(/-?\d+/)[0]);
-        console.log("currLayer: ", currLayer, shapeId);
         var nextLayer;
         if (this.state.root.includes("&")) {
             nextLayer = currLayer <= 0 ? this.state.layer + (currLayer-1) : (currLayer + this.state.layer) - 1;
@@ -758,7 +739,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         else {
             nextLayer = currLayer <= 0 ? this.state.layer + (currLayer-1) : currLayer + this.state.layer;
         }
-        console.log("taxon, nextLayer hC: ", taxon, nextLayer);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     }
 
@@ -837,10 +817,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     abbreviate(abbreviatables:string[]) {
         let newTaxonSpecifics:object = JSON.parse(JSON.stringify(this.state.taxonSpecifics))
         for (let key of abbreviatables) {
-            console.log("abbr key: ", key)
             let newAbbreviation:string;
-            if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 20) {
-                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 19) + ".";
+            if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 25) {
+                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 24) + ".";
             } else {
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length-2) + ".";
             }
@@ -849,7 +828,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 newTaxonSpecifics[key]["label"]["display"] = "none";
                 newTaxonSpecifics[key]["label"]["direction"] = "circumferential";
             }
-            console.log(newTaxonSpecifics[key])
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
         }
 
@@ -1032,8 +1010,6 @@ function getFourCorners(top:number, bottom:number, left:number, right:number, cx
     return {topLeft: topLeft, topRight: topRight, bottomLeft: bottomLeft, bottomRight: bottomRight};
 }
 
-// console.log("lineIntersect: ", lineIntersect(0, 0, 0, 5, 1, 3, 3, 4));
-
 var rankPatternFull:string[] = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];
 
 var allTaxaReduced:object = JSON.parse(JSON.stringify(allTaxa));
@@ -1170,7 +1146,6 @@ for (let lineage of lineagesFull) {
     lineagesRanks.push(lineageRanks);
 }
 
-console.log("allTaxaReduced: ", allTaxaReduced)
 newlyAdded = newlyAdded.filter((v, i, a) => a.indexOf(v) === i);
 
 // var fullPlot:Plot = new Plot();
