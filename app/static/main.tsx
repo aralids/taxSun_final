@@ -143,7 +143,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             shapeCenters: {},
             taxonLabels: {},
             taxonShapes: {},
-            colors: ["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
+            colors: colors, //["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
             ancestors: ["root"],
             rankPattern: [],
             alteration: "marriedTaxa",
@@ -696,7 +696,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     getTaxonShapes(newState:object):void {
         // var colors:string[] = ["6CCFF6", "1B998B", "A1E887", "EA638C", "B33C86"];
         // var colors:string[] = ["1B998B", "A1E887", "1E96FC", "B33C86","003F91", ];
-        var colors:string[] = newState["colors"] ? newState["colors"].map(hexToRGB) : this.state.colors.map(hexToRGB);
+        //var colors:string[] = newState["colors"] ? newState["colors"].map(hexToRGB) : this.state.colors.map(hexToRGB);
         var croppedLineages:string[][] = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
         var croppedLineages:string[][] = JSON.parse(JSON.stringify(croppedLineages));
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
@@ -842,10 +842,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 alternativeTopRight.x = alternativeFourPoints["topRight"][0];
                 alternativeTopRight.y = alternativeFourPoints["topRight"][1];
 
-                if (key === "Chthonomonadales order") {
-                    console.log("Chthonomonadales order: ", taxonSpecifics[key]["label"]["abbreviation"], alternativeTopBeforeRotation, alternativeRightBeforeRotation, alternativeBottomBeforeRotation, alternativeLeftBeforeRotation)
-                    console.log("cx, shapeCenter: ", cx, taxonSpecifics[key]["center"][0]);
-                }
                 if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "") && !(shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight))) {
                     tooWide.push(key);
                 } else {
@@ -860,7 +856,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 }
             }
         }
-        console.log("tooWide: ", tooWide);
         return tooWide;
     }    
 
@@ -871,9 +866,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 25) {
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 24) + ".";
             } else {
-                if (key === "Cadophora genus") {
-                    console.log("CADOPHORA GENUS!!!", newTaxonSpecifics[key]["label"]["abbreviation"]);
-                }
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length-2) + ".";
             }
             newAbbreviation = newAbbreviation.length < 4 ? "" : newAbbreviation;
@@ -882,9 +874,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 newTaxonSpecifics[key]["label"]["direction"] = "circumferential";
             }
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
-            if (key === "Cadophora genus") {
-                console.log("continues: ", newAbbreviation, newTaxonSpecifics[key]["label"]["abbreviation"]);
-            }
         }
 
         this.setState({taxonSpecifics: newTaxonSpecifics});
@@ -919,7 +908,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 }
 
-addEventListener("mousemove", (event) => handleMouseMove(event));
+//addEventListener("mousemove", (event) => handleMouseMove(event));
 
 function handleMouseMove(event):void {
     var eventDoc, doc, body;
@@ -1203,6 +1192,18 @@ for (let lineage of lineagesFull) {
 }
 
 newlyAdded = newlyAdded.filter((v, i, a) => a.indexOf(v) === i);
+
+var colors:string[] = [];
+var colorOffset:number = Math.round(Math.random() * 100);
+console.log("color offset: ", colorOffset)
+for (let i=0; i<7; i++) {
+    var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
+    var g = Math.sin(0.3 * colorOffset + 2) * 55 + 200;
+    var b = Math.sin(0.3 * colorOffset) * 55 + 200;
+    var newColor = `rgb(${round(r,0)}, ${round(g,0)}, ${round(b,0)})`;
+    colors.push(newColor);
+    colorOffset += 3;
+}
 
 // var fullPlot:Plot = new Plot();
 // var mycosphaerellalesPlot:Plot = new Plot("Bacteria", 0, true, viewportDimensions);

@@ -143,7 +143,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             shapeCenters: {},
             taxonLabels: {},
             taxonShapes: {},
-            colors: ["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
+            colors: colors,
             ancestors: ["root"],
             rankPattern: [],
             alteration: "marriedTaxa",
@@ -706,7 +706,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _this = this;
         // var colors:string[] = ["6CCFF6", "1B998B", "A1E887", "EA638C", "B33C86"];
         // var colors:string[] = ["1B998B", "A1E887", "1E96FC", "B33C86","003F91", ];
-        var colors = newState["colors"] ? newState["colors"].map(hexToRGB) : this.state.colors.map(hexToRGB);
+        //var colors:string[] = newState["colors"] ? newState["colors"].map(hexToRGB) : this.state.colors.map(hexToRGB);
         var croppedLineages = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
         var croppedLineages = JSON.parse(JSON.stringify(croppedLineages));
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
@@ -834,10 +834,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var alternativeTopRight = document.querySelector("svg").createSVGPoint();
                 alternativeTopRight.x = alternativeFourPoints["topRight"][0];
                 alternativeTopRight.y = alternativeFourPoints["topRight"][1];
-                if (key === "Chthonomonadales order") {
-                    console.log("Chthonomonadales order: ", taxonSpecifics[key]["label"]["abbreviation"], alternativeTopBeforeRotation, alternativeRightBeforeRotation, alternativeBottomBeforeRotation, alternativeLeftBeforeRotation);
-                    console.log("cx, shapeCenter: ", cx, taxonSpecifics[key]["center"][0]);
-                }
                 if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "") && !(shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight))) {
                     tooWide.push(key);
                 }
@@ -853,7 +849,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 }
             }
         }
-        console.log("tooWide: ", tooWide);
         return tooWide;
     };
     PlotDrawing.prototype.abbreviate = function (abbreviatables) {
@@ -865,9 +860,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 24) + ".";
             }
             else {
-                if (key === "Cadophora genus") {
-                    console.log("CADOPHORA GENUS!!!", newTaxonSpecifics[key]["label"]["abbreviation"]);
-                }
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length - 2) + ".";
             }
             newAbbreviation = newAbbreviation.length < 4 ? "" : newAbbreviation;
@@ -876,9 +868,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 newTaxonSpecifics[key]["label"]["direction"] = "circumferential";
             }
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
-            if (key === "Cadophora genus") {
-                console.log("continues: ", newAbbreviation, newTaxonSpecifics[key]["label"]["abbreviation"]);
-            }
         }
         this.setState({ taxonSpecifics: newTaxonSpecifics });
     };
@@ -922,7 +911,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     return PlotDrawing;
 }(React.Component));
-addEventListener("mousemove", function (event) { return handleMouseMove(event); });
+//addEventListener("mousemove", (event) => handleMouseMove(event));
 function handleMouseMove(event) {
     var eventDoc, doc, body;
     event = event || window.event; // IE-ism
@@ -1199,6 +1188,17 @@ for (var _t = 0, lineagesFull_1 = lineagesFull; _t < lineagesFull_1.length; _t++
     lineagesRanks.push(lineageRanks);
 }
 newlyAdded = newlyAdded.filter(function (v, i, a) { return a.indexOf(v) === i; });
+var colors = [];
+var colorOffset = Math.round(Math.random() * 100);
+console.log("color offset: ", colorOffset);
+for (var i = 0; i < 7; i++) {
+    var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
+    var g = Math.sin(0.3 * colorOffset + 2) * 55 + 200;
+    var b = Math.sin(0.3 * colorOffset) * 55 + 200;
+    var newColor = "rgb(".concat(round(r, 0), ", ").concat(round(g, 0), ", ").concat(round(b, 0), ")");
+    colors.push(newColor);
+    colorOffset += 3;
+}
 // var fullPlot:Plot = new Plot();
 // var mycosphaerellalesPlot:Plot = new Plot("Bacteria", 0, true, viewportDimensions);
 // var mycosphaerellalesPlot:Plot = new Plot("Leotiomycetes", 6, true, viewportDimensions);
