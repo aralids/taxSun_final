@@ -899,7 +899,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "transform": "translate(-50%, -50%)",
                     "transformOrigin": "center center",
                     "opacity": "1",
-                    "twist": 0,
+                    "angle": 0,
                     "abbreviation": root,
                     "display": "unset",
                     "fullLabel": root
@@ -908,24 +908,29 @@ var PlotDrawing = /** @class */ (function (_super) {
             else {
                 var direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "circumferential";
                 //let direction = (numberOfLayers - taxonSpecifics[key]["firstLayerAligned"] === 1) ? "radial" : "circumferential";
-                var twist = void 0, left = void 0, right = void 0, top_1 = void 0, transform = void 0, transformOrigin = void 0;
+                var angle = void 0, left = void 0, right = void 0, top_1 = void 0, transform = void 0, transformOrigin = void 0, alternativeAngle = void 0, alternativeLeft = void 0, alternativeRight = void 0, alternativeTransform = void 0, alternativeTransformOrigin = void 0;
                 if (direction === "radial") {
-                    twist = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : +taxonSpecifics[key]["center"][2];
-                    left = twist > 0 ? taxonSpecifics[key]["center"][0] : "unset";
-                    console.log("width: ", window.innerWidth, document.documentElement.clientWidth);
+                    angle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : +taxonSpecifics[key]["center"][2];
+                    left = angle > 0 ? taxonSpecifics[key]["center"][0] : "unset";
                     right = left === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["center"][0]) : "unset";
-                    twist = left === "unset" ? 270 - twist : 360 - (270 - twist);
+                    angle = left === "unset" ? 270 - angle : 360 - (270 - angle);
                     top_1 = taxonSpecifics[key]["center"][1];
-                    transform = "translate(0, -50%) rotate(".concat(twist, "deg)");
+                    transform = "translate(0, -50%) rotate(".concat(angle, "deg)");
                     transformOrigin = left === "unset" ? "center right" : "center left";
                 }
                 else {
-                    twist = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
+                    angle = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
                     left = taxonSpecifics[key]["center"][0];
                     right = "unset";
-                    top_1 = taxonSpecifics[key]["center"][1] - 9;
-                    transform = "translate(-50%, 0) rotate(".concat(twist, "deg)");
+                    top_1 = taxonSpecifics[key]["center"][1];
+                    transform = "translate(-50%, -50%) rotate(".concat(angle, "deg)");
                     transformOrigin = "center center";
+                    alternativeAngle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : +taxonSpecifics[key]["center"][2];
+                    alternativeLeft = alternativeAngle > 0 ? taxonSpecifics[key]["center"][0] : "unset";
+                    alternativeRight = alternativeLeft === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["center"][0]) : "unset";
+                    alternativeAngle = alternativeLeft === "unset" ? 270 - alternativeAngle : 360 - (270 - alternativeAngle);
+                    alternativeTransform = "translate(0, -50%) rotate(".concat(alternativeAngle, "deg)");
+                    alternativeTransformOrigin = alternativeLeft === "unset" ? "center right" : "center left";
                 }
                 var percentage = round((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
                 var oldPercentage = round(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100);
@@ -937,10 +942,15 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "transform": transform,
                     "transformOrigin": transformOrigin,
                     "opacity": "1",
-                    "twist": twist,
+                    "angle": angle,
                     "abbreviation": key,
                     "display": "unset",
-                    "fullLabel": key + " ".concat(percentage, "%")
+                    "fullLabel": key + " ".concat(percentage, "%"),
+                    "alternativeAngle": alternativeAngle,
+                    "alternativeLeft": alternativeLeft,
+                    "alternativeRight": alternativeRight,
+                    "alternativeTransform": alternativeTransform,
+                    "alternativeTransformOrigin": alternativeTransformOrigin
                 };
                 if (taxonSpecifics[key]["rank"] === "species") {
                     var abbr = taxonSpecifics[key]["label"]["abbreviation"];
@@ -995,7 +1005,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         taxonSpecifics[croppedLineages[0][0]]["fill"] = "white";
         taxonSpecifics[croppedLineages[0][0]]["stroke"] = skeletonColor;
-        this.setState(newState, function () { return console.log("taxonSpecifics: ", _this.state); });
+        this.setState(newState, function () { return console.log("state: ", _this.state); });
     };
     PlotDrawing.prototype.changePalette = function () {
         var newPaletteInput = document.getElementById("new-palette").value;
@@ -1028,8 +1038,8 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var rightBeforeRotation = taxonSpecifics[key]["center"][0] + width;
                 var cx = taxonSpecifics[key]["center"][0];
                 var cy = taxonSpecifics[key]["center"][1];
-                var twist = taxonSpecifics[key]["label"]["twist"];
-                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, twist);
+                var angle = taxonSpecifics[key]["label"]["angle"];
+                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
                 var shape = document.getElementById("".concat(key, "_-_").concat(taxonSpecifics[key]["firstLayerUnaligned"]));
                 var bottomLeft = document.querySelector("svg").createSVGPoint();
                 bottomLeft.x = fourPoints["bottomLeft"][0];
@@ -1056,8 +1066,8 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var rightBeforeRotation = shapeCenters0 + width / 2;
                 var cx = shapeCenters0;
                 var cy = shapeCenters1;
-                var twist = taxonSpecifics[key]["label"]["twist"];
-                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, twist);
+                var angle = taxonSpecifics[key]["label"]["angle"];
+                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
                 var shape = document.getElementById("".concat(key, "_-_").concat(taxonSpecifics[key]["firstLayerUnaligned"]));
                 var bottomLeft = document.querySelector("svg").createSVGPoint();
                 bottomLeft.x = fourPoints["bottomLeft"][0];
@@ -1071,11 +1081,45 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var topRight = document.querySelector("svg").createSVGPoint();
                 topRight.x = fourPoints["topRight"][0];
                 topRight.y = fourPoints["topRight"][1];
-                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "")) {
+                // Calculate where alternative, radially positioned label would fit into the shape:
+                var alternativeTopBeforeRotation = taxonSpecifics[key]["center"][1] - height / 2;
+                var alternativeBottomBeforeRotation = taxonSpecifics[key]["center"][1] + height / 2;
+                var alternativeLeftBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] : taxonSpecifics[key]["center"][0] - width;
+                var alternativeRightBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] + width : taxonSpecifics[key]["center"][0];
+                var alternativeAngle = taxonSpecifics[key]["label"]["alternativeAngle"];
+                var alternativeFourPoints = getFourCorners(alternativeTopBeforeRotation, alternativeBottomBeforeRotation, alternativeLeftBeforeRotation, alternativeRightBeforeRotation, cx, cy, alternativeAngle);
+                var alternativeBottomLeft = document.querySelector("svg").createSVGPoint();
+                alternativeBottomLeft.x = alternativeFourPoints["bottomLeft"][0];
+                alternativeBottomLeft.y = alternativeFourPoints["bottomLeft"][1];
+                var alternativeBottomRight = document.querySelector("svg").createSVGPoint();
+                alternativeBottomRight.x = alternativeFourPoints["bottomRight"][0];
+                alternativeBottomRight.y = alternativeFourPoints["bottomRight"][1];
+                var alternativeTopLeft = document.querySelector("svg").createSVGPoint();
+                alternativeTopLeft.x = alternativeFourPoints["topLeft"][0];
+                alternativeTopLeft.y = alternativeFourPoints["topLeft"][1];
+                var alternativeTopRight = document.querySelector("svg").createSVGPoint();
+                alternativeTopRight.x = alternativeFourPoints["topRight"][0];
+                alternativeTopRight.y = alternativeFourPoints["topRight"][1];
+                if (key === "Chthonomonadales order") {
+                    console.log("Chthonomonadales order: ", taxonSpecifics[key]["label"]["abbreviation"], alternativeTopBeforeRotation, alternativeRightBeforeRotation, alternativeBottomBeforeRotation, alternativeLeftBeforeRotation);
+                    console.log("cx, shapeCenter: ", cx, taxonSpecifics[key]["center"][0]);
+                }
+                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "") && !(shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight))) {
                     tooWide.push(key);
+                }
+                else {
+                    if (shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight)) {
+                        taxonSpecifics[key]["label"]["angle"] = taxonSpecifics[key]["label"]["alternativeAngle"];
+                        //taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
+                        taxonSpecifics[key]["label"]["left"] = taxonSpecifics[key]["label"]["alternativeLeft"];
+                        taxonSpecifics[key]["label"]["right"] = taxonSpecifics[key]["label"]["alternativeRight"];
+                        taxonSpecifics[key]["label"]["transform"] = taxonSpecifics[key]["label"]["alternativeTransform"];
+                        taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["alternativeTransformOrigin"];
+                    }
                 }
             }
         }
+        console.log("tooWide: ", tooWide);
         return tooWide;
     };
     PlotDrawing.prototype.abbreviate = function (abbreviatables) {
@@ -1087,6 +1131,9 @@ var PlotDrawing = /** @class */ (function (_super) {
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 24) + ".";
             }
             else {
+                if (key === "Cadophora genus") {
+                    console.log("CADOPHORA GENUS!!!", newTaxonSpecifics[key]["label"]["abbreviation"]);
+                }
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length - 2) + ".";
             }
             newAbbreviation = newAbbreviation.length < 4 ? "" : newAbbreviation;
@@ -1095,6 +1142,9 @@ var PlotDrawing = /** @class */ (function (_super) {
                 newTaxonSpecifics[key]["label"]["direction"] = "circumferential";
             }
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
+            if (key === "Cadophora genus") {
+                console.log("continues: ", newAbbreviation, newTaxonSpecifics[key]["label"]["abbreviation"]);
+            }
         }
         this.setState({ taxonSpecifics: newTaxonSpecifics });
     };
@@ -1138,7 +1188,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     return PlotDrawing;
 }(React.Component));
-//addEventListener("mousemove", (event) => handleMouseMove(event));
+addEventListener("mousemove", function (event) { return handleMouseMove(event); });
 function handleMouseMove(event) {
     var eventDoc, doc, body;
     event = event || window.event; // IE-ism
@@ -1266,11 +1316,11 @@ function sendSnapshot() {
         });
     });
 }
-function getFourCorners(top, bottom, left, right, cx, cy, twist) {
-    var topLeft = [((left - cx) * Math.cos(twist * (Math.PI / 180)) - (top - cy) * Math.sin(twist * (Math.PI / 180))) + cx, ((left - cx) * Math.sin(twist * (Math.PI / 180)) + (top - cy) * Math.cos(twist * (Math.PI / 180))) + cy];
-    var topRight = [((right - cx) * Math.cos(twist * (Math.PI / 180)) - (top - cy) * Math.sin(twist * (Math.PI / 180))) + cx, ((right - cx) * Math.sin(twist * (Math.PI / 180)) + (top - cy) * Math.cos(twist * (Math.PI / 180))) + cy];
-    var bottomLeft = [((left - cx) * Math.cos(twist * (Math.PI / 180)) - (bottom - cy) * Math.sin(twist * (Math.PI / 180))) + cx, ((left - cx) * Math.sin(twist * (Math.PI / 180)) + (bottom - cy) * Math.cos(twist * (Math.PI / 180))) + cy];
-    var bottomRight = [((right - cx) * Math.cos(twist * (Math.PI / 180)) - (bottom - cy) * Math.sin(twist * (Math.PI / 180))) + cx, ((right - cx) * Math.sin(twist * (Math.PI / 180)) + (bottom - cy) * Math.cos(twist * (Math.PI / 180))) + cy];
+function getFourCorners(top, bottom, left, right, cx, cy, angle) {
+    var topLeft = [((left - cx) * Math.cos(angle * (Math.PI / 180)) - (top - cy) * Math.sin(angle * (Math.PI / 180))) + cx, ((left - cx) * Math.sin(angle * (Math.PI / 180)) + (top - cy) * Math.cos(angle * (Math.PI / 180))) + cy];
+    var topRight = [((right - cx) * Math.cos(angle * (Math.PI / 180)) - (top - cy) * Math.sin(angle * (Math.PI / 180))) + cx, ((right - cx) * Math.sin(angle * (Math.PI / 180)) + (top - cy) * Math.cos(angle * (Math.PI / 180))) + cy];
+    var bottomLeft = [((left - cx) * Math.cos(angle * (Math.PI / 180)) - (bottom - cy) * Math.sin(angle * (Math.PI / 180))) + cx, ((left - cx) * Math.sin(angle * (Math.PI / 180)) + (bottom - cy) * Math.cos(angle * (Math.PI / 180))) + cy];
+    var bottomRight = [((right - cx) * Math.cos(angle * (Math.PI / 180)) - (bottom - cy) * Math.sin(angle * (Math.PI / 180))) + cx, ((right - cx) * Math.sin(angle * (Math.PI / 180)) + (bottom - cy) * Math.cos(angle * (Math.PI / 180))) + cy];
     return { topLeft: topLeft, topRight: topRight, bottomLeft: bottomLeft, bottomRight: bottomRight };
 }
 var rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];

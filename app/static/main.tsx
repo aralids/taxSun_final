@@ -624,7 +624,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "transform": "translate(-50%, -50%)",
                     "transformOrigin": "center center",
                     "opacity": "1",
-                    "twist": 0,
+                    "angle": 0,
                     "abbreviation": root,
                     "display": "unset",
                     "fullLabel": root
@@ -632,23 +632,29 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             } else {
                 let direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "circumferential";
                 //let direction = (numberOfLayers - taxonSpecifics[key]["firstLayerAligned"] === 1) ? "radial" : "circumferential";
-                let twist, left, right, top, transform, transformOrigin;
+                let angle, left, right, top, transform, transformOrigin, alternativeAngle, alternativeLeft, alternativeRight, alternativeTransform, alternativeTransformOrigin;
                 if (direction === "radial") {
-                    twist = taxonSpecifics[key]["center"][2] <= 180 ? - taxonSpecifics[key]["center"][2] : + taxonSpecifics[key]["center"][2];
-                    left = twist > 0 ? taxonSpecifics[key]["center"][0] : "unset";
-                    console.log("width: ", window.innerWidth, document.documentElement.clientWidth);
+                    angle = taxonSpecifics[key]["center"][2] <= 180 ? - taxonSpecifics[key]["center"][2] : + taxonSpecifics[key]["center"][2];
+                    left = angle > 0 ? taxonSpecifics[key]["center"][0] : "unset";
                     right = left === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["center"][0]) : "unset";
-                    twist = left === "unset" ? 270 - twist : 360 - (270 - twist);
+                    angle = left === "unset" ? 270 - angle : 360 - (270 - angle);
                     top = taxonSpecifics[key]["center"][1];
-                    transform = `translate(0, -50%) rotate(${twist}deg)`
+                    transform = `translate(0, -50%) rotate(${angle}deg)`;
                     transformOrigin = left === "unset" ? "center right" : "center left";
                 } else {
-                    twist = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
+                    angle = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
                     left = taxonSpecifics[key]["center"][0];
                     right = "unset";
-                    top = taxonSpecifics[key]["center"][1] - 9;
-                    transform = `translate(-50%, 0) rotate(${twist}deg)`;
+                    top = taxonSpecifics[key]["center"][1];
+                    transform = `translate(-50%, -50%) rotate(${angle}deg)`;
                     transformOrigin = "center center";
+
+                    alternativeAngle = taxonSpecifics[key]["center"][2] <= 180 ? - taxonSpecifics[key]["center"][2] : + taxonSpecifics[key]["center"][2];
+                    alternativeLeft = alternativeAngle > 0 ? taxonSpecifics[key]["center"][0] : "unset";
+                    alternativeRight = alternativeLeft === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["center"][0]) : "unset";
+                    alternativeAngle = alternativeLeft === "unset" ? 270 - alternativeAngle : 360 - (270 - alternativeAngle);
+                    alternativeTransform = `translate(0, -50%) rotate(${alternativeAngle}deg)`;
+                    alternativeTransformOrigin = alternativeLeft === "unset" ? "center right" : "center left";
                 }
                 let percentage:number = round((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
                 let oldPercentage:number = round(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100);
@@ -660,10 +666,15 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "transform": transform,
                     "transformOrigin": transformOrigin,
                     "opacity": "1",
-                    "twist": twist,
+                    "angle": angle,
                     "abbreviation": key,
                     "display": "unset",
-                    "fullLabel": key + ` ${percentage}%`
+                    "fullLabel": key + ` ${percentage}%`,
+                    "alternativeAngle": alternativeAngle,
+                    "alternativeLeft": alternativeLeft,
+                    "alternativeRight": alternativeRight,
+                    "alternativeTransform": alternativeTransform,
+                    "alternativeTransformOrigin": alternativeTransformOrigin
                 }
 
                 if (taxonSpecifics[key]["rank"] === "species") {
@@ -720,7 +731,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
         taxonSpecifics[croppedLineages[0][0]]["fill"] = "white";
         taxonSpecifics[croppedLineages[0][0]]["stroke"] = skeletonColor;
-        this.setState(newState, () => console.log("taxonSpecifics: ", this.state));
+        this.setState(newState, () => console.log("state: ", this.state));
     }
 
     changePalette() {
@@ -756,8 +767,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 var rightBeforeRotation = taxonSpecifics[key]["center"][0] + width;
                 var cx = taxonSpecifics[key]["center"][0];
                 var cy = taxonSpecifics[key]["center"][1];
-                var twist = taxonSpecifics[key]["label"]["twist"];
-                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, twist);
+                var angle = taxonSpecifics[key]["label"]["angle"];
+                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
 
                 var shape:any = document.getElementById(`${key}_-_${taxonSpecifics[key]["firstLayerUnaligned"]}`)!;
                 let bottomLeft = document.querySelector("svg")!.createSVGPoint();
@@ -787,8 +798,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 var rightBeforeRotation = shapeCenters0 + width/2;
                 var cx = shapeCenters0;
                 var cy = shapeCenters1;
-                var twist = taxonSpecifics[key]["label"]["twist"];
-                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, twist);
+                var angle = taxonSpecifics[key]["label"]["angle"];
+                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
 
                 var shape:any = document.getElementById(`${key}_-_${taxonSpecifics[key]["firstLayerUnaligned"]}`)!;
                 let bottomLeft = document.querySelector("svg")!.createSVGPoint();
@@ -806,11 +817,50 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 let topRight = document.querySelector("svg")!.createSVGPoint();
                 topRight.x = fourPoints["topRight"][0];
                 topRight.y = fourPoints["topRight"][1];
-                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "")) {
+
+                // Calculate where alternative, radially positioned label would fit into the shape:
+                var alternativeTopBeforeRotation = taxonSpecifics[key]["center"][1] - height/2;
+                var alternativeBottomBeforeRotation = taxonSpecifics[key]["center"][1] + height/2;
+                var alternativeLeftBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] : taxonSpecifics[key]["center"][0] - width;
+                var alternativeRightBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] + width : taxonSpecifics[key]["center"][0];
+                var alternativeAngle = taxonSpecifics[key]["label"]["alternativeAngle"];
+                var alternativeFourPoints = getFourCorners(alternativeTopBeforeRotation, alternativeBottomBeforeRotation, alternativeLeftBeforeRotation, alternativeRightBeforeRotation, cx, cy, alternativeAngle);
+
+                let alternativeBottomLeft = document.querySelector("svg")!.createSVGPoint();
+                alternativeBottomLeft.x = alternativeFourPoints["bottomLeft"][0];
+                alternativeBottomLeft.y = alternativeFourPoints["bottomLeft"][1];
+
+                let alternativeBottomRight = document.querySelector("svg")!.createSVGPoint();
+                alternativeBottomRight.x = alternativeFourPoints["bottomRight"][0];
+                alternativeBottomRight.y = alternativeFourPoints["bottomRight"][1];
+
+                let alternativeTopLeft = document.querySelector("svg")!.createSVGPoint();
+                alternativeTopLeft.x = alternativeFourPoints["topLeft"][0];
+                alternativeTopLeft.y = alternativeFourPoints["topLeft"][1];
+
+                let alternativeTopRight = document.querySelector("svg")!.createSVGPoint();
+                alternativeTopRight.x = alternativeFourPoints["topRight"][0];
+                alternativeTopRight.y = alternativeFourPoints["topRight"][1];
+
+                if (key === "Chthonomonadales order") {
+                    console.log("Chthonomonadales order: ", taxonSpecifics[key]["label"]["abbreviation"], alternativeTopBeforeRotation, alternativeRightBeforeRotation, alternativeBottomBeforeRotation, alternativeLeftBeforeRotation)
+                    console.log("cx, shapeCenter: ", cx, taxonSpecifics[key]["center"][0]);
+                }
+                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "") && !(shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight))) {
                     tooWide.push(key);
+                } else {
+                    if (shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight)) {
+                        taxonSpecifics[key]["label"]["angle"] = taxonSpecifics[key]["label"]["alternativeAngle"];
+                        //taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
+                        taxonSpecifics[key]["label"]["left"] = taxonSpecifics[key]["label"]["alternativeLeft"];
+                        taxonSpecifics[key]["label"]["right"] = taxonSpecifics[key]["label"]["alternativeRight"];
+                        taxonSpecifics[key]["label"]["transform"] = taxonSpecifics[key]["label"]["alternativeTransform"];
+                        taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["alternativeTransformOrigin"];
+                    }
                 }
             }
         }
+        console.log("tooWide: ", tooWide);
         return tooWide;
     }    
 
@@ -821,6 +871,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 25) {
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 24) + ".";
             } else {
+                if (key === "Cadophora genus") {
+                    console.log("CADOPHORA GENUS!!!", newTaxonSpecifics[key]["label"]["abbreviation"]);
+                }
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length-2) + ".";
             }
             newAbbreviation = newAbbreviation.length < 4 ? "" : newAbbreviation;
@@ -829,6 +882,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 newTaxonSpecifics[key]["label"]["direction"] = "circumferential";
             }
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
+            if (key === "Cadophora genus") {
+                console.log("continues: ", newAbbreviation, newTaxonSpecifics[key]["label"]["abbreviation"]);
+            }
         }
 
         this.setState({taxonSpecifics: newTaxonSpecifics});
@@ -863,7 +919,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 }
 
-//addEventListener("mousemove", (event) => handleMouseMove(event));
+addEventListener("mousemove", (event) => handleMouseMove(event));
 
 function handleMouseMove(event):void {
     var eventDoc, doc, body;
@@ -1002,11 +1058,11 @@ function sendSnapshot() {
     });
 }
 
-function getFourCorners(top:number, bottom:number, left:number, right:number, cx:number, cy:number, twist:number):object {
-    var topLeft:number[] = [((left-cx)*Math.cos(twist* (Math.PI/180)) - (top-cy)*Math.sin(twist* (Math.PI/180))) + cx, ((left-cx)*Math.sin(twist* (Math.PI/180)) + (top-cy)*Math.cos(twist* (Math.PI/180))) + cy];
-    var topRight:number[] = [((right-cx)*Math.cos(twist* (Math.PI/180)) - (top-cy)*Math.sin(twist* (Math.PI/180))) + cx, ((right-cx)*Math.sin(twist* (Math.PI/180)) + (top-cy)*Math.cos(twist* (Math.PI/180))) + cy];
-    var bottomLeft:number[] = [((left-cx)*Math.cos(twist* (Math.PI/180)) - (bottom-cy)*Math.sin(twist* (Math.PI/180))) + cx, ((left-cx)*Math.sin(twist* (Math.PI/180)) + (bottom-cy)*Math.cos(twist* (Math.PI/180))) + cy];
-    var bottomRight:number[] = [((right-cx)*Math.cos(twist* (Math.PI/180)) - (bottom-cy)*Math.sin(twist* (Math.PI/180))) + cx, ((right-cx)*Math.sin(twist* (Math.PI/180)) + (bottom-cy)*Math.cos(twist* (Math.PI/180))) + cy];
+function getFourCorners(top:number, bottom:number, left:number, right:number, cx:number, cy:number, angle:number):object {
+    var topLeft:number[] = [((left-cx)*Math.cos(angle* (Math.PI/180)) - (top-cy)*Math.sin(angle* (Math.PI/180))) + cx, ((left-cx)*Math.sin(angle* (Math.PI/180)) + (top-cy)*Math.cos(angle* (Math.PI/180))) + cy];
+    var topRight:number[] = [((right-cx)*Math.cos(angle* (Math.PI/180)) - (top-cy)*Math.sin(angle* (Math.PI/180))) + cx, ((right-cx)*Math.sin(angle* (Math.PI/180)) + (top-cy)*Math.cos(angle* (Math.PI/180))) + cy];
+    var bottomLeft:number[] = [((left-cx)*Math.cos(angle* (Math.PI/180)) - (bottom-cy)*Math.sin(angle* (Math.PI/180))) + cx, ((left-cx)*Math.sin(angle* (Math.PI/180)) + (bottom-cy)*Math.cos(angle* (Math.PI/180))) + cy];
+    var bottomRight:number[] = [((right-cx)*Math.cos(angle* (Math.PI/180)) - (bottom-cy)*Math.sin(angle* (Math.PI/180))) + cx, ((right-cx)*Math.sin(angle* (Math.PI/180)) + (bottom-cy)*Math.cos(angle* (Math.PI/180))) + cy];
     return {topLeft: topLeft, topRight: topRight, bottomLeft: bottomLeft, bottomRight: bottomRight};
 }
 
