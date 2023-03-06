@@ -122,7 +122,7 @@ function AncestorLabel(props) {
 
 
 
-class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number}> {
+class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number, numberOfLayers:number, layerWidth:number}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -147,7 +147,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             ancestors: ["root"],
             rankPattern: [],
             alteration: "marriedTaxa",
-            totalUnassignedCount: 0
+            totalUnassignedCount: 0,
+            numberOfLayers: -1,
+            layerWidth: -1
         }
     }
 
@@ -310,7 +312,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages:any = [];
-        var treshold:number = 0.01;
+        var treshold:number = 0.003;
         for (let lineage of croppedLineages) {
             if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < treshold) {
                 let lineageNumber:number = croppedLineages.indexOf(lineage);
@@ -585,6 +587,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 taxonSpecifics[key]["svgPath"] = d;
             }
         };
+        newState["numberOfLayers"] = numberOfLayers;
+        newState["layerWidth"] = layerWidth;
         this.calculateTaxonLabels(newState);
     }
 
@@ -612,6 +616,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             centerY = round(centerY) + cy;
             let center = [centerX, centerY, centerDegree];
             taxonSpecifics[key]["center"] = center;
+
+            let alternativeCenterRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.25;
+            let alternativeCenterX = alternativeCenterRadius * layerWidthInPx * cos(centerDegree);
+            alternativeCenterX = round(alternativeCenterX) + cx;
+            let alternativeCenterY = - alternativeCenterRadius * layerWidthInPx * sin(centerDegree);
+            alternativeCenterY = round(alternativeCenterY) + cy;
+            let alternativeCenter = [alternativeCenterX, alternativeCenterY, centerDegree];
+            taxonSpecifics[key]["alternativeCenter"] = alternativeCenter;
         };
 
         for (var key of Object.keys(taxonSpecifics)) {
@@ -632,13 +644,13 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             } else {
                 let direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "circumferential";
                 //let direction = (numberOfLayers - taxonSpecifics[key]["firstLayerAligned"] === 1) ? "radial" : "circumferential";
-                let angle, left, right, top, transform, transformOrigin, alternativeAngle, alternativeLeft, alternativeRight, alternativeTransform, alternativeTransformOrigin;
+                let angle, left, right, top, transform, transformOrigin, alternativeAngle, alternativeLeft, alternativeRight, alternativeTransform, alternativeTransformOrigin, alternativeTop;
                 if (direction === "radial") {
                     angle = taxonSpecifics[key]["center"][2] <= 180 ? - taxonSpecifics[key]["center"][2] : + taxonSpecifics[key]["center"][2];
-                    left = angle > 0 ? taxonSpecifics[key]["center"][0] : "unset";
-                    right = left === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["center"][0]) : "unset";
+                    left = angle > 0 ? taxonSpecifics[key]["alternativeCenter"][0] : "unset";
+                    right = left === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["alternativeCenter"][0]) : "unset";
                     angle = left === "unset" ? 270 - angle : 360 - (270 - angle);
-                    top = taxonSpecifics[key]["center"][1];
+                    top = taxonSpecifics[key]["alternativeCenter"][1];
                     transform = `translate(0, -50%) rotate(${angle}deg)`;
                     transformOrigin = left === "unset" ? "center right" : "center left";
                 } else {
@@ -649,9 +661,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     transform = `translate(-50%, -50%) rotate(${angle}deg)`;
                     transformOrigin = "center center";
 
-                    alternativeAngle = taxonSpecifics[key]["center"][2] <= 180 ? - taxonSpecifics[key]["center"][2] : + taxonSpecifics[key]["center"][2];
-                    alternativeLeft = alternativeAngle > 0 ? taxonSpecifics[key]["center"][0] : "unset";
-                    alternativeRight = alternativeLeft === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["center"][0]) : "unset";
+                    alternativeAngle = taxonSpecifics[key]["alternativeCenter"][2] <= 180 ? - taxonSpecifics[key]["alternativeCenter"][2] : + taxonSpecifics[key]["alternativeCenter"][2];
+                    alternativeLeft = alternativeAngle > 0 ? taxonSpecifics[key]["alternativeCenter"][0] : "unset";
+                    alternativeRight = alternativeLeft === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["alternativeCenter"][0]) : "unset";
+                    alternativeTop = taxonSpecifics[key]["alternativeCenter"][1];
                     alternativeAngle = alternativeLeft === "unset" ? 270 - alternativeAngle : 360 - (270 - alternativeAngle);
                     alternativeTransform = `translate(0, -50%) rotate(${alternativeAngle}deg)`;
                     alternativeTransformOrigin = alternativeLeft === "unset" ? "center right" : "center left";
@@ -674,7 +687,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "alternativeLeft": alternativeLeft,
                     "alternativeRight": alternativeRight,
                     "alternativeTransform": alternativeTransform,
-                    "alternativeTransformOrigin": alternativeTransformOrigin
+                    "alternativeTransformOrigin": alternativeTransformOrigin,
+                    "alternativeTop": alternativeTop
                 }
 
                 if (taxonSpecifics[key]["rank"] === "species") {
@@ -847,11 +861,11 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 } else {
                     if (shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight)) {
                         taxonSpecifics[key]["label"]["angle"] = taxonSpecifics[key]["label"]["alternativeAngle"];
-                        //taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
                         taxonSpecifics[key]["label"]["left"] = taxonSpecifics[key]["label"]["alternativeLeft"];
                         taxonSpecifics[key]["label"]["right"] = taxonSpecifics[key]["label"]["alternativeRight"];
                         taxonSpecifics[key]["label"]["transform"] = taxonSpecifics[key]["label"]["alternativeTransform"];
                         taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["alternativeTransformOrigin"];
+                        taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
                     }
                 }
             }
@@ -908,7 +922,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 }
 
-//addEventListener("mousemove", (event) => handleMouseMove(event));
+addEventListener("mousemove", (event) => handleMouseMove(event));
 
 function handleMouseMove(event):void {
     var eventDoc, doc, body;
@@ -1194,7 +1208,7 @@ for (let lineage of lineagesFull) {
 newlyAdded = newlyAdded.filter((v, i, a) => a.indexOf(v) === i);
 
 var colors:string[] = [];
-var colorOffset:number = Math.round(Math.random() * 100);
+var colorOffset:number = Math.round(Math.random() * 100); //84
 console.log("color offset: ", colorOffset)
 for (let i=0; i<7; i++) {
     var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;

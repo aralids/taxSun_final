@@ -413,7 +413,9 @@ var PlotDrawing = /** @class */ (function (_super) {
             ancestors: ["root"],
             rankPattern: [],
             alteration: "marriedTaxa",
-            totalUnassignedCount: 0
+            totalUnassignedCount: 0,
+            numberOfLayers: -1,
+            layerWidth: -1
         };
         return _this;
     }
@@ -572,7 +574,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages = [];
-        var treshold = 0.01;
+        var treshold = 0.003;
         for (var _a = 0, croppedLineages_2 = croppedLineages; _a < croppedLineages_2.length; _a++) {
             var lineage = croppedLineages_2[_a];
             if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < treshold) {
@@ -862,6 +864,8 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
         }
         ;
+        newState["numberOfLayers"] = numberOfLayers;
+        newState["layerWidth"] = layerWidth;
         this.calculateTaxonLabels(newState);
     };
     PlotDrawing.prototype.calculateTaxonLabels = function (newState) {
@@ -886,6 +890,13 @@ var PlotDrawing = /** @class */ (function (_super) {
             centerY = round(centerY) + cy;
             var center = [centerX, centerY, centerDegree];
             taxonSpecifics[key]["center"] = center;
+            var alternativeCenterRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.25;
+            var alternativeCenterX = alternativeCenterRadius * layerWidthInPx * cos(centerDegree);
+            alternativeCenterX = round(alternativeCenterX) + cx;
+            var alternativeCenterY = -alternativeCenterRadius * layerWidthInPx * sin(centerDegree);
+            alternativeCenterY = round(alternativeCenterY) + cy;
+            var alternativeCenter = [alternativeCenterX, alternativeCenterY, centerDegree];
+            taxonSpecifics[key]["alternativeCenter"] = alternativeCenter;
         }
         ;
         for (var _b = 0, _c = Object.keys(taxonSpecifics); _b < _c.length; _b++) {
@@ -908,13 +919,13 @@ var PlotDrawing = /** @class */ (function (_super) {
             else {
                 var direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "circumferential";
                 //let direction = (numberOfLayers - taxonSpecifics[key]["firstLayerAligned"] === 1) ? "radial" : "circumferential";
-                var angle = void 0, left = void 0, right = void 0, top_1 = void 0, transform = void 0, transformOrigin = void 0, alternativeAngle = void 0, alternativeLeft = void 0, alternativeRight = void 0, alternativeTransform = void 0, alternativeTransformOrigin = void 0;
+                var angle = void 0, left = void 0, right = void 0, top_1 = void 0, transform = void 0, transformOrigin = void 0, alternativeAngle = void 0, alternativeLeft = void 0, alternativeRight = void 0, alternativeTransform = void 0, alternativeTransformOrigin = void 0, alternativeTop = void 0;
                 if (direction === "radial") {
                     angle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : +taxonSpecifics[key]["center"][2];
-                    left = angle > 0 ? taxonSpecifics[key]["center"][0] : "unset";
-                    right = left === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["center"][0]) : "unset";
+                    left = angle > 0 ? taxonSpecifics[key]["alternativeCenter"][0] : "unset";
+                    right = left === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["alternativeCenter"][0]) : "unset";
                     angle = left === "unset" ? 270 - angle : 360 - (270 - angle);
-                    top_1 = taxonSpecifics[key]["center"][1];
+                    top_1 = taxonSpecifics[key]["alternativeCenter"][1];
                     transform = "translate(0, -50%) rotate(".concat(angle, "deg)");
                     transformOrigin = left === "unset" ? "center right" : "center left";
                 }
@@ -925,9 +936,10 @@ var PlotDrawing = /** @class */ (function (_super) {
                     top_1 = taxonSpecifics[key]["center"][1];
                     transform = "translate(-50%, -50%) rotate(".concat(angle, "deg)");
                     transformOrigin = "center center";
-                    alternativeAngle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : +taxonSpecifics[key]["center"][2];
-                    alternativeLeft = alternativeAngle > 0 ? taxonSpecifics[key]["center"][0] : "unset";
-                    alternativeRight = alternativeLeft === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["center"][0]) : "unset";
+                    alternativeAngle = taxonSpecifics[key]["alternativeCenter"][2] <= 180 ? -taxonSpecifics[key]["alternativeCenter"][2] : +taxonSpecifics[key]["alternativeCenter"][2];
+                    alternativeLeft = alternativeAngle > 0 ? taxonSpecifics[key]["alternativeCenter"][0] : "unset";
+                    alternativeRight = alternativeLeft === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["alternativeCenter"][0]) : "unset";
+                    alternativeTop = taxonSpecifics[key]["alternativeCenter"][1];
                     alternativeAngle = alternativeLeft === "unset" ? 270 - alternativeAngle : 360 - (270 - alternativeAngle);
                     alternativeTransform = "translate(0, -50%) rotate(".concat(alternativeAngle, "deg)");
                     alternativeTransformOrigin = alternativeLeft === "unset" ? "center right" : "center left";
@@ -950,7 +962,8 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "alternativeLeft": alternativeLeft,
                     "alternativeRight": alternativeRight,
                     "alternativeTransform": alternativeTransform,
-                    "alternativeTransformOrigin": alternativeTransformOrigin
+                    "alternativeTransformOrigin": alternativeTransformOrigin,
+                    "alternativeTop": alternativeTop
                 };
                 if (taxonSpecifics[key]["rank"] === "species") {
                     var abbr = taxonSpecifics[key]["label"]["abbreviation"];
@@ -1106,11 +1119,11 @@ var PlotDrawing = /** @class */ (function (_super) {
                 else {
                     if (shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight)) {
                         taxonSpecifics[key]["label"]["angle"] = taxonSpecifics[key]["label"]["alternativeAngle"];
-                        //taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
                         taxonSpecifics[key]["label"]["left"] = taxonSpecifics[key]["label"]["alternativeLeft"];
                         taxonSpecifics[key]["label"]["right"] = taxonSpecifics[key]["label"]["alternativeRight"];
                         taxonSpecifics[key]["label"]["transform"] = taxonSpecifics[key]["label"]["alternativeTransform"];
                         taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["alternativeTransformOrigin"];
+                        taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
                     }
                 }
             }
@@ -1177,7 +1190,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     return PlotDrawing;
 }(React.Component));
-//addEventListener("mousemove", (event) => handleMouseMove(event));
+addEventListener("mousemove", function (event) { return handleMouseMove(event); });
 function handleMouseMove(event) {
     var eventDoc, doc, body;
     event = event || window.event; // IE-ism
@@ -1455,7 +1468,7 @@ for (var _t = 0, lineagesFull_1 = lineagesFull; _t < lineagesFull_1.length; _t++
 }
 newlyAdded = newlyAdded.filter(function (v, i, a) { return a.indexOf(v) === i; });
 var colors = [];
-var colorOffset = Math.round(Math.random() * 100);
+var colorOffset = Math.round(Math.random() * 100); //84
 console.log("color offset: ", colorOffset);
 for (var i = 0; i < 7; i++) {
     var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
