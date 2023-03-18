@@ -5,7 +5,22 @@ var currentState;
 var skeletonColor:string = "#800080";
 const html2canvas: any = _html2canvas;
 var path = "C:/Users/PC/Desktop/krona/krona.tsv";
-var allTaxa:object = JSON.parse('{"no cake":{"lineageNames":[["no rank","no cake"]],"rank":"no rank","taxID":"0","totalCount":44,"unassignedCount":44},"root":{"lineageNames":[["root", "root"]],"rank":"root","taxID":"NA","totalCount":128,"unassignedCount":0},"Tiramisu":{"lineageNames":[["superkingdom","Tiramisu"]],"rank":"superkingdom","taxID":"1","totalCount":24,"unassignedCount":24},"Sachertorte":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Sachertorte"]],"rank":"kingdom","taxID":"2","totalCount":8,"unassignedCount":8},"Red Velvet Cake":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Red Velvet Cake"]],"rank":"kingdom","taxID":"3","totalCount":1,"unassignedCount":1},"Black Forest Cake":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Black Forest Cake"]],"rank":"kingdom","taxID":"4","totalCount":2,"unassignedCount":2},"Torta Barozzi":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Torta Barozzi"]],"rank":"kingdom","taxID":"5","totalCount":3,"unassignedCount":3},"Kladdkaka":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Kladdkaka"]],"rank":"kingdom","taxID":"6","totalCount":4,"unassignedCount":4}, "Amandine":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Amandine"]],"rank":"kingdom","taxID":"7","totalCount":5,"unassignedCount":5}, "German Chocolate Cake":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","German Chocolate Cake"]],"rank":"kingdom","taxID":"8","totalCount":6,"unassignedCount":6}, "Garash":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Garash"]],"rank":"kingdom","taxID":"9","totalCount":7,"unassignedCount":7}, "Carrot Cake":{"lineageNames":[["superkingdom","Carrot Cake"]],"rank":"superkingdom","taxID":"10","totalCount":24,"unassignedCount":24}}');
+var allTaxa:object = JSON.parse(`{"not identified":{"lineageNames":[["no rank","not identified"]],"rank":"no rank","taxID":"0","totalCount":44,"unassignedCount":44},
+"root":{"lineageNames":[["root", "root"]],"rank":"root","taxID":"NA","totalCount":128,"unassignedCount":0},
+"Eukaryota":{"lineageNames":[["superkingdom","Eukaryota"]],"rank":"superkingdom","taxID":"1","totalCount":24,"unassignedCount":24},
+"Acidobacteria":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Acidobacteria"]],"rank":"phylum","taxID":"2","totalCount":8,"unassignedCount":8},
+"Armatimonadetes":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Armatimonadetes"]],"rank":"phylum","taxID":"13123","totalCount":1,"unassignedCount":0.6},
+"Armatimonadetes bacterium":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Armatimonadetes"],["species", "Armatimonadetes bacterium"]],"rank":"species","taxID":"36546214","totalCount":0.4,"unassignedCount":0.4},
+"Chloroflexi bacterium":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Chloroflexi"],["species","Chloroflexi bacterium"]],"rank":"species","taxID":"555","totalCount":3,"unassignedCount":3},
+"Chrysiogenetes":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Chrysiogenetes"]],"rank":"phylum","taxID":"6756756","totalCount":4,"unassignedCount":4}, 
+"uncultured Segetibacter sp.":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Bacteroidota"],["class", "Chitinophagia"], ["order", "Chitinophagales"], ["family", "Chitinophagaceae"], ["genus", "Segetibacter"], ["species", "uncultured Segetibacter sp."]],"rank":"species","taxID":"4678534","totalCount":2,"unassignedCount":2},
+"Nitrospira sp.":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Nitrospirae"],["class", "Nitrospira class"], ["order", "Nitrospirales"],["family", "Nitrospiraceae"], ["genus", "Nitrospira genus"], ["species", "Nitrospira sp."]],"rank":"species","taxID":"867675","totalCount":6,"unassignedCount":6}, 
+"Cyanobacteria":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Cyanobacteria"]],"rank":"phylum","taxID":"72243","totalCount":5,"unassignedCount":5}, 
+"Proteobacteria":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Proteobacteria"]],"rank":"phylum","taxID":"11119","totalCount":7,"unassignedCount":1.75}, 
+"Alphaproteobacteria":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Proteobacteria"], ["class", "Alphaproteobacteria"]],"rank":"class","taxID":"565649","totalCount":5.25,"unassignedCount":1.75}, 
+"Nitrobacteraceae":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Proteobacteria"], ["class", "Alphaproteobacteria"], ["order", "Hyphomicrobiales"], ["family", "Nitrobacteraceae"]],"rank":"family","taxID":"15359","totalCount":1.75,"unassignedCount":1.75}, 
+"Acetobacteraceae bacterium":{"lineageNames":[["superkingdom","Bacteria"],["phylum","Proteobacteria"], ["class", "Alphaproteobacteria"], ["order","Hyphomicrobiales"], ["family","Acetobacteraceae"], ["species","Acetobacteraceae bacterium"]],"rank":"species","taxID":"29235","totalCount":1.75,"unassignedCount":1.75}, 
+"Viruses":{"lineageNames":[["superkingdom","Viruses"]],"rank":"superkingdom","taxID":"16760","totalCount":24,"unassignedCount":24}}`);
 //var taxonList:Taxon[] = [];
 const domContainer:any = document.querySelector('#plot-container');
 var reactRoot = ReactDOM.createRoot(domContainer);
@@ -122,7 +137,7 @@ function AncestorLabel(props) {
 
 
 
-class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number}> {
+class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number, numberOfLayers:number, layerWidth:number}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -143,11 +158,13 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             shapeCenters: {},
             taxonLabels: {},
             taxonShapes: {},
-            colors: ["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
+            colors: colors, //["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
             ancestors: ["root"],
             rankPattern: [],
             alteration: "marriedTaxa",
-            totalUnassignedCount: 0
+            totalUnassignedCount: 0,
+            numberOfLayers: -1,
+            layerWidth: -1
         }
     }
 
@@ -305,7 +322,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
     marryTaxa(croppedLineages:string[][], croppedRanks:string[][], alteration="marriedTaxaI") {
         var totalUnassignedCounts:number = 0;
-        alteration = "marriedTaxaII";
+        //alteration = "marriedTaxaII";
         for (let lineage of croppedLineages) {
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
@@ -356,7 +373,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             // Sort indices of reduction groups in ascending order.
             for (let group of Object.keys(reductionGroups)) {
                 let spliceAt:number = reductionGroups[group]["spliceAt"];
-                //reductionGroups[group]["index"].sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
+                reductionGroups[group]["index"].sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
                 let renameables:string[] = reductionGroups[group]["index"].map(item => croppedLineages[item][spliceAt]);
                 let temporaryObject:object = {};
                 for (let i=0; i<renameables.length; i++) {
@@ -368,16 +385,13 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                         temporaryObject[renameable].push(reductionGroups[group]["index"][i])
                     }
                 }
-                console.log("temporary object: ", temporaryObject);
                 let permanentObject:object = {};
                 for (let key of Object.keys(temporaryObject)) {
                     permanentObject[temporaryObject[key][0]] = temporaryObject[key];
                 }
-                console.log("permanent object: ", permanentObject);
                 reductionGroups[group]["references"] = permanentObject;
                 reductionGroups[group]["minimalIndexArray"] = Object.keys(permanentObject).sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
             }
-            console.log("reduction groups: ", reductionGroups);
             for (let group of Object.keys(reductionGroups)) {
                 let minimalIndexArray:number[] = reductionGroups[group]["minimalIndexArray"].map(item => parseInt(item));
                 let indexBeginning:number = 0;
@@ -588,6 +602,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 taxonSpecifics[key]["svgPath"] = d;
             }
         };
+        newState["numberOfLayers"] = numberOfLayers;
+        newState["layerWidth"] = layerWidth;
         this.calculateTaxonLabels(newState);
     }
 
@@ -615,6 +631,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             centerY = round(centerY) + cy;
             let center = [centerX, centerY, centerDegree];
             taxonSpecifics[key]["center"] = center;
+
+            let alternativeCenterRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.25;
+            let alternativeCenterX = alternativeCenterRadius * layerWidthInPx * cos(centerDegree);
+            alternativeCenterX = round(alternativeCenterX) + cx;
+            let alternativeCenterY = - alternativeCenterRadius * layerWidthInPx * sin(centerDegree);
+            alternativeCenterY = round(alternativeCenterY) + cy;
+            let alternativeCenter = [alternativeCenterX, alternativeCenterY, centerDegree];
+            taxonSpecifics[key]["alternativeCenter"] = alternativeCenter;
         };
 
         for (var key of Object.keys(taxonSpecifics)) {
@@ -627,7 +651,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "transform": "translate(-50%, -50%)",
                     "transformOrigin": "center center",
                     "opacity": "1",
-                    "twist": 0,
+                    "angle": 0,
                     "abbreviation": root,
                     "display": "unset",
                     "fullLabel": root
@@ -635,22 +659,30 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             } else {
                 let direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "circumferential";
                 //let direction = (numberOfLayers - taxonSpecifics[key]["firstLayerAligned"] === 1) ? "radial" : "circumferential";
-                let twist, left, right, top, transform, transformOrigin;
+                let angle, left, right, top, transform, transformOrigin, alternativeAngle, alternativeLeft, alternativeRight, alternativeTransform, alternativeTransformOrigin, alternativeTop;
                 if (direction === "radial") {
-                    twist = taxonSpecifics[key]["center"][2] <= 180 ? - taxonSpecifics[key]["center"][2] : + taxonSpecifics[key]["center"][2];
-                    left = twist > 0 ? taxonSpecifics[key]["center"][0] : "unset";
-                    right = left === "unset" ? cx*2 - taxonSpecifics[key]["center"][0] : "unset";
-                    twist = left === "unset" ? 270 - twist : 360 - (270 - twist);
-                    top = right === "unset" ? taxonSpecifics[key]["center"][1] - 9 : taxonSpecifics[key]["center"][1] - 9;
-                    transform = `rotate(${twist}deg)`
+                    angle = taxonSpecifics[key]["center"][2] <= 180 ? - taxonSpecifics[key]["center"][2] : + taxonSpecifics[key]["center"][2];
+                    left = angle > 0 ? taxonSpecifics[key]["alternativeCenter"][0] : "unset";
+                    right = left === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["alternativeCenter"][0]) : "unset";
+                    angle = left === "unset" ? 270 - angle : 360 - (270 - angle);
+                    top = taxonSpecifics[key]["alternativeCenter"][1];
+                    transform = `translate(0, -50%) rotate(${angle}deg)`;
                     transformOrigin = left === "unset" ? "center right" : "center left";
                 } else {
-                    twist = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
+                    angle = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
                     left = taxonSpecifics[key]["center"][0];
                     right = "unset";
-                    top = taxonSpecifics[key]["center"][1] - 9;
-                    transform = `translate(-50%, 0) rotate(${twist}deg)`;
+                    top = taxonSpecifics[key]["center"][1];
+                    transform = `translate(-50%, -50%) rotate(${angle}deg)`;
                     transformOrigin = "center center";
+
+                    alternativeAngle = taxonSpecifics[key]["alternativeCenter"][2] <= 180 ? - taxonSpecifics[key]["alternativeCenter"][2] : + taxonSpecifics[key]["alternativeCenter"][2];
+                    alternativeLeft = alternativeAngle > 0 ? taxonSpecifics[key]["alternativeCenter"][0] : "unset";
+                    alternativeRight = alternativeLeft === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["alternativeCenter"][0]) : "unset";
+                    alternativeTop = taxonSpecifics[key]["alternativeCenter"][1];
+                    alternativeAngle = alternativeLeft === "unset" ? 270 - alternativeAngle : 360 - (270 - alternativeAngle);
+                    alternativeTransform = `translate(0, -50%) rotate(${alternativeAngle}deg)`;
+                    alternativeTransformOrigin = alternativeLeft === "unset" ? "center right" : "center left";
                 }
                 let percentage:number = round((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
                 let oldPercentage:number = round(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100);
@@ -662,17 +694,23 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "transform": transform,
                     "transformOrigin": transformOrigin,
                     "opacity": "1",
-                    "twist": twist,
+                    "angle": angle,
                     "abbreviation": key,
                     "display": "unset",
-                    "fullLabel": key + ` ${percentage}%`
+                    "fullLabel": key + ` ${percentage}%`,
+                    "alternativeAngle": alternativeAngle,
+                    "alternativeLeft": alternativeLeft,
+                    "alternativeRight": alternativeRight,
+                    "alternativeTransform": alternativeTransform,
+                    "alternativeTransformOrigin": alternativeTransformOrigin,
+                    "alternativeTop": alternativeTop
                 }
 
                 if (taxonSpecifics[key]["rank"] === "species") {
                     let abbr:string = taxonSpecifics[key]["label"]["abbreviation"];
                     if (abbr.split(" ").length >= 2 && !(abbr.split(" ")[1] === "sp.")) {
                         let newAbbr:string = abbr.split(" ")[0].slice(0, 1) + ". " + abbr.split(" ").slice(1, abbr.split(" ").length).join(" ");
-                        //taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
+                        taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
                     }
                     else if (abbr.split(" ").indexOf("sp.") !== -1) {
                         let newAbbr:string = abbr.split(" ").slice(0, abbr.split(" ").indexOf("sp.") + 1).join(" ");
@@ -687,7 +725,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     getTaxonShapes(newState:object):void {
         // var colors:string[] = ["6CCFF6", "1B998B", "A1E887", "EA638C", "B33C86"];
         // var colors:string[] = ["1B998B", "A1E887", "1E96FC", "B33C86","003F91", ];
-        var colors:string[] = newState["colors"] ? newState["colors"].map(hexToRGB) : this.state.colors.map(hexToRGB);
+        //var colors:string[] = newState["colors"] ? newState["colors"].map(hexToRGB) : this.state.colors.map(hexToRGB);
         var croppedLineages:string[][] = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
         var croppedLineages:string[][] = JSON.parse(JSON.stringify(croppedLineages));
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
@@ -722,7 +760,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
         taxonSpecifics[croppedLineages[0][0]]["fill"] = "white";
         taxonSpecifics[croppedLineages[0][0]]["stroke"] = skeletonColor;
-        this.setState(newState, () => console.log("taxonSpecifics: ", this.state));
+        this.setState(newState, () => console.log("state: ", this.state));
     }
 
     changePalette() {
@@ -758,8 +796,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 var rightBeforeRotation = taxonSpecifics[key]["center"][0] + width;
                 var cx = taxonSpecifics[key]["center"][0];
                 var cy = taxonSpecifics[key]["center"][1];
-                var twist = taxonSpecifics[key]["label"]["twist"];
-                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, twist);
+                var angle = taxonSpecifics[key]["label"]["angle"];
+                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
 
                 var shape:any = document.getElementById(`${key}_-_${taxonSpecifics[key]["firstLayerUnaligned"]}`)!;
                 let bottomLeft = document.querySelector("svg")!.createSVGPoint();
@@ -789,8 +827,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 var rightBeforeRotation = shapeCenters0 + width/2;
                 var cx = shapeCenters0;
                 var cy = shapeCenters1;
-                var twist = taxonSpecifics[key]["label"]["twist"];
-                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, twist);
+                var angle = taxonSpecifics[key]["label"]["angle"];
+                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
 
                 var shape:any = document.getElementById(`${key}_-_${taxonSpecifics[key]["firstLayerUnaligned"]}`)!;
                 let bottomLeft = document.querySelector("svg")!.createSVGPoint();
@@ -808,8 +846,42 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 let topRight = document.querySelector("svg")!.createSVGPoint();
                 topRight.x = fourPoints["topRight"][0];
                 topRight.y = fourPoints["topRight"][1];
-                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "")) {
+
+                // Calculate where alternative, radially positioned label would fit into the shape:
+                var alternativeTopBeforeRotation = taxonSpecifics[key]["center"][1] - height/2;
+                var alternativeBottomBeforeRotation = taxonSpecifics[key]["center"][1] + height/2;
+                var alternativeLeftBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] : taxonSpecifics[key]["center"][0] - width;
+                var alternativeRightBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] + width : taxonSpecifics[key]["center"][0];
+                var alternativeAngle = taxonSpecifics[key]["label"]["alternativeAngle"];
+                var alternativeFourPoints = getFourCorners(alternativeTopBeforeRotation, alternativeBottomBeforeRotation, alternativeLeftBeforeRotation, alternativeRightBeforeRotation, cx, cy, alternativeAngle);
+
+                let alternativeBottomLeft = document.querySelector("svg")!.createSVGPoint();
+                alternativeBottomLeft.x = alternativeFourPoints["bottomLeft"][0];
+                alternativeBottomLeft.y = alternativeFourPoints["bottomLeft"][1];
+
+                let alternativeBottomRight = document.querySelector("svg")!.createSVGPoint();
+                alternativeBottomRight.x = alternativeFourPoints["bottomRight"][0];
+                alternativeBottomRight.y = alternativeFourPoints["bottomRight"][1];
+
+                let alternativeTopLeft = document.querySelector("svg")!.createSVGPoint();
+                alternativeTopLeft.x = alternativeFourPoints["topLeft"][0];
+                alternativeTopLeft.y = alternativeFourPoints["topLeft"][1];
+
+                let alternativeTopRight = document.querySelector("svg")!.createSVGPoint();
+                alternativeTopRight.x = alternativeFourPoints["topRight"][0];
+                alternativeTopRight.y = alternativeFourPoints["topRight"][1];
+
+                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "") && !(shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight))) {
                     tooWide.push(key);
+                } else {
+                    if (shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight)) {
+                        taxonSpecifics[key]["label"]["angle"] = taxonSpecifics[key]["label"]["alternativeAngle"];
+                        taxonSpecifics[key]["label"]["left"] = taxonSpecifics[key]["label"]["alternativeLeft"];
+                        taxonSpecifics[key]["label"]["right"] = taxonSpecifics[key]["label"]["alternativeRight"];
+                        taxonSpecifics[key]["label"]["transform"] = taxonSpecifics[key]["label"]["alternativeTransform"];
+                        taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["alternativeTransformOrigin"];
+                        taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
+                    }
                 }
             }
         }
@@ -865,7 +937,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 }
 
-//addEventListener("mousemove", (event) => handleMouseMove(event));
+addEventListener("mousemove", (event) => handleMouseMove(event));
 
 function handleMouseMove(event):void {
     var eventDoc, doc, body;
@@ -1004,11 +1076,11 @@ function sendSnapshot() {
     });
 }
 
-function getFourCorners(top:number, bottom:number, left:number, right:number, cx:number, cy:number, twist:number):object {
-    var topLeft:number[] = [((left-cx)*Math.cos(twist* (Math.PI/180)) - (top-cy)*Math.sin(twist* (Math.PI/180))) + cx, ((left-cx)*Math.sin(twist* (Math.PI/180)) + (top-cy)*Math.cos(twist* (Math.PI/180))) + cy];
-    var topRight:number[] = [((right-cx)*Math.cos(twist* (Math.PI/180)) - (top-cy)*Math.sin(twist* (Math.PI/180))) + cx, ((right-cx)*Math.sin(twist* (Math.PI/180)) + (top-cy)*Math.cos(twist* (Math.PI/180))) + cy];
-    var bottomLeft:number[] = [((left-cx)*Math.cos(twist* (Math.PI/180)) - (bottom-cy)*Math.sin(twist* (Math.PI/180))) + cx, ((left-cx)*Math.sin(twist* (Math.PI/180)) + (bottom-cy)*Math.cos(twist* (Math.PI/180))) + cy];
-    var bottomRight:number[] = [((right-cx)*Math.cos(twist* (Math.PI/180)) - (bottom-cy)*Math.sin(twist* (Math.PI/180))) + cx, ((right-cx)*Math.sin(twist* (Math.PI/180)) + (bottom-cy)*Math.cos(twist* (Math.PI/180))) + cy];
+function getFourCorners(top:number, bottom:number, left:number, right:number, cx:number, cy:number, angle:number):object {
+    var topLeft:number[] = [((left-cx)*Math.cos(angle* (Math.PI/180)) - (top-cy)*Math.sin(angle* (Math.PI/180))) + cx, ((left-cx)*Math.sin(angle* (Math.PI/180)) + (top-cy)*Math.cos(angle* (Math.PI/180))) + cy];
+    var topRight:number[] = [((right-cx)*Math.cos(angle* (Math.PI/180)) - (top-cy)*Math.sin(angle* (Math.PI/180))) + cx, ((right-cx)*Math.sin(angle* (Math.PI/180)) + (top-cy)*Math.cos(angle* (Math.PI/180))) + cy];
+    var bottomLeft:number[] = [((left-cx)*Math.cos(angle* (Math.PI/180)) - (bottom-cy)*Math.sin(angle* (Math.PI/180))) + cx, ((left-cx)*Math.sin(angle* (Math.PI/180)) + (bottom-cy)*Math.cos(angle* (Math.PI/180))) + cy];
+    var bottomRight:number[] = [((right-cx)*Math.cos(angle* (Math.PI/180)) - (bottom-cy)*Math.sin(angle* (Math.PI/180))) + cx, ((right-cx)*Math.sin(angle* (Math.PI/180)) + (bottom-cy)*Math.cos(angle* (Math.PI/180))) + cy];
     return {topLeft: topLeft, topRight: topRight, bottomLeft: bottomLeft, bottomRight: bottomRight};
 }
 
@@ -1094,6 +1166,7 @@ for (let taxName of Object.keys(allTaxaReduced)) {
         }
         else {
             let falseNamesakes:string[] = Object.keys(allTaxaReduced).filter(item => item.startsWith(predecessor[1]) && allTaxaReduced[item]["rank"] === predecessor[0]);
+            let trueNamesakes:string[] = Object.keys(allTaxaReduced).filter(item => item.startsWith(predecessor[1]) && allTaxaReduced[item]["rank"] !== predecessor[0]);
 
             if (falseNamesakes.length > 0) {
                 if (newlyAdded.indexOf(falseNamesakes[0]) > -1) {
@@ -1148,6 +1221,18 @@ for (let lineage of lineagesFull) {
 }
 
 newlyAdded = newlyAdded.filter((v, i, a) => a.indexOf(v) === i);
+
+var colors:string[] = [];
+var colorOffset:number = 94 //Math.round(Math.random() * 100); //84, 98, 31, 20
+console.log("color offset: ", colorOffset)
+for (let i=0; i<7; i++) {
+    var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
+    var g = Math.sin(0.3 * colorOffset + 2) * 55 + 200;
+    var b = Math.sin(0.3 * colorOffset) * 55 + 200;
+    var newColor = `rgb(${round(r,0)}, ${round(g,0)}, ${round(b,0)})`;
+    colors.push(newColor);
+    colorOffset += 3;
+}
 
 // var fullPlot:Plot = new Plot();
 // var mycosphaerellalesPlot:Plot = new Plot("Bacteria", 0, true, viewportDimensions);

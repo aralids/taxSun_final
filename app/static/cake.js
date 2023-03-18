@@ -31,7 +31,7 @@ var currentState;
 var skeletonColor = "#800080";
 var html2canvas = _html2canvas;
 var path = "C:/Users/PC/Desktop/krona/krona.tsv";
-var allTaxa = JSON.parse('{"no cake":{"lineageNames":[["no rank","no cake"]],"rank":"no rank","taxID":"0","totalCount":44,"unassignedCount":44},"root":{"lineageNames":[["root", "root"]],"rank":"root","taxID":"NA","totalCount":128,"unassignedCount":0},"Tiramisu":{"lineageNames":[["superkingdom","Tiramisu"]],"rank":"superkingdom","taxID":"1","totalCount":24,"unassignedCount":24},"Sachertorte":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Sachertorte"]],"rank":"kingdom","taxID":"2","totalCount":8,"unassignedCount":8},"Red Velvet Cake":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Red Velvet Cake"]],"rank":"kingdom","taxID":"3","totalCount":1,"unassignedCount":1},"Black Forest Cake":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Black Forest Cake"]],"rank":"kingdom","taxID":"4","totalCount":2,"unassignedCount":2},"Torta Barozzi":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Torta Barozzi"]],"rank":"kingdom","taxID":"5","totalCount":3,"unassignedCount":3},"Kladdkaka":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Kladdkaka"]],"rank":"kingdom","taxID":"6","totalCount":4,"unassignedCount":4}, "Amandine":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Amandine"]],"rank":"kingdom","taxID":"7","totalCount":5,"unassignedCount":5}, "German Chocolate Cake":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","German Chocolate Cake"]],"rank":"kingdom","taxID":"8","totalCount":6,"unassignedCount":6}, "Garash":{"lineageNames":[["superkingdom","Chocolate"],["kingdom","Garash"]],"rank":"kingdom","taxID":"9","totalCount":7,"unassignedCount":7}, "Carrot Cake":{"lineageNames":[["superkingdom","Carrot Cake"]],"rank":"superkingdom","taxID":"10","totalCount":24,"unassignedCount":24}}');
+var allTaxa = JSON.parse("{\"not identified\":{\"lineageNames\":[[\"no rank\",\"not identified\"]],\"rank\":\"no rank\",\"taxID\":\"0\",\"totalCount\":44,\"unassignedCount\":44},\n\"root\":{\"lineageNames\":[[\"root\", \"root\"]],\"rank\":\"root\",\"taxID\":\"NA\",\"totalCount\":128,\"unassignedCount\":0},\n\"Eukaryota\":{\"lineageNames\":[[\"superkingdom\",\"Eukaryota\"]],\"rank\":\"superkingdom\",\"taxID\":\"1\",\"totalCount\":24,\"unassignedCount\":24},\n\"Acidobacteria\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Acidobacteria\"]],\"rank\":\"phylum\",\"taxID\":\"2\",\"totalCount\":8,\"unassignedCount\":8},\n\"Armatimonadetes\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Armatimonadetes\"]],\"rank\":\"phylum\",\"taxID\":\"13123\",\"totalCount\":1,\"unassignedCount\":0.6},\n\"Armatimonadetes bacterium\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Armatimonadetes\"],[\"species\", \"Armatimonadetes bacterium\"]],\"rank\":\"species\",\"taxID\":\"36546214\",\"totalCount\":0.4,\"unassignedCount\":0.4},\n\"Chloroflexi bacterium\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Chloroflexi\"],[\"species\",\"Chloroflexi bacterium\"]],\"rank\":\"species\",\"taxID\":\"555\",\"totalCount\":3,\"unassignedCount\":3},\n\"Chrysiogenetes\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Chrysiogenetes\"]],\"rank\":\"phylum\",\"taxID\":\"6756756\",\"totalCount\":4,\"unassignedCount\":4}, \n\"uncultured Segetibacter sp.\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Bacteroidota\"],[\"class\", \"Chitinophagia\"], [\"order\", \"Chitinophagales\"], [\"family\", \"Chitinophagaceae\"], [\"genus\", \"Segetibacter\"], [\"species\", \"uncultured Segetibacter sp.\"]],\"rank\":\"species\",\"taxID\":\"4678534\",\"totalCount\":2,\"unassignedCount\":2},\n\"Nitrospira sp.\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Nitrospirae\"],[\"class\", \"Nitrospira class\"], [\"order\", \"Nitrospirales\"],[\"family\", \"Nitrospiraceae\"], [\"genus\", \"Nitrospira genus\"], [\"species\", \"Nitrospira sp.\"]],\"rank\":\"species\",\"taxID\":\"867675\",\"totalCount\":6,\"unassignedCount\":6}, \n\"Cyanobacteria\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Cyanobacteria\"]],\"rank\":\"phylum\",\"taxID\":\"72243\",\"totalCount\":5,\"unassignedCount\":5}, \n\"Proteobacteria\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Proteobacteria\"]],\"rank\":\"phylum\",\"taxID\":\"11119\",\"totalCount\":7,\"unassignedCount\":1.75}, \n\"Alphaproteobacteria\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Proteobacteria\"], [\"class\", \"Alphaproteobacteria\"]],\"rank\":\"class\",\"taxID\":\"565649\",\"totalCount\":5.25,\"unassignedCount\":1.75}, \n\"Nitrobacteraceae\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Proteobacteria\"], [\"class\", \"Alphaproteobacteria\"], [\"order\", \"Hyphomicrobiales\"], [\"family\", \"Nitrobacteraceae\"]],\"rank\":\"family\",\"taxID\":\"15359\",\"totalCount\":1.75,\"unassignedCount\":1.75}, \n\"Acetobacteraceae bacterium\":{\"lineageNames\":[[\"superkingdom\",\"Bacteria\"],[\"phylum\",\"Proteobacteria\"], [\"class\", \"Alphaproteobacteria\"], [\"order\",\"Hyphomicrobiales\"], [\"family\",\"Acetobacteraceae\"], [\"species\",\"Acetobacteraceae bacterium\"]],\"rank\":\"species\",\"taxID\":\"29235\",\"totalCount\":1.75,\"unassignedCount\":1.75}, \n\"Viruses\":{\"lineageNames\":[[\"superkingdom\",\"Viruses\"]],\"rank\":\"superkingdom\",\"taxID\":\"16760\",\"totalCount\":24,\"unassignedCount\":24}}");
 //var taxonList:Taxon[] = [];
 var domContainer = document.querySelector('#plot-container');
 var reactRoot = ReactDOM.createRoot(domContainer);
@@ -152,11 +152,13 @@ var PlotDrawing = /** @class */ (function (_super) {
             shapeCenters: {},
             taxonLabels: {},
             taxonShapes: {},
-            colors: ["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
+            colors: colors,
             ancestors: ["root"],
             rankPattern: [],
             alteration: "marriedTaxa",
-            totalUnassignedCount: 0
+            totalUnassignedCount: 0,
+            numberOfLayers: -1,
+            layerWidth: -1
         };
         return _this;
     }
@@ -309,7 +311,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
         if (alteration === void 0) { alteration = "marriedTaxaI"; }
         var totalUnassignedCounts = 0;
-        alteration = "marriedTaxaII";
+        //alteration = "marriedTaxaII";
         for (var _i = 0, croppedLineages_1 = croppedLineages; _i < croppedLineages_1.length; _i++) {
             var lineage = croppedLineages_1[_i];
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
@@ -365,7 +367,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
             var _loop_3 = function (group) {
                 var spliceAt = reductionGroups[group]["spliceAt"];
-                //reductionGroups[group]["index"].sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
+                reductionGroups[group]["index"].sort(function (index1, index2) { return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"]; });
                 var renameables = reductionGroups[group]["index"].map(function (item) { return croppedLineages[item][spliceAt]; });
                 var temporaryObject = {};
                 for (var i = 0; i < renameables.length; i++) {
@@ -377,13 +379,11 @@ var PlotDrawing = /** @class */ (function (_super) {
                         temporaryObject[renameable].push(reductionGroups[group]["index"][i]);
                     }
                 }
-                console.log("temporary object: ", temporaryObject);
                 var permanentObject = {};
                 for (var _p = 0, _q = Object.keys(temporaryObject); _p < _q.length; _p++) {
                     var key = _q[_p];
                     permanentObject[temporaryObject[key][0]] = temporaryObject[key];
                 }
-                console.log("permanent object: ", permanentObject);
                 reductionGroups[group]["references"] = permanentObject;
                 reductionGroups[group]["minimalIndexArray"] = Object.keys(permanentObject).sort(function (index1, index2) { return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"]; });
             };
@@ -392,7 +392,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var group = _e[_d];
                 _loop_3(group);
             }
-            console.log("reduction groups: ", reductionGroups);
             var _loop_4 = function (group) {
                 var minimalIndexArray = reductionGroups[group]["minimalIndexArray"].map(function (item) { return parseInt(item); });
                 var indexBeginning = 0;
@@ -608,6 +607,8 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
         }
         ;
+        newState["numberOfLayers"] = numberOfLayers;
+        newState["layerWidth"] = layerWidth;
         this.calculateTaxonLabels(newState);
     };
     PlotDrawing.prototype.calculateTaxonLabels = function (newState) {
@@ -632,6 +633,13 @@ var PlotDrawing = /** @class */ (function (_super) {
             centerY = round(centerY) + cy;
             var center = [centerX, centerY, centerDegree];
             taxonSpecifics[key]["center"] = center;
+            var alternativeCenterRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.25;
+            var alternativeCenterX = alternativeCenterRadius * layerWidthInPx * cos(centerDegree);
+            alternativeCenterX = round(alternativeCenterX) + cx;
+            var alternativeCenterY = -alternativeCenterRadius * layerWidthInPx * sin(centerDegree);
+            alternativeCenterY = round(alternativeCenterY) + cy;
+            var alternativeCenter = [alternativeCenterX, alternativeCenterY, centerDegree];
+            taxonSpecifics[key]["alternativeCenter"] = alternativeCenter;
         }
         ;
         for (var _b = 0, _c = Object.keys(taxonSpecifics); _b < _c.length; _b++) {
@@ -645,7 +653,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "transform": "translate(-50%, -50%)",
                     "transformOrigin": "center center",
                     "opacity": "1",
-                    "twist": 0,
+                    "angle": 0,
                     "abbreviation": root,
                     "display": "unset",
                     "fullLabel": root
@@ -654,23 +662,30 @@ var PlotDrawing = /** @class */ (function (_super) {
             else {
                 var direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "circumferential";
                 //let direction = (numberOfLayers - taxonSpecifics[key]["firstLayerAligned"] === 1) ? "radial" : "circumferential";
-                var twist = void 0, left = void 0, right = void 0, top_1 = void 0, transform = void 0, transformOrigin = void 0;
+                var angle = void 0, left = void 0, right = void 0, top_1 = void 0, transform = void 0, transformOrigin = void 0, alternativeAngle = void 0, alternativeLeft = void 0, alternativeRight = void 0, alternativeTransform = void 0, alternativeTransformOrigin = void 0, alternativeTop = void 0;
                 if (direction === "radial") {
-                    twist = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : +taxonSpecifics[key]["center"][2];
-                    left = twist > 0 ? taxonSpecifics[key]["center"][0] : "unset";
-                    right = left === "unset" ? cx * 2 - taxonSpecifics[key]["center"][0] : "unset";
-                    twist = left === "unset" ? 270 - twist : 360 - (270 - twist);
-                    top_1 = right === "unset" ? taxonSpecifics[key]["center"][1] - 9 : taxonSpecifics[key]["center"][1] - 9;
-                    transform = "rotate(".concat(twist, "deg)");
+                    angle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : +taxonSpecifics[key]["center"][2];
+                    left = angle > 0 ? taxonSpecifics[key]["alternativeCenter"][0] : "unset";
+                    right = left === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["alternativeCenter"][0]) : "unset";
+                    angle = left === "unset" ? 270 - angle : 360 - (270 - angle);
+                    top_1 = taxonSpecifics[key]["alternativeCenter"][1];
+                    transform = "translate(0, -50%) rotate(".concat(angle, "deg)");
                     transformOrigin = left === "unset" ? "center right" : "center left";
                 }
                 else {
-                    twist = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
+                    angle = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
                     left = taxonSpecifics[key]["center"][0];
                     right = "unset";
-                    top_1 = taxonSpecifics[key]["center"][1] - 9;
-                    transform = "translate(-50%, 0) rotate(".concat(twist, "deg)");
+                    top_1 = taxonSpecifics[key]["center"][1];
+                    transform = "translate(-50%, -50%) rotate(".concat(angle, "deg)");
                     transformOrigin = "center center";
+                    alternativeAngle = taxonSpecifics[key]["alternativeCenter"][2] <= 180 ? -taxonSpecifics[key]["alternativeCenter"][2] : +taxonSpecifics[key]["alternativeCenter"][2];
+                    alternativeLeft = alternativeAngle > 0 ? taxonSpecifics[key]["alternativeCenter"][0] : "unset";
+                    alternativeRight = alternativeLeft === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["alternativeCenter"][0]) : "unset";
+                    alternativeTop = taxonSpecifics[key]["alternativeCenter"][1];
+                    alternativeAngle = alternativeLeft === "unset" ? 270 - alternativeAngle : 360 - (270 - alternativeAngle);
+                    alternativeTransform = "translate(0, -50%) rotate(".concat(alternativeAngle, "deg)");
+                    alternativeTransformOrigin = alternativeLeft === "unset" ? "center right" : "center left";
                 }
                 var percentage = round((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
                 var oldPercentage = round(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100);
@@ -682,16 +697,22 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "transform": transform,
                     "transformOrigin": transformOrigin,
                     "opacity": "1",
-                    "twist": twist,
+                    "angle": angle,
                     "abbreviation": key,
                     "display": "unset",
-                    "fullLabel": key + " ".concat(percentage, "%")
+                    "fullLabel": key + " ".concat(percentage, "%"),
+                    "alternativeAngle": alternativeAngle,
+                    "alternativeLeft": alternativeLeft,
+                    "alternativeRight": alternativeRight,
+                    "alternativeTransform": alternativeTransform,
+                    "alternativeTransformOrigin": alternativeTransformOrigin,
+                    "alternativeTop": alternativeTop
                 };
                 if (taxonSpecifics[key]["rank"] === "species") {
                     var abbr = taxonSpecifics[key]["label"]["abbreviation"];
                     if (abbr.split(" ").length >= 2 && !(abbr.split(" ")[1] === "sp.")) {
                         var newAbbr = abbr.split(" ")[0].slice(0, 1) + ". " + abbr.split(" ").slice(1, abbr.split(" ").length).join(" ");
-                        //taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
+                        taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
                     }
                     else if (abbr.split(" ").indexOf("sp.") !== -1) {
                         var newAbbr = abbr.split(" ").slice(0, abbr.split(" ").indexOf("sp.") + 1).join(" ");
@@ -707,7 +728,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _this = this;
         // var colors:string[] = ["6CCFF6", "1B998B", "A1E887", "EA638C", "B33C86"];
         // var colors:string[] = ["1B998B", "A1E887", "1E96FC", "B33C86","003F91", ];
-        var colors = newState["colors"] ? newState["colors"].map(hexToRGB) : this.state.colors.map(hexToRGB);
+        //var colors:string[] = newState["colors"] ? newState["colors"].map(hexToRGB) : this.state.colors.map(hexToRGB);
         var croppedLineages = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
         var croppedLineages = JSON.parse(JSON.stringify(croppedLineages));
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
@@ -740,7 +761,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         taxonSpecifics[croppedLineages[0][0]]["fill"] = "white";
         taxonSpecifics[croppedLineages[0][0]]["stroke"] = skeletonColor;
-        this.setState(newState, function () { return console.log("taxonSpecifics: ", _this.state); });
+        this.setState(newState, function () { return console.log("state: ", _this.state); });
     };
     PlotDrawing.prototype.changePalette = function () {
         var newPaletteInput = document.getElementById("new-palette").value;
@@ -773,8 +794,8 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var rightBeforeRotation = taxonSpecifics[key]["center"][0] + width;
                 var cx = taxonSpecifics[key]["center"][0];
                 var cy = taxonSpecifics[key]["center"][1];
-                var twist = taxonSpecifics[key]["label"]["twist"];
-                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, twist);
+                var angle = taxonSpecifics[key]["label"]["angle"];
+                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
                 var shape = document.getElementById("".concat(key, "_-_").concat(taxonSpecifics[key]["firstLayerUnaligned"]));
                 var bottomLeft = document.querySelector("svg").createSVGPoint();
                 bottomLeft.x = fourPoints["bottomLeft"][0];
@@ -801,8 +822,8 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var rightBeforeRotation = shapeCenters0 + width / 2;
                 var cx = shapeCenters0;
                 var cy = shapeCenters1;
-                var twist = taxonSpecifics[key]["label"]["twist"];
-                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, twist);
+                var angle = taxonSpecifics[key]["label"]["angle"];
+                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
                 var shape = document.getElementById("".concat(key, "_-_").concat(taxonSpecifics[key]["firstLayerUnaligned"]));
                 var bottomLeft = document.querySelector("svg").createSVGPoint();
                 bottomLeft.x = fourPoints["bottomLeft"][0];
@@ -816,8 +837,37 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var topRight = document.querySelector("svg").createSVGPoint();
                 topRight.x = fourPoints["topRight"][0];
                 topRight.y = fourPoints["topRight"][1];
-                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "")) {
+                // Calculate where alternative, radially positioned label would fit into the shape:
+                var alternativeTopBeforeRotation = taxonSpecifics[key]["center"][1] - height / 2;
+                var alternativeBottomBeforeRotation = taxonSpecifics[key]["center"][1] + height / 2;
+                var alternativeLeftBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] : taxonSpecifics[key]["center"][0] - width;
+                var alternativeRightBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] + width : taxonSpecifics[key]["center"][0];
+                var alternativeAngle = taxonSpecifics[key]["label"]["alternativeAngle"];
+                var alternativeFourPoints = getFourCorners(alternativeTopBeforeRotation, alternativeBottomBeforeRotation, alternativeLeftBeforeRotation, alternativeRightBeforeRotation, cx, cy, alternativeAngle);
+                var alternativeBottomLeft = document.querySelector("svg").createSVGPoint();
+                alternativeBottomLeft.x = alternativeFourPoints["bottomLeft"][0];
+                alternativeBottomLeft.y = alternativeFourPoints["bottomLeft"][1];
+                var alternativeBottomRight = document.querySelector("svg").createSVGPoint();
+                alternativeBottomRight.x = alternativeFourPoints["bottomRight"][0];
+                alternativeBottomRight.y = alternativeFourPoints["bottomRight"][1];
+                var alternativeTopLeft = document.querySelector("svg").createSVGPoint();
+                alternativeTopLeft.x = alternativeFourPoints["topLeft"][0];
+                alternativeTopLeft.y = alternativeFourPoints["topLeft"][1];
+                var alternativeTopRight = document.querySelector("svg").createSVGPoint();
+                alternativeTopRight.x = alternativeFourPoints["topRight"][0];
+                alternativeTopRight.y = alternativeFourPoints["topRight"][1];
+                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "") && !(shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight))) {
                     tooWide.push(key);
+                }
+                else {
+                    if (shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight)) {
+                        taxonSpecifics[key]["label"]["angle"] = taxonSpecifics[key]["label"]["alternativeAngle"];
+                        taxonSpecifics[key]["label"]["left"] = taxonSpecifics[key]["label"]["alternativeLeft"];
+                        taxonSpecifics[key]["label"]["right"] = taxonSpecifics[key]["label"]["alternativeRight"];
+                        taxonSpecifics[key]["label"]["transform"] = taxonSpecifics[key]["label"]["alternativeTransform"];
+                        taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["alternativeTransformOrigin"];
+                        taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
+                    }
                 }
             }
         }
@@ -883,7 +933,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     return PlotDrawing;
 }(React.Component));
-//addEventListener("mousemove", (event) => handleMouseMove(event));
+addEventListener("mousemove", function (event) { return handleMouseMove(event); });
 function handleMouseMove(event) {
     var eventDoc, doc, body;
     event = event || window.event; // IE-ism
@@ -1011,11 +1061,11 @@ function sendSnapshot() {
         });
     });
 }
-function getFourCorners(top, bottom, left, right, cx, cy, twist) {
-    var topLeft = [((left - cx) * Math.cos(twist * (Math.PI / 180)) - (top - cy) * Math.sin(twist * (Math.PI / 180))) + cx, ((left - cx) * Math.sin(twist * (Math.PI / 180)) + (top - cy) * Math.cos(twist * (Math.PI / 180))) + cy];
-    var topRight = [((right - cx) * Math.cos(twist * (Math.PI / 180)) - (top - cy) * Math.sin(twist * (Math.PI / 180))) + cx, ((right - cx) * Math.sin(twist * (Math.PI / 180)) + (top - cy) * Math.cos(twist * (Math.PI / 180))) + cy];
-    var bottomLeft = [((left - cx) * Math.cos(twist * (Math.PI / 180)) - (bottom - cy) * Math.sin(twist * (Math.PI / 180))) + cx, ((left - cx) * Math.sin(twist * (Math.PI / 180)) + (bottom - cy) * Math.cos(twist * (Math.PI / 180))) + cy];
-    var bottomRight = [((right - cx) * Math.cos(twist * (Math.PI / 180)) - (bottom - cy) * Math.sin(twist * (Math.PI / 180))) + cx, ((right - cx) * Math.sin(twist * (Math.PI / 180)) + (bottom - cy) * Math.cos(twist * (Math.PI / 180))) + cy];
+function getFourCorners(top, bottom, left, right, cx, cy, angle) {
+    var topLeft = [((left - cx) * Math.cos(angle * (Math.PI / 180)) - (top - cy) * Math.sin(angle * (Math.PI / 180))) + cx, ((left - cx) * Math.sin(angle * (Math.PI / 180)) + (top - cy) * Math.cos(angle * (Math.PI / 180))) + cy];
+    var topRight = [((right - cx) * Math.cos(angle * (Math.PI / 180)) - (top - cy) * Math.sin(angle * (Math.PI / 180))) + cx, ((right - cx) * Math.sin(angle * (Math.PI / 180)) + (top - cy) * Math.cos(angle * (Math.PI / 180))) + cy];
+    var bottomLeft = [((left - cx) * Math.cos(angle * (Math.PI / 180)) - (bottom - cy) * Math.sin(angle * (Math.PI / 180))) + cx, ((left - cx) * Math.sin(angle * (Math.PI / 180)) + (bottom - cy) * Math.cos(angle * (Math.PI / 180))) + cy];
+    var bottomRight = [((right - cx) * Math.cos(angle * (Math.PI / 180)) - (bottom - cy) * Math.sin(angle * (Math.PI / 180))) + cx, ((right - cx) * Math.sin(angle * (Math.PI / 180)) + (bottom - cy) * Math.cos(angle * (Math.PI / 180))) + cy];
     return { topLeft: topLeft, topRight: topRight, bottomLeft: bottomLeft, bottomRight: bottomRight };
 }
 var rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];
@@ -1099,6 +1149,7 @@ for (var _h = 0, _j = Object.keys(allTaxaReduced); _h < _j.length; _h++) {
         }
         else {
             var falseNamesakes = Object.keys(allTaxaReduced).filter(function (item) { return item.startsWith(predecessor[1]) && allTaxaReduced[item]["rank"] === predecessor[0]; });
+            var trueNamesakes = Object.keys(allTaxaReduced).filter(function (item) { return item.startsWith(predecessor[1]) && allTaxaReduced[item]["rank"] !== predecessor[0]; });
             if (falseNamesakes.length > 0) {
                 if (newlyAdded.indexOf(falseNamesakes[0]) > -1) {
                     allTaxaReduced[falseNamesakes[0]]["totalCount"] += unassignedCount;
@@ -1159,6 +1210,17 @@ for (var _t = 0, lineagesFull_1 = lineagesFull; _t < lineagesFull_1.length; _t++
     lineagesRanks.push(lineageRanks);
 }
 newlyAdded = newlyAdded.filter(function (v, i, a) { return a.indexOf(v) === i; });
+var colors = [];
+var colorOffset = 94; //Math.round(Math.random() * 100); //84, 98, 31, 20
+console.log("color offset: ", colorOffset);
+for (var i = 0; i < 7; i++) {
+    var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
+    var g = Math.sin(0.3 * colorOffset + 2) * 55 + 200;
+    var b = Math.sin(0.3 * colorOffset) * 55 + 200;
+    var newColor = "rgb(".concat(round(r, 0), ", ").concat(round(g, 0), ", ").concat(round(b, 0), ")");
+    colors.push(newColor);
+    colorOffset += 3;
+}
 // var fullPlot:Plot = new Plot();
 // var mycosphaerellalesPlot:Plot = new Plot("Bacteria", 0, true, viewportDimensions);
 // var mycosphaerellalesPlot:Plot = new Plot("Leotiomycetes", 6, true, viewportDimensions);

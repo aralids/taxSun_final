@@ -122,7 +122,7 @@ function AncestorLabel(props) {
 
 
 
-class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number, numberOfLayers:number, layerWidth:number}> {
+class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number, numberOfLayers:number, layerWidth:number, count:number}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -146,10 +146,11 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             colors: colors, //["d27979", "c0d279", "79d29c", "799cd2", "c079d2"],
             ancestors: ["root"],
             rankPattern: [],
-            alteration: "marriedTaxa",
+            alteration: "allEqual",
             totalUnassignedCount: 0,
             numberOfLayers: -1,
-            layerWidth: -1
+            layerWidth: -1,
+            count: 0
         }
     }
 
@@ -177,13 +178,17 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
     componentDidUpdate() {
         var abbreviatables:string[] = this.checkTaxonLabelWidth();
+        console.log("abbreviatables: ", abbreviatables);
         if (abbreviatables.length > 0) {
             this.abbreviate(abbreviatables);
+        } else if (abbreviatables.length === 0 && this.state.count === 0) {
+            this.setState({count: 1}, () => console.log("change count: ", this.state));
         } 
+        console.log("componentDidUpdate: ", this.state)
     }
 
     // Leave only relevant lineages and crop them if necessary.
-    cropLineages(root=this.state.root, layer=this.state.layer, alteration="marriedTaxaI", collapse=this.state.collapse):void {
+    cropLineages(root=this.state.root, layer=this.state.layer, alteration="allEqual", collapse=this.state.collapse):void {
 
         // Get only relevant lineages.
         var croppedLineages:string[][] = [];
@@ -301,24 +306,24 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             }
         }
         if (croppedLineages.length > 1) {
-            this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount});
+            this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0});
         }
     }
 
     marryTaxa(croppedLineages:string[][], croppedRanks:string[][], alteration="marriedTaxaI") {
         var totalUnassignedCounts:number = 0;
-        alteration = "marriedTaxaII";
+        //alteration = "marriedTaxaII";
         for (let lineage of croppedLineages) {
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages:any = [];
-        var treshold:number = 0.003;
+        var threshold:number = 0.01;
         for (let lineage of croppedLineages) {
-            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < treshold) {
+            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < threshold) {
                 let lineageNumber:number = croppedLineages.indexOf(lineage);
                 let lastWayTooThinLayer:number = lineage.length - 1;
                 for (let i=lineage.length-2; i>=0; i--) {
-                    if (allTaxaReduced[lineage[i]]["totalCount"] / totalUnassignedCounts >= treshold) {
+                    if (allTaxaReduced[lineage[i]]["totalCount"] / totalUnassignedCounts >= threshold) {
                         lastWayTooThinLayer = i+1;
                         break;
                     }
@@ -408,7 +413,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                         indexEnd--;
                     }
 
-                    if (sum >= treshold) {
+                    if (sum >= threshold) {
                         newGroups.push(newIndexGroup);
                         newIndexGroup = [];
                         sum = 0;
@@ -416,10 +421,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 }
                 if (newIndexGroup.length !== 0) {
                     if (newGroups.length === 0) {
-                        //newGroups = [[]];
+                        newGroups = [[]];
                     }
                     let lastGroup:number[] = newGroups[newGroups.length - 1];
-                    //lastGroup.splice(lastGroup.length, 0, ...newIndexGroup);
+                    lastGroup.splice(lastGroup.length, 0, ...newIndexGroup);
                     newGroups.push(newIndexGroup);
                 }
                 newGroups = newGroups.map(item => item.map(item1 => reductionGroups[group]["references"][item1]));
@@ -607,11 +612,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (var key of Object.keys(taxonSpecifics)) {
             let centerDegree, centerRadius;
             centerDegree = startDeg(key) + (endDeg(key) - startDeg(key))/2;
-            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.5;
+            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.25;
             let centerX = centerRadius * layerWidthInPx * cos(centerDegree);
-            
             centerX = round(centerX) + cx;
-            
             let centerY = - centerRadius * layerWidthInPx * sin(centerDegree);
             centerY = round(centerY) + cy;
             let center = [centerX, centerY, centerDegree];
@@ -866,10 +869,16 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                         taxonSpecifics[key]["label"]["transform"] = taxonSpecifics[key]["label"]["alternativeTransform"];
                         taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["alternativeTransformOrigin"];
                         taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
+                    } 
+                    
+                    if (shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) {
+                        //console.log("key remains circ: ", key, taxonSpecifics[key]["label"]["abbreviation"]);
                     }
                 }
             }
+            //console.log("key new radial: ", key, taxonSpecifics[key]["label"]["abbreviation"], taxonSpecifics[key]["label"]["transformOrigin"], taxonSpecifics[key]["label"]["angle"]);
         }
+        console.log("tooWide: ", tooWide);
         return tooWide;
     }    
 
@@ -889,12 +898,12 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             }
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
         }
-
-        this.setState({taxonSpecifics: newTaxonSpecifics});
+        this.setState({taxonSpecifics: newTaxonSpecifics}, () => console.log("callback: ", this.state));
     }
 
 
     render() {
+        console.log("render: ", this.state)
         currentState = this.state;
         var shapes:any = [];
         var labels:any = [];
@@ -902,27 +911,27 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (let item of Object.keys(tS)) {
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
-            shapes.push(<TaxonShape id={id} abbr={tS[item]["label"]["abbreviation"]} onClick={() => this.handleClick(redirectTo)} d={tS[item]["svgPath"]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} display={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]}/>);
+            shapes.push(<TaxonShape key={id} id={id} abbr={tS[item]["label"]["abbreviation"]} onClick={() => this.handleClick(redirectTo)} d={tS[item]["svgPath"]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} display={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]}/>);
         }
         
         for (let item of Object.keys(tS)) {
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
-            let label = <TaxonLabel id={id} abbr={tS[item]["label"]["abbreviation"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["left"]} right={tS[item]["label"]["right"]} top={tS[item]["label"]["top"]} transformOrigin={tS[item]["label"]["transformOrigin"]} opacity={tS[item]["label"]["opacity"]} display={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]}/>;
+            let label = <TaxonLabel key={`${id}-label`} id={id} abbr={tS[item]["label"]["abbreviation"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["left"]} right={tS[item]["label"]["right"]} top={tS[item]["label"]["top"]} transformOrigin={tS[item]["label"]["transformOrigin"]} opacity={tS[item]["label"]["opacity"]} display={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]}/>;
             labels.push(label);
         }
 
         for (let i=this.state.ancestors.length-1; i>=0; i--) {
             var ancestor = this.state.ancestors[i];
             var actualI = i - this.state.ancestors.length;
-            labels.push(<AncestorLabel id={`${ancestor}_-_${actualI+1}`} taxon={ancestor} top={`${10+2.5*(this.state.ancestors.length-i)}vmin`} onClick={() => {this.handleClick(`${this.state.ancestors[i]}_-_${(i-this.state.ancestors.length)+1}`)}}/>)
+            labels.push(<AncestorLabel key={`${ancestor}_-_${actualI+1}`} id={`${ancestor}_-_${actualI+1}`} taxon={ancestor} top={`${10+2.5*(this.state.ancestors.length-i)}vmin`} onClick={() => {this.handleClick(`${this.state.ancestors[i]}_-_${(i-this.state.ancestors.length)+1}`)}}/>)
         }
 
         return [<svg style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes}</svg>,<div id="labels">{labels}</div>]
     }
 }
 
-addEventListener("mousemove", (event) => handleMouseMove(event));
+//addEventListener("mousemove", (event) => handleMouseMove(event));
 
 function handleMouseMove(event):void {
     var eventDoc, doc, body;
@@ -1208,8 +1217,7 @@ for (let lineage of lineagesFull) {
 newlyAdded = newlyAdded.filter((v, i, a) => a.indexOf(v) === i);
 
 var colors:string[] = [];
-var colorOffset:number = Math.round(Math.random() * 100); //84
-console.log("color offset: ", colorOffset)
+var colorOffset:number = Math.round(Math.random() * 100); //84, 98, 31, 20, 1, 2
 for (let i=0; i<7; i++) {
     var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
     var g = Math.sin(0.3 * colorOffset + 2) * 55 + 200;

@@ -14,6 +14,15 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 exports.__esModule = true;
 var React = require("react");
 var ReactDOM = require("react-dom/client");
@@ -146,10 +155,11 @@ var PlotDrawing = /** @class */ (function (_super) {
             colors: colors,
             ancestors: ["root"],
             rankPattern: [],
-            alteration: "marriedTaxa",
+            alteration: "allEqual",
             totalUnassignedCount: 0,
             numberOfLayers: -1,
-            layerWidth: -1
+            layerWidth: -1,
+            count: 0
         };
         return _this;
     }
@@ -176,16 +186,22 @@ var PlotDrawing = /** @class */ (function (_super) {
         });
     };
     PlotDrawing.prototype.componentDidUpdate = function () {
+        var _this = this;
         var abbreviatables = this.checkTaxonLabelWidth();
+        console.log("abbreviatables: ", abbreviatables);
         if (abbreviatables.length > 0) {
             this.abbreviate(abbreviatables);
         }
+        else if (abbreviatables.length === 0 && this.state.count === 0) {
+            this.setState({ count: 1 }, function () { return console.log("change count: ", _this.state); });
+        }
+        console.log("componentDidUpdate: ", this.state);
     };
     // Leave only relevant lineages and crop them if necessary.
     PlotDrawing.prototype.cropLineages = function (root, layer, alteration, collapse) {
         if (root === void 0) { root = this.state.root; }
         if (layer === void 0) { layer = this.state.layer; }
-        if (alteration === void 0) { alteration = "marriedTaxaI"; }
+        if (alteration === void 0) { alteration = "allEqual"; }
         if (collapse === void 0) { collapse = this.state.collapse; }
         // Get only relevant lineages.
         var croppedLineages = [];
@@ -296,26 +312,26 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
         }
         if (croppedLineages.length > 1) {
-            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount });
+            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0 });
         }
     };
     PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
         if (alteration === void 0) { alteration = "marriedTaxaI"; }
         var totalUnassignedCounts = 0;
-        alteration = "marriedTaxaII";
+        //alteration = "marriedTaxaII";
         for (var _i = 0, croppedLineages_1 = croppedLineages; _i < croppedLineages_1.length; _i++) {
             var lineage = croppedLineages_1[_i];
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages = [];
-        var treshold = 0.003;
+        var threshold = 0.01;
         for (var _a = 0, croppedLineages_2 = croppedLineages; _a < croppedLineages_2.length; _a++) {
             var lineage = croppedLineages_2[_a];
-            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < treshold) {
+            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < threshold) {
                 var lineageNumber = croppedLineages.indexOf(lineage);
                 var lastWayTooThinLayer = lineage.length - 1;
                 for (var i = lineage.length - 2; i >= 0; i--) {
-                    if (allTaxaReduced[lineage[i]]["totalCount"] / totalUnassignedCounts >= treshold) {
+                    if (allTaxaReduced[lineage[i]]["totalCount"] / totalUnassignedCounts >= threshold) {
                         lastWayTooThinLayer = i + 1;
                         break;
                     }
@@ -412,7 +428,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                         addNext = "indexBeginning";
                         indexEnd--;
                     }
-                    if (sum >= treshold) {
+                    if (sum >= threshold) {
                         newGroups.push(newIndexGroup);
                         newIndexGroup = [];
                         sum = 0;
@@ -420,10 +436,10 @@ var PlotDrawing = /** @class */ (function (_super) {
                 }
                 if (newIndexGroup.length !== 0) {
                     if (newGroups.length === 0) {
-                        //newGroups = [[]];
+                        newGroups = [[]];
                     }
                     var lastGroup = newGroups[newGroups.length - 1];
-                    //lastGroup.splice(lastGroup.length, 0, ...newIndexGroup);
+                    lastGroup.splice.apply(lastGroup, __spreadArray([lastGroup.length, 0], newIndexGroup, false));
                     newGroups.push(newIndexGroup);
                 }
                 newGroups = newGroups.map(function (item) { return item.map(function (item1) { return reductionGroups[group]["references"][item1]; }); });
@@ -617,7 +633,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             var key = _a[_i];
             var centerDegree = void 0, centerRadius = void 0;
             centerDegree = startDeg(key) + (endDeg(key) - startDeg(key)) / 2;
-            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.5;
+            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.25;
             var centerX = centerRadius * layerWidthInPx * cos(centerDegree);
             centerX = round(centerX) + cx;
             var centerY = -centerRadius * layerWidthInPx * sin(centerDegree);
@@ -859,12 +875,18 @@ var PlotDrawing = /** @class */ (function (_super) {
                         taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["alternativeTransformOrigin"];
                         taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
                     }
+                    if (shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) {
+                        //console.log("key remains circ: ", key, taxonSpecifics[key]["label"]["abbreviation"]);
+                    }
                 }
             }
+            //console.log("key new radial: ", key, taxonSpecifics[key]["label"]["abbreviation"], taxonSpecifics[key]["label"]["transformOrigin"], taxonSpecifics[key]["label"]["angle"]);
         }
+        console.log("tooWide: ", tooWide);
         return tooWide;
     };
     PlotDrawing.prototype.abbreviate = function (abbreviatables) {
+        var _this = this;
         var newTaxonSpecifics = JSON.parse(JSON.stringify(this.state.taxonSpecifics));
         for (var _i = 0, abbreviatables_1 = abbreviatables; _i < abbreviatables_1.length; _i++) {
             var key = abbreviatables_1[_i];
@@ -882,10 +904,11 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
         }
-        this.setState({ taxonSpecifics: newTaxonSpecifics });
+        this.setState({ taxonSpecifics: newTaxonSpecifics }, function () { return console.log("callback: ", _this.state); });
     };
     PlotDrawing.prototype.render = function () {
         var _this = this;
+        console.log("render: ", this.state);
         currentState = this.state;
         var shapes = [];
         var labels = [];
@@ -893,7 +916,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_8 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_1.state.ancestors[this_1.state.ancestors.length - 1], "_-_0") : id;
-            shapes.push(React.createElement(TaxonShape, { id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"] }));
+            shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"] }));
         };
         var this_1 = this;
         for (var _i = 0, _a = Object.keys(tS); _i < _a.length; _i++) {
@@ -903,7 +926,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_9 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_2.state.ancestors[this_2.state.ancestors.length - 1], "_-_0") : id;
-            var label = React.createElement(TaxonLabel, { id: id, abbr: tS[item]["label"]["abbreviation"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], right: tS[item]["label"]["right"], top: tS[item]["label"]["top"], transformOrigin: tS[item]["label"]["transformOrigin"], opacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"] });
+            var label = React.createElement(TaxonLabel, { key: "".concat(id, "-label"), id: id, abbr: tS[item]["label"]["abbreviation"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], right: tS[item]["label"]["right"], top: tS[item]["label"]["top"], transformOrigin: tS[item]["label"]["transformOrigin"], opacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"] });
             labels.push(label);
         };
         var this_2 = this;
@@ -914,7 +937,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_10 = function (i) {
             ancestor = this_3.state.ancestors[i];
             actualI = i - this_3.state.ancestors.length;
-            labels.push(React.createElement(AncestorLabel, { id: "".concat(ancestor, "_-_").concat(actualI + 1), taxon: ancestor, top: "".concat(10 + 2.5 * (this_3.state.ancestors.length - i), "vmin"), onClick: function () { _this.handleClick("".concat(_this.state.ancestors[i], "_-_").concat((i - _this.state.ancestors.length) + 1)); } }));
+            labels.push(React.createElement(AncestorLabel, { key: "".concat(ancestor, "_-_").concat(actualI + 1), id: "".concat(ancestor, "_-_").concat(actualI + 1), taxon: ancestor, top: "".concat(10 + 2.5 * (this_3.state.ancestors.length - i), "vmin"), onClick: function () { _this.handleClick("".concat(_this.state.ancestors[i], "_-_").concat((i - _this.state.ancestors.length) + 1)); } }));
         };
         var this_3 = this, ancestor, actualI;
         for (var i = this.state.ancestors.length - 1; i >= 0; i--) {
@@ -924,7 +947,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     return PlotDrawing;
 }(React.Component));
-addEventListener("mousemove", function (event) { return handleMouseMove(event); });
+//addEventListener("mousemove", (event) => handleMouseMove(event));
 function handleMouseMove(event) {
     var eventDoc, doc, body;
     event = event || window.event; // IE-ism
@@ -1202,8 +1225,7 @@ for (var _t = 0, lineagesFull_1 = lineagesFull; _t < lineagesFull_1.length; _t++
 }
 newlyAdded = newlyAdded.filter(function (v, i, a) { return a.indexOf(v) === i; });
 var colors = [];
-var colorOffset = Math.round(Math.random() * 100); //84
-console.log("color offset: ", colorOffset);
+var colorOffset = Math.round(Math.random() * 100); //84, 98, 31, 20, 1, 2
 for (var i = 0; i < 7; i++) {
     var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
     var g = Math.sin(0.3 * colorOffset + 2) * 55 + 200;
