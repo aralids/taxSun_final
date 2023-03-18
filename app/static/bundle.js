@@ -899,7 +899,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             var key = _a[_i];
             var centerDegree = void 0, centerRadius = void 0;
             centerDegree = startDeg(key) + (endDeg(key) - startDeg(key)) / 2;
-            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.25;
+            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.5;
             var centerX = centerRadius * layerWidthInPx * cos(centerDegree);
             centerX = round(centerX) + cx;
             var centerY = -centerRadius * layerWidthInPx * sin(centerDegree);
@@ -1129,11 +1129,14 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var alternativeTopRight = document.querySelector("svg").createSVGPoint();
                 alternativeTopRight.x = alternativeFourPoints["topRight"][0];
                 alternativeTopRight.y = alternativeFourPoints["topRight"][1];
-                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "") && !(shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight))) {
+                var alternativeMidLeft = document.querySelector("svg").createSVGPoint();
+                alternativeMidLeft.x = alternativeFourPoints["topLeft"][0] / 2 + alternativeFourPoints["bottomLeft"][0] / 2;
+                alternativeMidLeft.y = alternativeFourPoints["topLeft"][1] / 2 + alternativeFourPoints["bottomLeft"][1] / 2;
+                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "") && !(shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight) && shape.isPointInFill(alternativeMidLeft))) {
                     tooWide.push(key);
                 }
                 else {
-                    if (shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight)) {
+                    if (shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight) && shape.isPointInFill(alternativeMidLeft)) {
                         taxonSpecifics[key]["label"]["angle"] = taxonSpecifics[key]["label"]["alternativeAngle"];
                         taxonSpecifics[key]["label"]["left"] = taxonSpecifics[key]["label"]["alternativeLeft"];
                         taxonSpecifics[key]["label"]["right"] = taxonSpecifics[key]["label"]["alternativeRight"];
