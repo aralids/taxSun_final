@@ -178,13 +178,11 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
     componentDidUpdate() {
         var abbreviatables:string[] = this.checkTaxonLabelWidth();
-        console.log("abbreviatables: ", abbreviatables);
         if (abbreviatables.length > 0) {
             this.abbreviate(abbreviatables);
         } else if (abbreviatables.length === 0 && this.state.count === 0) {
-            this.setState({count: 1}, () => console.log("change count: ", this.state));
+            this.setState({count: 1});
         } 
-        console.log("componentDidUpdate: ", this.state)
     }
 
     // Leave only relevant lineages and crop them if necessary.
@@ -567,29 +565,57 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             if (taxonSpecifics[key]["layers"][0] === 0) {
                 taxonSpecifics[key]["svgPath"] = `M ${this.state.horizontalShift}, ${this.state.verticalShift} m -${layerWidth}, 0 a ${layerWidth},${layerWidth} 0 1,0 ${(layerWidth)* 2},0 a ${layerWidth},${layerWidth} 0 1,0 -${(layerWidth)* 2},0`;
             } else {
-                var innerArc:object = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
-                var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${round(firstLayer(key)*layerWidth)},${round(firstLayer(key)*layerWidth)} 0 0 1 ${innerArc["x2"]},${innerArc["y2"]}`;
-                if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
-                    var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innerArc["radius"]},${innerArc["radius"]} 0 1 1 ${innerArc["x2"]},${innerArc["y2"]}`;
-                };
+                if (round(endDeg(key) - startDeg(key)) === 360) {
+                    console.log("full circle: ", key);
+                    var innerArc:object = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
+                    var innerArcPath:string = `M ${this.state.horizontalShift}, ${this.state.verticalShift} m -${firstLayer(key)*layerWidth}, 0 a ${firstLayer(key)*layerWidth},${firstLayer(key)*layerWidth} 0 1,0 ${(firstLayer(key)*layerWidth)* 2},0 a ${firstLayer(key)*layerWidth},${firstLayer(key)*layerWidth} 0 1,0 -${(firstLayer(key)*layerWidth)* 2},0`;
 
-                var subpaths:string[] = [innerArcPath];
-                var midArc:object = {};
-                for (let i=taxonSpecifics[key]["layers"].length-1; i>=0; i--) {
-                    var curr = taxonSpecifics[key]["degrees"][i];
-                    var prev = i === 0 ? startDeg(key) : taxonSpecifics[key]["degrees"][i-1];
-                    midArc = this.calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr);
-                    var midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
-                    if (Math.abs(curr - prev) >= 180) {
-                        var midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
+                    var subpaths:string[] = [innerArcPath];
+                    var midArc:object = {};
+                    for (let i=taxonSpecifics[key]["layers"].length-1; i>=1; i--) {
+                        var curr = taxonSpecifics[key]["degrees"][i];
+                        var prev = taxonSpecifics[key]["degrees"][i-1];
+                        var startingLetter:string = i === taxonSpecifics[key]["layers"].length-1 ? "M" : "L";
+                        midArc = this.calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr);
+                        var midArcPath:string = `${startingLetter} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
+                        if (Math.abs(curr - prev) >= 180) {
+                            var midArcPath:string = `${startingLetter} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
+                        };
+                        subpaths.push(midArcPath);
+                    }
+                    
+                    var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${this.state.horizontalShift},${this.state.verticalShift + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length-1]*layerWidth}`;
+                    subpaths.push(lineInnertoOuter);
+                    var d:string = subpaths.join(" ");
+                    console.log("key, d: ", key, d)
+                    taxonSpecifics[key]["svgPath"] = d;
+
+                } else {
+                    var innerArc:object = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
+                    var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${round(firstLayer(key)*layerWidth)},${round(firstLayer(key)*layerWidth)} 0 0 1 ${innerArc["x2"]},${innerArc["y2"]}`;
+                    if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
+                        var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innerArc["radius"]},${innerArc["radius"]} 0 1 1 ${innerArc["x2"]},${innerArc["y2"]}`;
                     };
-                    subpaths.push(midArcPath);
+
+                    var subpaths:string[] = [innerArcPath];
+                    var midArc:object = {};
+                    for (let i=taxonSpecifics[key]["layers"].length-1; i>=0; i--) {
+                        var curr = taxonSpecifics[key]["degrees"][i];
+                        var prev = i === 0 ? startDeg(key) : taxonSpecifics[key]["degrees"][i-1];
+                        midArc = this.calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr);
+                        var midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
+                        if (Math.abs(curr - prev) >= 180) {
+                            var midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
+                        };
+                        subpaths.push(midArcPath);
+                    }
+                    
+                    var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${innerArc["x1"]},${innerArc["y1"]}`;
+                    subpaths.push(lineInnertoOuter);
+                    var d:string = subpaths.join(" ");
+                    taxonSpecifics[key]["svgPath"] = d;
                 }
                 
-                var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${innerArc["x1"]},${innerArc["y1"]}`;
-                subpaths.push(lineInnertoOuter);
-                var d:string = subpaths.join(" ");
-                taxonSpecifics[key]["svgPath"] = d;
             }
         };
         newState["numberOfLayers"] = numberOfLayers;
@@ -873,16 +899,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                         taxonSpecifics[key]["label"]["transform"] = taxonSpecifics[key]["label"]["alternativeTransform"];
                         taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["alternativeTransformOrigin"];
                         taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
-                    } 
-                    
-                    if (shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) {
-                        //console.log("key remains circ: ", key, taxonSpecifics[key]["label"]["abbreviation"]);
                     }
                 }
             }
-            //console.log("key new radial: ", key, taxonSpecifics[key]["label"]["abbreviation"], taxonSpecifics[key]["label"]["transformOrigin"], taxonSpecifics[key]["label"]["angle"]);
         }
-        console.log("tooWide: ", tooWide);
         return tooWide;
     }    
 
@@ -902,12 +922,11 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             }
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
         }
-        this.setState({taxonSpecifics: newTaxonSpecifics}, () => console.log("callback: ", this.state));
+        this.setState({taxonSpecifics: newTaxonSpecifics});
     }
 
 
     render() {
-        console.log("render: ", this.state)
         currentState = this.state;
         var shapes:any = [];
         var labels:any = [];
