@@ -9,11 +9,9 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin></script>
         
         <script>var exports = {};</script>
-        
-
-        
     </head>
     <body id="body-1" style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
+        <div id="married-pattern" style="position:fixed; height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; background-image: radial-gradient(circle at 1px 1px, black 1px, transparent 0); background-size: 5px 5px; z-index: 100; pointer-events:none; clip-path: url(#mask);"></div>
         <div id="input" style="display: flex; position: fixed; top: 0; left: 2vmin; height: 3vmin;">
             <input id="new-palette" type="text">
             <button id="change-palette">Try palette</button>
@@ -33,7 +31,7 @@
             <input type="radio" id="allEqual" name="radio" checked>
             <label for="all-equal">All equal</label>
         </fieldset>
-        <main style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
+        <main style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; z-index: 1;">
             <div id="dpmm" style="height: 1mm; width: 1mm; left: 100%; position: fixed; top: 100%;"></div>
             <script src="https://unpkg.com/babel-standalone@6/babel.min.js" crossorigin></script>
             <div style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; " id="plot-container"></div>

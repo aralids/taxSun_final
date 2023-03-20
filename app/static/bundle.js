@@ -1205,11 +1205,15 @@ var PlotDrawing = /** @class */ (function (_super) {
         currentState = this.state;
         var shapes = [];
         var labels = [];
+        var clipPaths = [];
         var tS = this.state.taxonSpecifics;
         var _loop_8 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_1.state.ancestors[this_1.state.ancestors.length - 1], "_-_0") : id;
             shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"] }));
+            if (~item.indexOf("&")) {
+                clipPaths.push(React.createElement("path", { d: tS[item]["svgPath"] }));
+            }
         };
         var this_1 = this;
         for (var _i = 0, _a = Object.keys(tS); _i < _a.length; _i++) {
@@ -1236,7 +1240,10 @@ var PlotDrawing = /** @class */ (function (_super) {
         for (var i = this.state.ancestors.length - 1; i >= 0; i--) {
             _loop_10(i);
         }
-        return [React.createElement("svg", { style: { "height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none" }, id: "shapes" }, shapes), React.createElement("div", { id: "labels" }, labels)];
+        return [React.createElement("svg", { style: { "height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none" }, id: "shapes" },
+                shapes,
+                " ",
+                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "labels" }, labels)];
     };
     return PlotDrawing;
 }(React.Component));

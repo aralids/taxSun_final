@@ -939,11 +939,15 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         currentState = this.state;
         var shapes:any = [];
         var labels:any = [];
+        var clipPaths:any = [];
         let tS:object = this.state.taxonSpecifics;
         for (let item of Object.keys(tS)) {
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
             shapes.push(<TaxonShape key={id} id={id} abbr={tS[item]["label"]["abbreviation"]} onClick={() => this.handleClick(redirectTo)} d={tS[item]["svgPath"]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} display={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]}/>);
+            if (~item.indexOf("&")) {
+                clipPaths.push(<path d={tS[item]["svgPath"]}/>)
+            }
         }
         
         for (let item of Object.keys(tS)) {
@@ -959,7 +963,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             labels.push(<AncestorLabel key={`${ancestor}_-_${actualI+1}`} id={`${ancestor}_-_${actualI+1}`} taxon={ancestor} top={`${10+2.5*(this.state.ancestors.length-i)}vmin`} onClick={() => {this.handleClick(`${this.state.ancestors[i]}_-_${(i-this.state.ancestors.length)+1}`)}}/>)
         }
 
-        return [<svg style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes}</svg>,<div id="labels">{labels}</div>]
+        return [<svg style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} <clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="labels">{labels}</div>]
     }
 }
 
