@@ -113,7 +113,7 @@ function TaxonShape(props) {
     return <path id={props.id} d={props.d} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.labelOpacity, props.abbr, props.display)} onClick={props.onClick} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
 }
 function TaxonLabel(props) {
-    return <p id={`${props.id}-label`} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.opacity, props.abbr, props.display)} onClick={props.onClick} style={{"margin": "0", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "left": props.left, "right": props.right, "top": props.top, "transformOrigin": props.transformOrigin, "transform": props.transform, "color": "#800080", "opacity": props.opacity, "display": props.display}}>{props.abbr}</p>
+    return <p id={`${props.id}-label`} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.opacity, props.abbr, props.display)} onClick={props.onClick} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "left": props.left, "right": props.right, "top": props.top, "transformOrigin": props.transformOrigin, "transform": props.transform, "color": "#800080", "opacity": props.opacity, "display": props.display}}>{props.abbr}</p>
 }
 
 function AncestorLabel(props) {
@@ -163,7 +163,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             console.log("resize event", this.state);
             var newViewportDimensions = getViewportDimensions();
             viewportDimensions = newViewportDimensions;
-            this.setState({horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"]}, () => this.calculateSVGPaths({"ancestors": this.state.ancestors}));
+            this.setState({horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"], alteration:this.state.alteration}, () => this.cropLineages());
         })
         document.getElementById("radio-input")!.addEventListener("change", () => {
             let alteration:any = document.querySelector('input[name="radio"]:checked')!.getAttribute("id");
@@ -186,7 +186,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     // Leave only relevant lineages and crop them if necessary.
-    cropLineages(root=this.state.root, layer=this.state.layer, alteration="allEqual", collapse=this.state.collapse):void {
+    cropLineages(root=this.state.root, layer=this.state.layer, alteration=this.state.alteration, collapse=this.state.collapse):void {
 
         // Get only relevant lineages.
         var croppedLineages:string[][] = [];
@@ -310,7 +310,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
     marryTaxa(croppedLineages:string[][], croppedRanks:string[][], alteration="marriedTaxaI") {
         var totalUnassignedCounts:number = 0;
-        //alteration = "marriedTaxaII";
         for (let lineage of croppedLineages) {
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
@@ -568,7 +567,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             } else {
                 var subpaths:string[] = [];
                 if (round(endDeg(key) - startDeg(key)) === 360) {
-                    console.log("full circle: ", key);
                     var innerArc:object = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
                     var innerArcPath:string = `M ${this.state.horizontalShift}, ${this.state.verticalShift} m -${firstLayer(key)*layerWidth}, 0 a ${firstLayer(key)*layerWidth},${firstLayer(key)*layerWidth} 0 1,0 ${(firstLayer(key)*layerWidth)* 2},0 a ${firstLayer(key)*layerWidth},${firstLayer(key)*layerWidth} 0 1,0 -${(firstLayer(key)*layerWidth)* 2},0`;
                     subpaths = [innerArcPath];
@@ -839,6 +837,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 topRight.x = fourPoints["topRight"][0];
                 topRight.y = fourPoints["topRight"][1];
                 if (!((shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) || (shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)))) {
+                    console.log("radial label key: ", key, taxonSpecifics[key]["label"]["abbreviation"]);
                     tooWide.push(key);
                 }
             } else {

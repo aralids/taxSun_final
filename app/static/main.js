@@ -125,7 +125,7 @@ function TaxonShape(props) {
     return React.createElement("path", { id: props.id, d: props.d, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelOpacity, props.abbr, props.display); }, onClick: props.onClick, style: { "stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor } });
 }
 function TaxonLabel(props) {
-    return React.createElement("p", { id: "".concat(props.id, "-label"), onMouseOver: function () { return hoverHandler(props.id, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.opacity, props.abbr, props.display); }, onClick: props.onClick, style: { "margin": "0", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "left": props.left, "right": props.right, "top": props.top, "transformOrigin": props.transformOrigin, "transform": props.transform, "color": "#800080", "opacity": props.opacity, "display": props.display } }, props.abbr);
+    return React.createElement("p", { id: "".concat(props.id, "-label"), onMouseOver: function () { return hoverHandler(props.id, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.opacity, props.abbr, props.display); }, onClick: props.onClick, style: { "margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "left": props.left, "right": props.right, "top": props.top, "transformOrigin": props.transformOrigin, "transform": props.transform, "color": "#800080", "opacity": props.opacity, "display": props.display } }, props.abbr);
 }
 function AncestorLabel(props) {
     return React.createElement("p", { id: props.id, className: "ancestor", style: { "margin": "0", "position": "fixed", "fontFamily": "calibri", "fontSize": "2vmin", "top": props.top, "left": "2vmin", "color": skeletonColor, "fontWeight": "bold" }, onClick: props.onClick }, props.taxon);
@@ -173,7 +173,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             console.log("resize event", _this.state);
             var newViewportDimensions = getViewportDimensions();
             viewportDimensions = newViewportDimensions;
-            _this.setState({ horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"] }, function () { return _this.calculateSVGPaths({ "ancestors": _this.state.ancestors }); });
+            _this.setState({ horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"], alteration: _this.state.alteration }, function () { return _this.cropLineages(); });
         });
         document.getElementById("radio-input").addEventListener("change", function () {
             var alteration = document.querySelector('input[name="radio"]:checked').getAttribute("id");
@@ -198,7 +198,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     PlotDrawing.prototype.cropLineages = function (root, layer, alteration, collapse) {
         if (root === void 0) { root = this.state.root; }
         if (layer === void 0) { layer = this.state.layer; }
-        if (alteration === void 0) { alteration = "allEqual"; }
+        if (alteration === void 0) { alteration = this.state.alteration; }
         if (collapse === void 0) { collapse = this.state.collapse; }
         // Get only relevant lineages.
         var croppedLineages = [];
@@ -315,7 +315,6 @@ var PlotDrawing = /** @class */ (function (_super) {
     PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
         if (alteration === void 0) { alteration = "marriedTaxaI"; }
         var totalUnassignedCounts = 0;
-        //alteration = "marriedTaxaII";
         for (var _i = 0, croppedLineages_1 = croppedLineages; _i < croppedLineages_1.length; _i++) {
             var lineage = croppedLineages_1[_i];
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
@@ -588,7 +587,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             else {
                 var subpaths = [];
                 if (round(endDeg(key) - startDeg(key)) === 360) {
-                    console.log("full circle: ", key);
                     var innerArc = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
                     var innerArcPath = "M ".concat(this.state.horizontalShift, ", ").concat(this.state.verticalShift, " m -").concat(firstLayer(key) * layerWidth, ", 0 a ").concat(firstLayer(key) * layerWidth, ",").concat(firstLayer(key) * layerWidth, " 0 1,0 ").concat((firstLayer(key) * layerWidth) * 2, ",0 a ").concat(firstLayer(key) * layerWidth, ",").concat(firstLayer(key) * layerWidth, " 0 1,0 -").concat((firstLayer(key) * layerWidth) * 2, ",0");
                     subpaths = [innerArcPath];
@@ -848,6 +846,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 topRight.x = fourPoints["topRight"][0];
                 topRight.y = fourPoints["topRight"][1];
                 if (!((shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) || (shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)))) {
+                    console.log("radial label key: ", key, taxonSpecifics[key]["label"]["abbreviation"]);
                     tooWide.push(key);
                 }
             }
