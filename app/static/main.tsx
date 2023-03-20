@@ -557,6 +557,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var layerWidth:number = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
 
         var firstLayer = (key) => {return taxonSpecifics[key]["layers"][0]};
+        var secondLayer = (key) => {return taxonSpecifics[key]["layers"][1]};
         var startDeg = (key) => {return taxonSpecifics[key]["degrees"][0]};
         var endDeg = (key) => {return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1]};
         
@@ -565,27 +566,35 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             if (taxonSpecifics[key]["layers"][0] === 0) {
                 taxonSpecifics[key]["svgPath"] = `M ${this.state.horizontalShift}, ${this.state.verticalShift} m -${layerWidth}, 0 a ${layerWidth},${layerWidth} 0 1,0 ${(layerWidth)* 2},0 a ${layerWidth},${layerWidth} 0 1,0 -${(layerWidth)* 2},0`;
             } else {
+                var subpaths:string[] = [];
                 if (round(endDeg(key) - startDeg(key)) === 360) {
                     console.log("full circle: ", key);
                     var innerArc:object = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
                     var innerArcPath:string = `M ${this.state.horizontalShift}, ${this.state.verticalShift} m -${firstLayer(key)*layerWidth}, 0 a ${firstLayer(key)*layerWidth},${firstLayer(key)*layerWidth} 0 1,0 ${(firstLayer(key)*layerWidth)* 2},0 a ${firstLayer(key)*layerWidth},${firstLayer(key)*layerWidth} 0 1,0 -${(firstLayer(key)*layerWidth)* 2},0`;
+                    subpaths = [innerArcPath];
 
-                    var subpaths:string[] = [innerArcPath];
-                    var midArc:object = {};
-                    for (let i=taxonSpecifics[key]["layers"].length-1; i>=1; i--) {
-                        var curr = taxonSpecifics[key]["degrees"][i];
-                        var prev = taxonSpecifics[key]["degrees"][i-1];
-                        var startingLetter:string = i === taxonSpecifics[key]["layers"].length-1 ? "M" : "L";
-                        midArc = this.calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr);
-                        var midArcPath:string = `${startingLetter} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
-                        if (Math.abs(curr - prev) >= 180) {
-                            var midArcPath:string = `${startingLetter} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
-                        };
+                    if (taxonSpecifics[key]["layers"].length === 2) {
+                        var midArcPath:string = `M ${this.state.horizontalShift}, ${this.state.verticalShift} m -${secondLayer(key)*layerWidth}, 0 a ${secondLayer(key)*layerWidth},${secondLayer(key)*layerWidth} 0 1,0 ${(secondLayer(key)*layerWidth)* 2},0 a ${secondLayer(key)*layerWidth},${secondLayer(key)*layerWidth} 0 1,0 -${(secondLayer(key)*layerWidth)* 2},0`;
                         subpaths.push(midArcPath);
                     }
+                    else {
+                        var midArc:object = {};
+                        for (let i=taxonSpecifics[key]["layers"].length-1; i>=1; i--) {
+                            var curr = taxonSpecifics[key]["degrees"][i];
+                            var prev = taxonSpecifics[key]["degrees"][i-1];
+                            var startingLetter:string = i === taxonSpecifics[key]["layers"].length-1 ? "M" : "L";
+                            midArc = this.calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr);
+                            var midArcPath:string = `${startingLetter} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
+                            if (Math.abs(curr - prev) >= 180) {
+                                var midArcPath:string = `${startingLetter} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
+                            };
+                            subpaths.push(midArcPath);
+                        }
+                        
+                        var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${this.state.horizontalShift},${this.state.verticalShift + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length-1]*layerWidth}`;
+                        subpaths.push(lineInnertoOuter);
+                    }
                     
-                    var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${this.state.horizontalShift},${this.state.verticalShift + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length-1]*layerWidth}`;
-                    subpaths.push(lineInnertoOuter);
                     var d:string = subpaths.join(" ");
                     console.log("key, d: ", key, d)
                     taxonSpecifics[key]["svgPath"] = d;
@@ -638,7 +647,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (var key of Object.keys(taxonSpecifics)) {
             let centerDegree, centerRadius;
             centerDegree = startDeg(key) + (endDeg(key) - startDeg(key))/2;
-            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.5;
+            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.333;
             let centerX = centerRadius * layerWidthInPx * cos(centerDegree);
             centerX = round(centerX) + cx;
             let centerY = - centerRadius * layerWidthInPx * sin(centerDegree);
@@ -646,7 +655,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let center = [centerX, centerY, centerDegree];
             taxonSpecifics[key]["center"] = center;
 
-            let alternativeCenterRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.25;
+            let alternativeCenterRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.333;
             let alternativeCenterX = alternativeCenterRadius * layerWidthInPx * cos(centerDegree);
             alternativeCenterX = round(alternativeCenterX) + cx;
             let alternativeCenterY = - alternativeCenterRadius * layerWidthInPx * sin(centerDegree);

@@ -843,6 +843,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
         var layerWidth = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
         var firstLayer = function (key) { return taxonSpecifics[key]["layers"][0]; };
+        var secondLayer = function (key) { return taxonSpecifics[key]["layers"][1]; };
         var startDeg = function (key) { return taxonSpecifics[key]["degrees"][0]; };
         var endDeg = function (key) { return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1]; };
         for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
@@ -851,26 +852,33 @@ var PlotDrawing = /** @class */ (function (_super) {
                 taxonSpecifics[key]["svgPath"] = "M ".concat(this.state.horizontalShift, ", ").concat(this.state.verticalShift, " m -").concat(layerWidth, ", 0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 ").concat((layerWidth) * 2, ",0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 -").concat((layerWidth) * 2, ",0");
             }
             else {
+                var subpaths = [];
                 if (round(endDeg(key) - startDeg(key)) === 360) {
                     console.log("full circle: ", key);
                     var innerArc = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
                     var innerArcPath = "M ".concat(this.state.horizontalShift, ", ").concat(this.state.verticalShift, " m -").concat(firstLayer(key) * layerWidth, ", 0 a ").concat(firstLayer(key) * layerWidth, ",").concat(firstLayer(key) * layerWidth, " 0 1,0 ").concat((firstLayer(key) * layerWidth) * 2, ",0 a ").concat(firstLayer(key) * layerWidth, ",").concat(firstLayer(key) * layerWidth, " 0 1,0 -").concat((firstLayer(key) * layerWidth) * 2, ",0");
-                    var subpaths = [innerArcPath];
-                    var midArc = {};
-                    for (var i = taxonSpecifics[key]["layers"].length - 1; i >= 1; i--) {
-                        var curr = taxonSpecifics[key]["degrees"][i];
-                        var prev = taxonSpecifics[key]["degrees"][i - 1];
-                        var startingLetter = i === taxonSpecifics[key]["layers"].length - 1 ? "M" : "L";
-                        midArc = this.calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr);
-                        var midArcPath = "".concat(startingLetter, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 0 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
-                        if (Math.abs(curr - prev) >= 180) {
-                            var midArcPath = "".concat(startingLetter, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 1 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
-                        }
-                        ;
+                    subpaths = [innerArcPath];
+                    if (taxonSpecifics[key]["layers"].length === 2) {
+                        var midArcPath = "M ".concat(this.state.horizontalShift, ", ").concat(this.state.verticalShift, " m -").concat(secondLayer(key) * layerWidth, ", 0 a ").concat(secondLayer(key) * layerWidth, ",").concat(secondLayer(key) * layerWidth, " 0 1,0 ").concat((secondLayer(key) * layerWidth) * 2, ",0 a ").concat(secondLayer(key) * layerWidth, ",").concat(secondLayer(key) * layerWidth, " 0 1,0 -").concat((secondLayer(key) * layerWidth) * 2, ",0");
                         subpaths.push(midArcPath);
                     }
-                    var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(this.state.horizontalShift, ",").concat(this.state.verticalShift + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length - 1] * layerWidth);
-                    subpaths.push(lineInnertoOuter);
+                    else {
+                        var midArc = {};
+                        for (var i = taxonSpecifics[key]["layers"].length - 1; i >= 1; i--) {
+                            var curr = taxonSpecifics[key]["degrees"][i];
+                            var prev = taxonSpecifics[key]["degrees"][i - 1];
+                            var startingLetter = i === taxonSpecifics[key]["layers"].length - 1 ? "M" : "L";
+                            midArc = this.calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr);
+                            var midArcPath = "".concat(startingLetter, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 0 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
+                            if (Math.abs(curr - prev) >= 180) {
+                                var midArcPath = "".concat(startingLetter, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 1 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
+                            }
+                            ;
+                            subpaths.push(midArcPath);
+                        }
+                        var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(this.state.horizontalShift, ",").concat(this.state.verticalShift + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length - 1] * layerWidth);
+                        subpaths.push(lineInnertoOuter);
+                    }
                     var d = subpaths.join(" ");
                     console.log("key, d: ", key, d);
                     taxonSpecifics[key]["svgPath"] = d;
@@ -922,14 +930,14 @@ var PlotDrawing = /** @class */ (function (_super) {
             var key = _a[_i];
             var centerDegree = void 0, centerRadius = void 0;
             centerDegree = startDeg(key) + (endDeg(key) - startDeg(key)) / 2;
-            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.5;
+            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.333;
             var centerX = centerRadius * layerWidthInPx * cos(centerDegree);
             centerX = round(centerX) + cx;
             var centerY = -centerRadius * layerWidthInPx * sin(centerDegree);
             centerY = round(centerY) + cy;
             var center = [centerX, centerY, centerDegree];
             taxonSpecifics[key]["center"] = center;
-            var alternativeCenterRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.25;
+            var alternativeCenterRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.333;
             var alternativeCenterX = alternativeCenterRadius * layerWidthInPx * cos(centerDegree);
             alternativeCenterX = round(alternativeCenterX) + cx;
             var alternativeCenterY = -alternativeCenterRadius * layerWidthInPx * sin(centerDegree);
