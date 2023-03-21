@@ -923,6 +923,13 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             } else {
                 newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length-2) + ".";
             }
+            let dotIndex:number = newAbbreviation.indexOf(".");
+            if (newTaxonSpecifics[key]["label"]["fullLabel"][dotIndex] === " ") {
+                newAbbreviation = newAbbreviation.slice(0, newAbbreviation.length-1);
+            }
+            if (newTaxonSpecifics[key]["label"]["fullLabel"][dotIndex-1] === " ") {
+                newAbbreviation = newAbbreviation.slice(0, newAbbreviation.length-2);
+            }
             newAbbreviation = newAbbreviation.length < 4 ? "" : newAbbreviation;
             if (newAbbreviation.length === 0) {
                 newTaxonSpecifics[key]["label"]["display"] = "none";
@@ -1196,19 +1203,22 @@ for (let taxName of Object.keys(allTaxaReduced)) {
         else {
             let falseNamesakes:string[] = Object.keys(allTaxaReduced).filter(item => item.startsWith(predecessor[1]) && allTaxaReduced[item]["rank"] === predecessor[0]);
             let trueNamesakes:string[] = Object.keys(allTaxaReduced).filter(item => item.startsWith(predecessor[1]) && allTaxaReduced[item]["rank"] !== predecessor[0]);
+            console.log("predecessor[1], trueNamesakes: ", predecessor[1], trueNamesakes)
+
 
             if (falseNamesakes.length > 0) {
                 if (newlyAdded.indexOf(falseNamesakes[0]) > -1) {
                     allTaxaReduced[falseNamesakes[0]]["totalCount"] += unassignedCount;
                 }
             }
-            else {
-                newlyAdded.push(predecessor[1] + " " + predecessor[0]);
-                allTaxaReduced[predecessor[1] + " " + predecessor[0]] = {};
-                allTaxaReduced[predecessor[1] + " " + predecessor[0]]["rank"] = predecessor[0];
-                allTaxaReduced[predecessor[1] + " " + predecessor[0]]["lineageNames"] = lineage.slice(0, lineage.indexOf(predecessor) + 1);
-                allTaxaReduced[predecessor[1] + " " + predecessor[0]]["totalCount"] = unassignedCount;
-                allTaxaReduced[predecessor[1] + " " + predecessor[0]]["unassignedCount"] = 0;
+            if (trueNamesakes.length > 0)  {
+                let newName:string = predecessor[1] + " " + predecessor[0];
+                newlyAdded.push(newName);
+                allTaxaReduced[newName] = {};
+                allTaxaReduced[newName]["rank"] = predecessor[0];
+                allTaxaReduced[newName]["lineageNames"] = lineage.slice(0, lineage.indexOf(predecessor) + 1);
+                allTaxaReduced[newName]["totalCount"] = unassignedCount;
+                allTaxaReduced[newName]["unassignedCount"] = 0;
             }
         }
     }
