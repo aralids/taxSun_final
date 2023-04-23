@@ -55,6 +55,7 @@ def index():
 
 @app.route('/load_tsv_data')
 def load_tsv_data():
+    taxdb = taxopy.TaxDb()
     path = request.args["tsv_path"]
     with open(path) as file:
         tsv_file = csv.reader(file, delimiter="\t", quotechar='"')
@@ -63,7 +64,7 @@ def load_tsv_data():
     taxIDListUnique = list(dict.fromkeys(taxIDList))
     taxDict = {}
     for taxID in taxIDListUnique:
-        if taxID == "NA":
+        if taxID == "NA" or taxID == '':
             taxDict["root"] = {"taxID": "NA", "lineageNames": [["root", "root"]], "unassignedCount": taxIDList.count("NA"), "rank": "root", "totalCount": taxIDList.count("NA")}
         else:
             taxon = taxopy.Taxon(int(taxID), taxdb)
