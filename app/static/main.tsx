@@ -40,7 +40,7 @@ var allTaxa:object = JSON.parse('{"50 kb inversion clade":{"lineageNames":[["sup
 // ===== PREPROCESSING THE DATA ===== //
 var rankPatternFull:string[] = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];
 
-console.log("allTaxa: ", Object.keys(allTaxa).length, allTaxa);
+//console.log("allTaxa: ", Object.keys(allTaxa).length, allTaxa);
 
 var allTaxaReduced:object = JSON.parse(JSON.stringify(allTaxa));
 var reducibleTaxa:string[] = [];
@@ -57,7 +57,7 @@ for (let taxName of Object.keys(allTaxa)) {
     }
 }
 
-console.log("taxaWithReducibleLineages: ", taxaWithReducibleLineages.length, taxaWithReducibleLineages);
+//console.log("taxaWithReducibleLineages: ", taxaWithReducibleLineages.length, taxaWithReducibleLineages);
 
 // Find all lineages containing "forbidden" taxa, and cut these taxa out.
 for (let taxName of taxaWithReducibleLineages) {
@@ -71,7 +71,7 @@ for (let taxName of taxaWithReducibleLineages) {
     allTaxaReduced[taxName].lineageNames = reducedLineage; 
 }
 
-console.log("allTaxaReduced: ", Object.keys(JSON.parse(JSON.stringify(allTaxaReduced))).length, JSON.parse(JSON.stringify(allTaxaReduced)));
+//console.log("allTaxaReduced: ", Object.keys(JSON.parse(JSON.stringify(allTaxaReduced))).length, JSON.parse(JSON.stringify(allTaxaReduced)));
 
 // Find all reducible keys in allTaxaReduced.
 for (let taxName of Object.keys(allTaxaReduced)) {
@@ -82,7 +82,7 @@ for (let taxName of Object.keys(allTaxaReduced)) {
     }
 }
 
-console.log("reducibleTaxa: ", Object.keys(JSON.parse(JSON.stringify(reducibleTaxa))).length, JSON.parse(JSON.stringify(reducibleTaxa)));
+//console.log("reducibleTaxa: ", Object.keys(JSON.parse(JSON.stringify(reducibleTaxa))).length, JSON.parse(JSON.stringify(reducibleTaxa)));
 
 // Set "root" as the first ancestor of every taxon.
 for (let taxName of Object.keys(allTaxaReduced)) {
@@ -91,7 +91,7 @@ for (let taxName of Object.keys(allTaxaReduced)) {
     }
 }
 
-console.log("allTaxaReduced: ", Object.keys(JSON.parse(JSON.stringify(allTaxaReduced))).length, JSON.parse(JSON.stringify(allTaxaReduced)));
+//console.log("allTaxaReduced: ", Object.keys(JSON.parse(JSON.stringify(allTaxaReduced))).length, JSON.parse(JSON.stringify(allTaxaReduced)));
 
 var newlyAdded:string[] = [];
 // Finally, reduce allTaxa, ridding it of all taxa with weird, hardly-placable ranks - but making sure no information is lost.
@@ -479,7 +479,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages:any = [];
-        var threshold:number = 0.01;
+        var threshold:number = 0.0045;
 
         // Find all lineages that make up <1% of the whole, crop them so that they end in the most specific taxon >=1%, put them in an array called reducibleLineages. 
         for (let lineage of croppedLineages) {
@@ -525,7 +525,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     reductionGroups[item[1].join("")]["index"].push(item[0]);
                 }
             }
-            // Sort indices of reduction groups in ascending order.
+            //console.log("reductionGroups: ", JSON.parse(JSON.stringify(reductionGroups)));
+            //console.log("reducibleLineages: ", JSON.parse(JSON.stringify(reducibleLineages)));
+
+            // Sort indices of reduction groups in ascending order, group some of them together if they are in the same subgroup.
             for (let group of Object.keys(reductionGroups)) {
                 let spliceAt:number = reductionGroups[group]["spliceAt"];
                 reductionGroups[group]["index"].sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
@@ -547,6 +550,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 reductionGroups[group]["references"] = permanentObject;
                 reductionGroups[group]["minimalIndexArray"] = Object.keys(permanentObject).sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
             }
+            //console.log("reductionGroups: ", JSON.parse(JSON.stringify(reductionGroups)));
+
             for (let group of Object.keys(reductionGroups)) {
                 let minimalIndexArray:number[] = reductionGroups[group]["minimalIndexArray"].map(item => parseInt(item));
                 let indexBeginning:number = 0;
@@ -585,17 +590,21 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     }
                 }
                 if (newIndexGroup.length !== 0) {
+                    console.log("newIndexGroup1: ", JSON.parse(JSON.stringify(newIndexGroup)));
+                    console.log("newGroups: ", JSON.parse(JSON.stringify(newGroups)));
                     if (newGroups.length === 0) {
                         newGroups = [[]];
                     }
                     let lastGroup:number[] = newGroups[newGroups.length - 1];
                     lastGroup.splice(lastGroup.length, 0, ...newIndexGroup);
-                    newGroups.push(newIndexGroup);
+                    //newGroups.push(newIndexGroup);
                 }
                 newGroups = newGroups.map(item => item.map(item1 => reductionGroups[group]["references"][item1]));
                 newGroups = newGroups.map(item => item.reduce((accumulator, value) => accumulator.concat(value), []));
                 reductionGroups[group]["newGroups"] = newGroups;
             }
+            console.log("reductionGroups: ", JSON.parse(JSON.stringify(reductionGroups)));
+
             let newReductionGroups:object = {};
             for (let group of Object.keys(reductionGroups)) {
                 for (let i=0; i<reductionGroups[group]["newGroups"].length; i++) {
