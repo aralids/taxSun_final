@@ -419,6 +419,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 taxonSpecifics[taxName]["totalCount"] = unassignedCount;
                 taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length-1;
                 taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
+                taxonSpecifics[taxName]["married"] = true;
             } else {
                 taxonSpecifics[taxName] = {};
                 taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length-1]
@@ -479,7 +480,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages:any = [];
-        var threshold:number = 0.0045;
+        var threshold:number = 0.00953;
 
         // Find all lineages that make up <1% of the whole, crop them so that they end in the most specific taxon >=1%, put them in an array called reducibleLineages. 
         for (let lineage of croppedLineages) {
@@ -1144,7 +1145,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
             shapes.push(<TaxonShape key={id} id={id} abbr={tS[item]["label"]["abbreviation"]} onClick={() => this.handleClick(redirectTo)} d={tS[item]["svgPath"]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} display={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]}/>);
-            if (~item.indexOf("&")) {
+            if (tS[item]["married"]) {
                 clipPaths.push(<path d={tS[item]["svgPath"]}/>)
             }
         }

@@ -422,6 +422,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 taxonSpecifics[taxName]["totalCount"] = unassignedCount;
                 taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
                 taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
+                taxonSpecifics[taxName]["married"] = true;
             }
             else {
                 taxonSpecifics[taxName] = {};
@@ -483,7 +484,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages = [];
-        var threshold = 0.0045;
+        var threshold = 0.00953;
         // Find all lineages that make up <1% of the whole, crop them so that they end in the most specific taxon >=1%, put them in an array called reducibleLineages. 
         for (var _a = 0, croppedLineages_2 = croppedLineages; _a < croppedLineages_2.length; _a++) {
             var lineage = croppedLineages_2[_a];
@@ -1137,7 +1138,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_1.state.ancestors[this_1.state.ancestors.length - 1], "_-_0") : id;
             shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"] }));
-            if (~item.indexOf("&")) {
+            if (tS[item]["married"]) {
                 clipPaths.push(React.createElement("path", { d: tS[item]["svgPath"] }));
             }
         };
