@@ -4,6 +4,7 @@ import taxopy
 import csv
 from flask_redmail import RedMail
 import json
+import copy
 
 @app.route("/send-email", methods=['GET', 'POST'])
 def send_email():
@@ -56,6 +57,7 @@ def index():
 @app.route('/load_tsv_data')
 def load_tsv_data():
     taxdb = taxopy.TaxDb()
+    print("Here")
     path = request.args["tsv_path"]
     with open(path) as file:
         tsv_file = csv.reader(file, delimiter="\t", quotechar='"')
@@ -77,13 +79,131 @@ def load_tsv_data():
             taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "unassignedCount": taxIDList.count(taxID), "rank": rank, "totalCount": taxIDList.count(taxID)}
             if not (name in flatten(taxDict[name]["lineageNames"])):
                 taxDict[name]["lineageNames"].append([rank, name])
-                print("aa")
     for taxon in taxDict.keys():
         subtaxa_counts = [taxDict[other_taxon]["unassignedCount"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
         taxDict[taxon]["totalCount"] = sum(subtaxa_counts)
     taxDict["root"]["totalCount"] = taxIDList.count("NA")
 
-    return jsonify({"taxDict": taxDict})
+    rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"]
+    
+    # Get the names of all taxa with reducible lineages:
+    allTaxaReduced = copy.deepcopy(taxDict)
+    taxaWithReducibleLineages = []
+    for key,value in taxDict.items():
+        lineage = value["lineageNames"]
+        for i in range(0, len(lineage)):
+            if not (lineage[i][0] in rankPatternFull):
+                taxaWithReducibleLineages.append(key)
+                break
+
+    for taxName in taxaWithReducibleLineages:
+        lineage = taxDict[taxName]["lineageNames"]
+        reducedLineage = copy.deepcopy(lineage)
+        for i in reversed(range(0, len(lineage))):
+            if not(lineage[i][0] in rankPatternFull):
+                del reducedLineage[i]
+        allTaxaReduced[taxName]["lineageNames"] = reducedLineage
+
+    reducibleTaxa = []
+    for key,value in allTaxaReduced.items():
+        rank = value["rank"]
+        lineage = value["lineageNames"]
+        if (len(lineage) == 0) or rank != lineage[len(lineage)-1][0]:
+            reducibleTaxa.append(key)
+
+    for key,value in allTaxaReduced.items():
+        if (key != "root"):
+            value["lineageNames"] = [allTaxaReduced["root"]["lineageNames"][0]] + value["lineageNames"]
+ 
+    newlyAdded = []
+    for taxName in reducibleTaxa:
+        unassignedCount = taxDict[taxName]["unassignedCount"]
+        lineage = allTaxaReduced[taxName]["lineageNames"]
+        lastPredecessor = lineage[-1][1]
+        if lastPredecessor in allTaxaReduced.keys() and lastPredecessor in newlyAdded:
+            allTaxaReduced[lastPredecessor]["unassignedCount"] += unassignedCount
+            allTaxaReduced[lastPredecessor]["totalCount"] += unassignedCount
+            allTaxaReduced[lastPredecessor]["deletedDescendants"].append(taxName)
+            del allTaxaReduced[taxName]
+        elif lastPredecessor in allTaxaReduced.keys() and (not lastPredecessor in newlyAdded):
+            allTaxaReduced[lastPredecessor]["unassignedCount"] += unassignedCount
+            if "deletedDescendants" in allTaxaReduced[lastPredecessor]:
+                allTaxaReduced[lastPredecessor]["deletedDescendants"].append(taxName)
+            else: 
+                allTaxaReduced[lastPredecessor]["deletedDescendants"] = [taxName]
+            del allTaxaReduced[taxName]
+        else:
+            newlyAdded.append(lastPredecessor)
+            newRank = lineage[-1][0]
+            allTaxaReduced[lastPredecessor] = {}
+            allTaxaReduced[lastPredecessor]["lineageNames"] = lineage
+            allTaxaReduced[lastPredecessor]["rank"] = newRank
+            allTaxaReduced[lastPredecessor]["totalCount"] = unassignedCount
+            allTaxaReduced[lastPredecessor]["unassignedCount"] = unassignedCount
+            allTaxaReduced[lastPredecessor]["deletedDescendants"] = [taxName]
+            del allTaxaReduced[taxName]
+
+    print("Chordata in newlyAdded: ", "Chordata" in newlyAdded)
+    
+    for taxName in list(allTaxaReduced.keys()):
+        unassignedCount = allTaxaReduced[taxName]["unassignedCount"]
+        lineage = allTaxaReduced[taxName]["lineageNames"]
+        allTaxaReducedKeys = list(allTaxaReduced.keys())
+        for predecessor in lineage:
+            if predecessor[1] in allTaxaReducedKeys and (not predecessor[1] in newlyAdded) and (not predecessor[1] + " " + predecessor[0] in newlyAdded):
+                continue
+            elif predecessor[1] in newlyAdded:
+                allTaxaReduced[predecessor[1]]["totalCount"] += unassignedCount
+            elif predecessor[1] + " " + predecessor[0] in newlyAdded:
+                allTaxaReduced[predecessor[1] + " " + predecessor[0]]["totalCount"] += unassignedCount
+            else:
+                newName = predecessor[1] + " " + predecessor[0]
+                newlyAdded.append(newName)
+                allTaxaReduced[newName] = {}
+                allTaxaReduced[newName]["rank"] = predecessor[0]
+                allTaxaReduced[newName]["lineageNames"] = lineage[:lineage.index(predecessor)+1]
+                allTaxaReduced[newName]["totalCount"] = unassignedCount
+                allTaxaReduced[newName]["unassignedCount"] = 0
+                
+
+    for taxName in list(allTaxaReduced.keys()):
+        lineage = allTaxaReduced[taxName]["lineageNames"]
+        allTaxaReducedKeys = list(allTaxaReduced.keys())
+        for predecessor in lineage:
+            allTaxaReducedFiltered = list(filter(lambda item: (item == predecessor[1] + " " + predecessor[0] and allTaxaReduced[item]["rank"] == predecessor[0]), allTaxaReducedKeys))
+            if len(allTaxaReducedFiltered) > 0:
+                newName = allTaxaReducedFiltered[0]
+                predecessor[1] = newName
+
+    for taxName in list(allTaxaReduced.keys()):
+        if (allTaxaReduced[taxName]["unassignedCount"] == 0):
+            allTaxaReduced[taxName]["skip"] = True
+        else:
+            allTaxaReduced[taxName]["skip"] = False
+
+    for taxName in list(allTaxaReduced.keys()):
+        allTaxaReduced["root"]["totalCount"] += allTaxaReduced[taxName]["unassignedCount"]
+        lineage = allTaxaReduced[taxName]["lineageNames"]
+        for i in range(0, len(lineage)-1):
+            if lineage[i][0] == lineage[i+1][0]:
+                del lineage[i]
+
+    lineagesFull = []
+    for taxName in list(filter(lambda item: (not allTaxaReduced[item]["skip"]), list(allTaxaReduced.keys()))):
+        lineagesFull.append(list(map(lambda item: item[1] + "_*_" + item[0], allTaxaReduced[taxName]["lineageNames"])))
+    lineagesFull.sort()
+
+    lineagesNames = []
+    lineagesRanks = []
+    for lineage in lineagesFull:
+        lineageNames = list(map(lambda item: item.split("_*_")[0], lineage))
+        lineageRanks = list(map(lambda item: item.split("_*_")[1], lineage))
+        lineagesNames.append(lineageNames)
+        lineagesRanks.append(lineageRanks)
+
+    
+
+    return jsonify({"lineagesNames": lineagesNames, "lineagesRanks": lineagesRanks, "allTaxaReduced": allTaxaReduced, "rankPatternFull": rankPatternFull, "allTaxa": taxDict})
 
 @app.route('/get_tax_data')
 def get_tax_data():

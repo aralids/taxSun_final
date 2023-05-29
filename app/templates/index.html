@@ -12,20 +12,22 @@
     </head>
     <body id="body-1" style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
         <div id="married-pattern" style="position:absolute; height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; background-image: radial-gradient(circle at 1px 1px, #800080 1px, transparent 0); background-size: 5px 5px; z-index: 100; pointer-events:none; clip-path: url(#mask); opacity: 0.5;"></div>
-        <div id="input" style="display: flex; position: fixed; top: 0vmin; left: 2vmin; height: 3vmin;">
-            <input type="checkbox" id="checkbox-input" name="collapse" style="accent-color: #800080;">
-            <label for="collapse">Collapse</label>
+        <div id="interaction" style="display: flex; flex-direction: column; position: fixed; top: 0vmin; left: 2vmin; height: 3vmin;">
+            <div id="input">
+                <input type="checkbox" id="checkbox-input" name="collapse" style="accent-color: #800080;">
+                <label for="collapse">Collapse</label>
+            </div>
+            <fieldset id="radio-input" style="display: flex; position: fixed; top: 3vmin; left: 2vmin; height: 3vmin; border:none; margin: 0; padding: 0;">
+                <input type="radio" id="unaltered" name="radio" style="accent-color: #800080;">
+                <label for="unaltered">Unaltered</label>
+                <input type="radio" id="marriedTaxaI" name="radio" style="accent-color: #800080;">
+                <label for="married-taxa-i">Married taxa I</label>
+                <input type="radio" id="marriedTaxaII" name="radio" style="accent-color: #800080;">
+                <label for="married-taxa-ii">Married taxa II</label>
+                <input type="radio" id="allEqual" name="radio" style="accent-color: #800080;" checked>
+                <label for="all-equal">All equal</label>
+            </fieldset>
         </div>
-        <fieldset id="radio-input" style="display: flex; position: fixed; top: 3vmin; left: 2vmin; height: 3vmin; border:none; margin: 0; padding: 0;">
-            <input type="radio" id="unaltered" name="radio" style="accent-color: #800080;">
-            <label for="unaltered">Unaltered</label>
-            <input type="radio" id="marriedTaxaI" name="radio" style="accent-color: #800080;">
-            <label for="married-taxa-i">Married taxa I</label>
-            <input type="radio" id="marriedTaxaII" name="radio" style="accent-color: #800080;">
-            <label for="married-taxa-ii">Married taxa II</label>
-            <input type="radio" id="allEqual" name="radio" style="accent-color: #800080;" checked>
-            <label for="all-equal">All equal</label>
-        </fieldset>
         <main style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; z-index: 1;">
             <div id="dpmm" style="height: 1mm; width: 1mm; left: 100%; position: fixed; top: 100%;"></div>
             <div style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; " id="plot-container"></div>
