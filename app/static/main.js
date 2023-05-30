@@ -35,7 +35,7 @@ var reactRoot = ReactDOM.createRoot(domContainer);
 var viewportDimensions = getViewportDimensions();
 var alreadyVisited = {};
 /* ===== FETCHING THE DATA ===== */
-var path = "C:/Users/PC/Desktop/krona/lessSpontaneous2.tsv";
+var path = "C:/Users/PC/Desktop/krona/spontaneous.tsv";
 loadDataFromTSV(path);
 var lineagesNames = [];
 var lineagesRanks = [];
@@ -57,8 +57,8 @@ var PlotDrawing = /** @class */ (function (_super) {
     function PlotDrawing(props) {
         var _this = _super.call(this, props) || this;
         _this.state = {
-            root: "Felinae",
-            layer: 11,
+            root: "root",
+            layer: 0,
             collapse: false,
             horizontalShift: viewportDimensions["cx"],
             verticalShift: viewportDimensions["cy"],
@@ -103,6 +103,11 @@ var PlotDrawing = /** @class */ (function (_super) {
             var checked = element.checked;
             _this.cropLineages(_this.state.root, _this.state.layer, _this.state.alteration, checked);
         });
+        document.getElementById("new-data").addEventListener("change", function () {
+            var newData = document.getElementById("new-data");
+            newData.checked = false;
+            _this.cropLineages("root", 0, "allEqual", false, lineagesNames, lineagesRanks);
+        });
     };
     PlotDrawing.prototype.componentDidUpdate = function () {
         var abbreviatables = this.checkTaxonLabelWidth();
@@ -115,19 +120,21 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
     };
     // Leave only relevant lineages and crop them if necessary.
-    PlotDrawing.prototype.cropLineages = function (root, layer, alteration, collapse) {
+    PlotDrawing.prototype.cropLineages = function (root, layer, alteration, collapse, lineages, ranks) {
         if (root === void 0) { root = this.state.root; }
         if (layer === void 0) { layer = this.state.layer; }
         if (alteration === void 0) { alteration = this.state.alteration; }
         if (collapse === void 0) { collapse = this.state.collapse; }
+        if (lineages === void 0) { lineages = lineagesNames; }
+        if (ranks === void 0) { ranks = lineagesRanks; }
         // Get only relevant lineages.
         var croppedLineages = [];
         var croppedRanks = [];
         var rootTaxa = root.split(" & ");
-        for (var i = 0; i < this.props.lineages.length; i++) {
-            if (rootTaxa.indexOf(this.props.lineages[i][layer]) > -1) {
-                croppedLineages.push(this.props.lineages[i]);
-                croppedRanks.push(this.props.ranks[i]);
+        for (var i = 0; i < lineages.length; i++) {
+            if (rootTaxa.indexOf(lineages[i][layer]) > -1) {
+                croppedLineages.push(lineages[i]);
+                croppedRanks.push(ranks[i]);
             }
         }
         // Crop lineages so they start with clicked taxon.
@@ -199,6 +206,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length - 1];
                 taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
                 taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
+                console.log("taxName: ", taxName);
                 taxonSpecifics[taxName]["unassignedCount"] = allTaxaReduced[taxName].unassignedCount;
                 taxonSpecifics[taxName]["totalCount"] = allTaxaReduced[taxName]["totalCount"];
                 taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
@@ -686,7 +694,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "angle": angle,
                     "abbreviation": key,
                     "display": "unset",
-                    "fullLabel": key + " ".concat(percentage, "% ").concat(taxonSpecifics[key]["totalCount"]),
+                    "fullLabel": key + " ".concat(percentage, "%"),
                     "alternativeAngle": alternativeAngle,
                     "alternativeLeft": alternativeLeft,
                     "alternativeRight": alternativeRight,
@@ -947,6 +955,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     return PlotDrawing;
 }(React.Component));
 /* ===== DRAWING THE PLOT ===== */
+var plotDrawing = null;
 /* ===== FUNCTION DEFINITIONS ===== */
 function loadDataFromTSV(tsv_path) {
     $.ajax({
@@ -959,8 +968,6 @@ function loadDataFromTSV(tsv_path) {
             allTaxaReduced = response["allTaxaReduced"];
             var allTaxa = response["allTaxa"];
             rankPatternFull = response["rankPatternFull"];
-            console.log("allTaxa: ", allTaxa);
-            console.log("allTaxaReduced: ", allTaxaReduced);
             reactRoot.render(React.createElement(PlotDrawing, { lineages: lineagesNames, ranks: lineagesRanks }));
             /*
             let keys = Object.keys(allTaxaFlask);
@@ -1136,3 +1143,30 @@ for (var _i = 0, aTRKeys_1 = aTRKeys; _i < aTRKeys_1.length; _i++) {
         }
     }
 }
+$('#uploadForm').submit(function (e) {
+    e.preventDefault();
+    console.log("uplForm srcEl[0].files[0]: ", e.originalEvent.srcElement[0].files[0]);
+    var uploadForm = document.getElementById("uploadForm");
+    var form_data = new FormData(uploadForm);
+    console.log("e: ", e);
+    console.log("form_data keys: ", (form_data));
+    $.ajax({
+        url: '/load_tsv_data',
+        data: form_data,
+        type: 'POST',
+        processData: false,
+        contentType: false,
+        success: function (response) {
+            lineagesNames = response["lineagesNames"];
+            lineagesRanks = response["lineagesRanks"];
+            allTaxaReduced = response["allTaxaReduced"];
+            rankPatternFull = response["rankPatternFull"];
+            var newData = document.getElementById("new-data");
+            newData.checked = true;
+            console.log("response: ", response["allTaxa"]);
+            var evt = new CustomEvent('change');
+            newData.dispatchEvent(evt);
+        }
+    });
+    //uploadForm.submit()
+});

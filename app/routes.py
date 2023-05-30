@@ -5,6 +5,9 @@ import csv
 from flask_redmail import RedMail
 import json
 import copy
+from werkzeug.utils import secure_filename
+
+
 
 @app.route("/send-email", methods=['GET', 'POST'])
 def send_email():
@@ -35,6 +38,8 @@ def send_email():
     return jsonify()
 
 taxdb = None
+taxdb = taxopy.TaxDb()
+
 def flatten(l):
     return [item for sublist in l for item in sublist]
 
@@ -54,14 +59,18 @@ def loading_database():
 def index():
     return render_template('index.html')
 
-@app.route('/load_tsv_data')
+@app.route('/load_tsv_data', methods=["POST", "GET"])
 def load_tsv_data():
-    taxdb = taxopy.TaxDb()
-    print("Here")
-    path = request.args["tsv_path"]
-    with open(path) as file:
-        tsv_file = csv.reader(file, delimiter="\t", quotechar='"')
-        taxIDList = [line[1] for line in tsv_file]
+    if request.method == 'GET':
+        print("Here ", request.args)
+        path = request.args["tsv_path"]
+        with open(path) as file:
+            tsv_file = csv.reader(file, delimiter="\t", quotechar='"')
+            taxIDList = [line[1] for line in tsv_file]
+    elif request.method == 'POST':
+        f = request.files['file'].read()
+        tsv_file = f.decode("utf-8")[:-1]
+        taxIDList = [line.split("\t")[1] for line in tsv_file.split("\n")]
     del taxIDList[0]
     taxIDListUnique = list(dict.fromkeys(taxIDList))
     taxDict = {}
@@ -122,7 +131,6 @@ def load_tsv_data():
         lastPredecessor = lineage[-1][1]
         if lastPredecessor in allTaxaReduced.keys() and lastPredecessor in newlyAdded:
             allTaxaReduced[lastPredecessor]["unassignedCount"] += unassignedCount
-            allTaxaReduced[lastPredecessor]["totalCount"] += unassignedCount
             allTaxaReduced[lastPredecessor]["deletedDescendants"].append(taxName)
             del allTaxaReduced[taxName]
         elif lastPredecessor in allTaxaReduced.keys() and (not lastPredecessor in newlyAdded):
@@ -138,42 +146,39 @@ def load_tsv_data():
             allTaxaReduced[lastPredecessor] = {}
             allTaxaReduced[lastPredecessor]["lineageNames"] = lineage
             allTaxaReduced[lastPredecessor]["rank"] = newRank
-            allTaxaReduced[lastPredecessor]["totalCount"] = unassignedCount
+            allTaxaReduced[lastPredecessor]["totalCount"] = 0
             allTaxaReduced[lastPredecessor]["unassignedCount"] = unassignedCount
             allTaxaReduced[lastPredecessor]["deletedDescendants"] = [taxName]
             del allTaxaReduced[taxName]
 
-    print("Chordata in newlyAdded: ", "Chordata" in newlyAdded)
+    for taxName in list(allTaxaReduced.keys()):
+        unassignedCount = allTaxaReduced[taxName]["unassignedCount"]
+        lineage = allTaxaReduced[taxName]["lineageNames"]
+        allTaxaReducedKeys = list(allTaxaReduced.keys())
+        for predecessor in lineage:
+            if (not (predecessor[1] in allTaxaReducedKeys and allTaxaReduced[predecessor[1]]["rank"] == predecessor[0])) and (not predecessor[1] + " " + predecessor[0] in allTaxaReducedKeys):
+                newName = predecessor[1] + " " + predecessor[0]
+                newlyAdded.append(newName)
+                allTaxaReduced[newName] = {}
+                allTaxaReduced[newName]["rank"] = predecessor[0]
+                allTaxaReduced[newName]["lineageNames"] = lineage[:lineage.index(predecessor)+1]
+                allTaxaReduced[newName]["totalCount"] = 0
+                allTaxaReduced[newName]["unassignedCount"] = 0
+
+    for taxName in list(allTaxaReduced.keys()):
+        lineage = allTaxaReduced[taxName]["lineageNames"]
+        allTaxaReducedKeys = list(allTaxaReduced.keys())
+        for predecessor in lineage:
+            if predecessor[1] + " " + predecessor[0] in newlyAdded:
+                predecessor[1] = predecessor[1] + " " + predecessor[0]
     
     for taxName in list(allTaxaReduced.keys()):
         unassignedCount = allTaxaReduced[taxName]["unassignedCount"]
         lineage = allTaxaReduced[taxName]["lineageNames"]
         allTaxaReducedKeys = list(allTaxaReduced.keys())
         for predecessor in lineage:
-            if predecessor[1] in allTaxaReducedKeys and (not predecessor[1] in newlyAdded) and (not predecessor[1] + " " + predecessor[0] in newlyAdded):
-                continue
-            elif predecessor[1] in newlyAdded:
+            if predecessor[1] in newlyAdded:
                 allTaxaReduced[predecessor[1]]["totalCount"] += unassignedCount
-            elif predecessor[1] + " " + predecessor[0] in newlyAdded:
-                allTaxaReduced[predecessor[1] + " " + predecessor[0]]["totalCount"] += unassignedCount
-            else:
-                newName = predecessor[1] + " " + predecessor[0]
-                newlyAdded.append(newName)
-                allTaxaReduced[newName] = {}
-                allTaxaReduced[newName]["rank"] = predecessor[0]
-                allTaxaReduced[newName]["lineageNames"] = lineage[:lineage.index(predecessor)+1]
-                allTaxaReduced[newName]["totalCount"] = unassignedCount
-                allTaxaReduced[newName]["unassignedCount"] = 0
-                
-
-    for taxName in list(allTaxaReduced.keys()):
-        lineage = allTaxaReduced[taxName]["lineageNames"]
-        allTaxaReducedKeys = list(allTaxaReduced.keys())
-        for predecessor in lineage:
-            allTaxaReducedFiltered = list(filter(lambda item: (item == predecessor[1] + " " + predecessor[0] and allTaxaReduced[item]["rank"] == predecessor[0]), allTaxaReducedKeys))
-            if len(allTaxaReducedFiltered) > 0:
-                newName = allTaxaReducedFiltered[0]
-                predecessor[1] = newName
 
     for taxName in list(allTaxaReduced.keys()):
         if (allTaxaReduced[taxName]["unassignedCount"] == 0):
@@ -216,3 +221,11 @@ def get_tax_data():
             del lineageRanksList[i]
             del lineageNamesList[i]
     return jsonify({"name": taxon.name, "lineageNames": lineageNamesList, "lineageRanks": lineageRanksList})
+
+@app.route('/uploader', methods = ['GET', 'POST'])
+def upload_file():
+   if request.method == 'POST':
+      f = request.files['file'].read()
+      #f.save(secure_filename(f.filename))
+      print("f: ", f)
+      return redirect(url_for("load_tsv_data"))
