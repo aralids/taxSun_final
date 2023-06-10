@@ -57,8 +57,8 @@ var PlotDrawing = /** @class */ (function (_super) {
     function PlotDrawing(props) {
         var _this = _super.call(this, props) || this;
         _this.state = {
-            root: "root",
-            layer: 0,
+            root: "Passeriformes",
+            layer: 7,
             collapse: false,
             horizontalShift: viewportDimensions["cx"],
             verticalShift: viewportDimensions["cy"],
@@ -82,7 +82,10 @@ var PlotDrawing = /** @class */ (function (_super) {
             numberOfLayers: -1,
             layerWidth: -1,
             count: 0,
-            abbreviateLabels: true
+            abbreviateLabels: true,
+            labelsPlaced: false,
+            height: 0,
+            alreadyRepeated: false
         };
         return _this;
     }
@@ -116,14 +119,18 @@ var PlotDrawing = /** @class */ (function (_super) {
         });
     };
     PlotDrawing.prototype.componentDidUpdate = function () {
-        var abbreviatables = this.checkTaxonLabelWidth();
+        if (!this.state.labelsPlaced) {
+            this.placeLabels();
+        }
+        //var abbreviatables:string[] = this.checkTaxonLabelWidth();
         // !!! Takes 3 sec !!!
+        /*
         if (abbreviatables.length > 0 && this.state.abbreviateLabels) {
             this.abbreviate(abbreviatables);
+        } else if (abbreviatables.length === 0 && this.state.count === 0) {
+            this.setState({count: 1});
         }
-        else if (abbreviatables.length === 0 && this.state.count === 0) {
-            this.setState({ count: 1 });
-        }
+        */
     };
     // Leave only relevant lineages and crop them if necessary.
     PlotDrawing.prototype.cropLineages = function (root, layer, alteration, collapse, lineages, ranks) {
@@ -212,7 +219,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length - 1];
                 taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
                 taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
-                console.log("taxName: ", taxName);
                 taxonSpecifics[taxName]["unassignedCount"] = allTaxaReduced[taxName].unassignedCount;
                 taxonSpecifics[taxName]["totalCount"] = allTaxaReduced[taxName]["totalCount"];
                 taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
@@ -261,7 +267,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             this.setState(alreadyVisited[currPlotId]);
         }
         else if (croppedLineages.length > 1) {
-            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true });
+            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false });
         }
     };
     PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration, root) {
@@ -453,8 +459,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         else {
             var totalUnassignedCounts = newState["totalUnassignedCount"];
-            console.log("totalUnassignedCounts: ", totalUnassignedCounts);
-            console.log("allTaxaReduced['root']['totalCount']: ", allTaxaReduced['root']['totalCount']);
+            //console.log("totalUnassignedCounts: ", totalUnassignedCounts)
+            //console.log("allTaxaReduced['root']['totalCount']: ", allTaxaReduced['root']['totalCount'])
         }
         var ranges = {};
         var startDeg = 0;
@@ -631,82 +637,52 @@ var PlotDrawing = /** @class */ (function (_super) {
             centerX = round(centerX) + cx;
             var centerY = -centerRadius * layerWidthInPx * sin(centerDegree);
             centerY = round(centerY) + cy;
-            var center = [centerX, centerY, centerDegree];
+            var pointOnLeftBorderX = centerRadius * layerWidthInPx * cos(startDeg(key));
+            pointOnLeftBorderX = round(pointOnLeftBorderX) + cx;
+            var pointOnLeftBorderY = -centerRadius * layerWidthInPx * sin(startDeg(key));
+            pointOnLeftBorderY = round(pointOnLeftBorderY) + cy;
+            var pointOnRightBorderX = centerRadius * layerWidthInPx * cos(endDeg(key));
+            pointOnRightBorderX = round(pointOnRightBorderX) + cx;
+            var pointOnRightBorderY = -centerRadius * layerWidthInPx * sin(endDeg(key));
+            pointOnRightBorderY = round(pointOnRightBorderY) + cy;
+            var center = [centerX, centerY, centerDegree, pointOnLeftBorderX, pointOnLeftBorderY, pointOnRightBorderX, pointOnRightBorderY];
             taxonSpecifics[key]["center"] = center;
-            var alternativeCenterRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.333;
-            var alternativeCenterX = alternativeCenterRadius * layerWidthInPx * cos(centerDegree);
-            alternativeCenterX = round(alternativeCenterX) + cx;
-            var alternativeCenterY = -alternativeCenterRadius * layerWidthInPx * sin(centerDegree);
-            alternativeCenterY = round(alternativeCenterY) + cy;
-            var alternativeCenter = [alternativeCenterX, alternativeCenterY, centerDegree];
-            taxonSpecifics[key]["alternativeCenter"] = alternativeCenter;
         }
         ;
         for (var _b = 0, _c = Object.keys(taxonSpecifics); _b < _c.length; _b++) {
             var key = _c[_b];
             if (taxonSpecifics[key]["layers"][0] === 0) {
                 taxonSpecifics[key]["label"] = {
-                    "direction": "circumferential",
-                    "left": this.state.horizontalShift,
-                    "right": "unset",
-                    "top": this.state.verticalShift,
-                    "transform": "translate(-50%, -50%)",
-                    "transformOrigin": "center center",
+                    "direction": "horizontal",
                     "opacity": "1",
                     "angle": 0,
-                    "abbreviation": root,
+                    "abbreviation": root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|")), ""),
                     "display": "unset",
-                    "fullLabel": root
+                    "fullLabel": root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|")), "")
                 };
             }
             else {
-                var direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "circumferential";
-                //let direction = (numberOfLayers - taxonSpecifics[key]["firstLayerAligned"] === 1) ? "radial" : "circumferential";
-                var angle = void 0, left = void 0, right = void 0, top_1 = void 0, transform = void 0, transformOrigin = void 0, alternativeAngle = void 0, alternativeLeft = void 0, alternativeRight = void 0, alternativeTransform = void 0, alternativeTransformOrigin = void 0, alternativeTop = void 0;
+                var direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "verse";
+                var angle = void 0, radialAngle = void 0;
                 if (direction === "radial") {
-                    angle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : +taxonSpecifics[key]["center"][2];
-                    left = angle > 0 ? taxonSpecifics[key]["alternativeCenter"][0] : "unset";
-                    right = left === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["alternativeCenter"][0]) : "unset";
-                    angle = left === "unset" ? 270 - angle : 360 - (270 - angle);
-                    top_1 = taxonSpecifics[key]["alternativeCenter"][1];
-                    transform = "translate(0, -50%) rotate(".concat(angle, "deg)");
-                    transformOrigin = left === "unset" ? "center right" : "center left";
+                    angle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : taxonSpecifics[key]["center"][2];
                 }
                 else {
                     angle = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
-                    left = taxonSpecifics[key]["center"][0];
-                    right = "unset";
-                    top_1 = taxonSpecifics[key]["center"][1];
-                    transform = "translate(-50%, -50%) rotate(".concat(angle, "deg)");
-                    transformOrigin = "center center";
-                    alternativeAngle = taxonSpecifics[key]["alternativeCenter"][2] <= 180 ? -taxonSpecifics[key]["alternativeCenter"][2] : +taxonSpecifics[key]["alternativeCenter"][2];
-                    alternativeLeft = alternativeAngle > 0 ? taxonSpecifics[key]["alternativeCenter"][0] : "unset";
-                    alternativeRight = alternativeLeft === "unset" ? (document.documentElement.clientWidth - taxonSpecifics[key]["alternativeCenter"][0]) : "unset";
-                    alternativeTop = taxonSpecifics[key]["alternativeCenter"][1];
-                    alternativeAngle = alternativeLeft === "unset" ? 270 - alternativeAngle : 360 - (270 - alternativeAngle);
-                    alternativeTransform = "translate(0, -50%) rotate(".concat(alternativeAngle, "deg)");
-                    alternativeTransformOrigin = alternativeLeft === "unset" ? "center right" : "center left";
+                    radialAngle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : taxonSpecifics[key]["center"][2];
                 }
                 var percentage = round((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
                 var oldPercentage = round(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100);
                 taxonSpecifics[key]["label"] = {
                     "direction": direction,
-                    "left": left,
-                    "right": right,
-                    "top": top_1,
-                    "transform": transform,
-                    "transformOrigin": transformOrigin,
                     "opacity": "1",
+                    "left": 0,
+                    "top": 0,
                     "angle": angle,
-                    "abbreviation": key,
+                    "abbreviation": key.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|")), ""),
                     "display": "unset",
-                    "fullLabel": key + " ".concat(percentage, "%"),
-                    "alternativeAngle": alternativeAngle,
-                    "alternativeLeft": alternativeLeft,
-                    "alternativeRight": alternativeRight,
-                    "alternativeTransform": alternativeTransform,
-                    "alternativeTransformOrigin": alternativeTransformOrigin,
-                    "alternativeTop": alternativeTop
+                    "fullLabel": key.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|")), "") + " ".concat(percentage, "%"),
+                    "radialAngle": radialAngle
                 };
                 if (taxonSpecifics[key]["rank"] === "species") {
                     var abbr = taxonSpecifics[key]["label"]["abbreviation"];
@@ -789,8 +765,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         var tooWide = [];
         for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
             var key = _a[_i];
-            var height = document.getElementById("".concat(key, "_-_").concat(taxonSpecifics[key]["firstLayerUnaligned"], "-label")).offsetHeight;
-            var width = document.getElementById("".concat(key, "_-_").concat(taxonSpecifics[key]["firstLayerUnaligned"], "-label")).offsetWidth;
+            var labelElement = document.getElementById("".concat(key, "_-_").concat(taxonSpecifics[key]["firstLayerUnaligned"], "-label"));
+            var height = labelElement.getBBox().height;
+            var width = labelElement.getBBox().width;
             if (taxonSpecifics[key]["label"]["direction"] === "radial") {
                 var topBeforeRotation = taxonSpecifics[key]["center"][1] - height / 2;
                 var bottomBeforeRotation = taxonSpecifics[key]["center"][1] + height / 2;
@@ -841,39 +818,39 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var topRight = document.querySelector("svg").createSVGPoint();
                 topRight.x = fourPoints["topRight"][0];
                 topRight.y = fourPoints["topRight"][1];
-                // Calculate where alternative, radially positioned label would fit into the shape:
-                var alternativeTopBeforeRotation = taxonSpecifics[key]["center"][1] - height / 2;
-                var alternativeBottomBeforeRotation = taxonSpecifics[key]["center"][1] + height / 2;
-                var alternativeLeftBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] : taxonSpecifics[key]["center"][0] - width;
-                var alternativeRightBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] + width : taxonSpecifics[key]["center"][0];
-                var alternativeAngle = taxonSpecifics[key]["label"]["alternativeAngle"];
-                var alternativeFourPoints = getFourCorners(alternativeTopBeforeRotation, alternativeBottomBeforeRotation, alternativeLeftBeforeRotation, alternativeRightBeforeRotation, cx, cy, alternativeAngle);
-                var alternativeBottomLeft = document.querySelector("svg").createSVGPoint();
-                alternativeBottomLeft.x = alternativeFourPoints["bottomLeft"][0];
-                alternativeBottomLeft.y = alternativeFourPoints["bottomLeft"][1];
-                var alternativeBottomRight = document.querySelector("svg").createSVGPoint();
-                alternativeBottomRight.x = alternativeFourPoints["bottomRight"][0];
-                alternativeBottomRight.y = alternativeFourPoints["bottomRight"][1];
-                var alternativeTopLeft = document.querySelector("svg").createSVGPoint();
-                alternativeTopLeft.x = alternativeFourPoints["topLeft"][0];
-                alternativeTopLeft.y = alternativeFourPoints["topLeft"][1];
-                var alternativeTopRight = document.querySelector("svg").createSVGPoint();
-                alternativeTopRight.x = alternativeFourPoints["topRight"][0];
-                alternativeTopRight.y = alternativeFourPoints["topRight"][1];
-                var alternativeMidLeft = document.querySelector("svg").createSVGPoint();
-                alternativeMidLeft.x = alternativeFourPoints["topLeft"][0] / 2 + alternativeFourPoints["bottomLeft"][0] / 2;
-                alternativeMidLeft.y = alternativeFourPoints["topLeft"][1] / 2 + alternativeFourPoints["bottomLeft"][1] / 2;
-                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "") && !(shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight) && shape.isPointInFill(alternativeMidLeft))) {
+                // Calculate where radial, radially positioned label would fit into the shape:
+                var radialTopBeforeRotation = taxonSpecifics[key]["center"][1] - height / 2;
+                var radialBottomBeforeRotation = taxonSpecifics[key]["center"][1] + height / 2;
+                var radialLeftBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] : taxonSpecifics[key]["center"][0] - width;
+                var radialRightBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] + width : taxonSpecifics[key]["center"][0];
+                var radialAngle = taxonSpecifics[key]["label"]["radialAngle"];
+                var radialFourPoints = getFourCorners(radialTopBeforeRotation, radialBottomBeforeRotation, radialLeftBeforeRotation, radialRightBeforeRotation, cx, cy, radialAngle);
+                var radialBottomLeft = document.querySelector("svg").createSVGPoint();
+                radialBottomLeft.x = radialFourPoints["bottomLeft"][0];
+                radialBottomLeft.y = radialFourPoints["bottomLeft"][1];
+                var radialBottomRight = document.querySelector("svg").createSVGPoint();
+                radialBottomRight.x = radialFourPoints["bottomRight"][0];
+                radialBottomRight.y = radialFourPoints["bottomRight"][1];
+                var radialTopLeft = document.querySelector("svg").createSVGPoint();
+                radialTopLeft.x = radialFourPoints["topLeft"][0];
+                radialTopLeft.y = radialFourPoints["topLeft"][1];
+                var radialTopRight = document.querySelector("svg").createSVGPoint();
+                radialTopRight.x = radialFourPoints["topRight"][0];
+                radialTopRight.y = radialFourPoints["topRight"][1];
+                var radialMidLeft = document.querySelector("svg").createSVGPoint();
+                radialMidLeft.x = radialFourPoints["topLeft"][0] / 2 + radialFourPoints["bottomLeft"][0] / 2;
+                radialMidLeft.y = radialFourPoints["topLeft"][1] / 2 + radialFourPoints["bottomLeft"][1] / 2;
+                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "") && !(shape.isPointInFill(radialBottomLeft) && shape.isPointInFill(radialBottomRight) && shape.isPointInFill(radialTopLeft) && shape.isPointInFill(radialTopRight) && shape.isPointInFill(radialMidLeft))) {
                     tooWide.push(key);
                 }
                 else {
-                    if (shape.isPointInFill(alternativeBottomLeft) && shape.isPointInFill(alternativeBottomRight) && shape.isPointInFill(alternativeTopLeft) && shape.isPointInFill(alternativeTopRight) && shape.isPointInFill(alternativeMidLeft)) {
-                        taxonSpecifics[key]["label"]["angle"] = taxonSpecifics[key]["label"]["alternativeAngle"];
-                        taxonSpecifics[key]["label"]["left"] = taxonSpecifics[key]["label"]["alternativeLeft"];
-                        taxonSpecifics[key]["label"]["right"] = taxonSpecifics[key]["label"]["alternativeRight"];
-                        taxonSpecifics[key]["label"]["transform"] = taxonSpecifics[key]["label"]["alternativeTransform"];
-                        taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["alternativeTransformOrigin"];
-                        taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["alternativeTop"];
+                    if (shape.isPointInFill(radialBottomLeft) && shape.isPointInFill(radialBottomRight) && shape.isPointInFill(radialTopLeft) && shape.isPointInFill(radialTopRight) && shape.isPointInFill(radialMidLeft)) {
+                        taxonSpecifics[key]["label"]["angle"] = taxonSpecifics[key]["label"]["radialAngle"];
+                        taxonSpecifics[key]["label"]["left"] = taxonSpecifics[key]["label"]["radialLeft"];
+                        taxonSpecifics[key]["label"]["right"] = taxonSpecifics[key]["label"]["radialRight"];
+                        taxonSpecifics[key]["label"]["transform"] = taxonSpecifics[key]["label"]["radialTransform"];
+                        taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["radialTransformOrigin"];
+                        taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["radialTop"];
                     }
                 }
             }
@@ -903,27 +880,218 @@ var PlotDrawing = /** @class */ (function (_super) {
             newAbbreviation = newAbbreviation.length < 4 ? "" : newAbbreviation;
             if (newAbbreviation.length === 0) {
                 newTaxonSpecifics[key]["label"]["display"] = "none";
-                newTaxonSpecifics[key]["label"]["direction"] = "circumferential";
+                newTaxonSpecifics[key]["label"]["direction"] = "verse";
             }
             newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
             //newTaxonSpecifics[key]["label"]["abbreviationPlusOne"] = newAbbreviationPlusOne;
         }
         this.setState({ taxonSpecifics: newTaxonSpecifics });
     };
+    PlotDrawing.prototype.placeLabels = function (alreadyRepeated) {
+        if (alreadyRepeated === void 0) { alreadyRepeated = this.state.alreadyRepeated; }
+        var newTaxonSpecifics = JSON.parse(JSON.stringify(this.state.taxonSpecifics));
+        var height = 0;
+        for (var _i = 0, _a = Object.keys(newTaxonSpecifics); _i < _a.length; _i++) {
+            var key = _a[_i];
+            var labelElement = document.getElementById("".concat(key, "_-_").concat(newTaxonSpecifics[key]["firstLayerUnaligned"], "-label"));
+            height = !alreadyRepeated ? labelElement.getBoundingClientRect().height / 2 : this.state.height;
+            var width = labelElement.getBoundingClientRect().width;
+            var top_1 = void 0, left = void 0, radialLeft = void 0, transformOrigin = void 0, horizontalSpace = void 0, abbreviation = void 0;
+            var angle = newTaxonSpecifics[key]["label"]["angle"];
+            var centerDegree = newTaxonSpecifics[key]["center"][2];
+            transformOrigin = "".concat(newTaxonSpecifics[key]["center"][0], " ").concat(newTaxonSpecifics[key]["center"][1]);
+            top_1 = newTaxonSpecifics[key]["center"][1] + height / 2;
+            if (newTaxonSpecifics[key]["label"]["direction"] === "radial") {
+                if (centerDegree >= 180 && centerDegree < 360) {
+                    left = newTaxonSpecifics[key]["center"][0];
+                    angle = 360 - (270 - angle);
+                }
+                else if (centerDegree >= 0 && centerDegree <= 180) {
+                    left = newTaxonSpecifics[key]["center"][0] - width;
+                    angle = 270 - angle;
+                }
+            }
+            else if (newTaxonSpecifics[key]["label"]["direction"] === "verse") {
+                left = newTaxonSpecifics[key]["center"][0] - width / 2;
+                var radialAngle = newTaxonSpecifics[key]["label"]["radialAngle"];
+                if (centerDegree >= 180 && centerDegree < 360) {
+                    radialLeft = newTaxonSpecifics[key]["center"][0];
+                    radialAngle = 360 - (270 - radialAngle);
+                    var topBeforeRotation = newTaxonSpecifics[key]["center"][1] - height / 2;
+                    var bottomBeforeRotation = newTaxonSpecifics[key]["center"][1] + height / 2;
+                    var leftBeforeRotation = left;
+                    var rightBeforeRotation = left + width;
+                    var cx = newTaxonSpecifics[key]["center"][0];
+                    var cy = newTaxonSpecifics[key]["center"][1];
+                    var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
+                    var leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
+                    var rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
+                    if (leftIntersect === null || rightIntersect === null) {
+                        horizontalSpace = 0;
+                    }
+                    else {
+                        horizontalSpace = lineLength(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"]);
+                    }
+                }
+                else if (centerDegree >= 0 && centerDegree <= 180) {
+                    radialLeft = newTaxonSpecifics[key]["center"][0] - width;
+                    radialAngle = 270 - radialAngle;
+                    var topBeforeRotation = newTaxonSpecifics[key]["center"][1] - height / 2;
+                    var bottomBeforeRotation = newTaxonSpecifics[key]["center"][1] + height / 2;
+                    var leftBeforeRotation = left;
+                    var rightBeforeRotation = left + width;
+                    var cx = newTaxonSpecifics[key]["center"][0];
+                    var cy = newTaxonSpecifics[key]["center"][1];
+                    var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
+                    var leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
+                    var rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
+                    if (leftIntersect === null || rightIntersect === null) {
+                        horizontalSpace = 0;
+                    }
+                    else {
+                        horizontalSpace = lineLength(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"]);
+                    }
+                }
+                var layersCopy = JSON.parse(JSON.stringify(newTaxonSpecifics[key]["layers"]));
+                var lastViableLayer = layersCopy.sort(function (a, b) { return a - b; })[1];
+                var pointOnLastLayerX = lastViableLayer * this.state.layerWidth * cos(newTaxonSpecifics[key]["center"][2]);
+                pointOnLastLayerX = round(pointOnLastLayerX) + viewportDimensions["cx"];
+                var pointOnLastLayerY = -lastViableLayer * this.state.layerWidth * sin(newTaxonSpecifics[key]["center"][2]);
+                pointOnLastLayerY = round(pointOnLastLayerY) + viewportDimensions["cy"];
+                var verticalSpace = lineLength(newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], pointOnLastLayerX, pointOnLastLayerY);
+                var howManyLettersFit = 0;
+                if (verticalSpace > horizontalSpace) {
+                    left = radialLeft;
+                    angle = radialAngle;
+                    var lengthPerLetter = width / newTaxonSpecifics[key]["label"]["abbreviation"].length;
+                    howManyLettersFit = Math.floor(verticalSpace / lengthPerLetter) - 1;
+                    abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
+                }
+                else {
+                    var lengthPerLetter = width / newTaxonSpecifics[key]["label"]["abbreviation"].length;
+                    howManyLettersFit = Math.floor(horizontalSpace / lengthPerLetter) - 1 > 0 ? Math.floor(horizontalSpace / lengthPerLetter) - 1 : 0;
+                    abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
+                }
+                abbreviation = abbreviation.indexOf(".") >= 0 || !(newTaxonSpecifics[key]["label"]["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
+                newTaxonSpecifics[key]["label"]["abbreviation"] = abbreviation;
+                if (newTaxonSpecifics[key]["label"]["abbreviation"].length < 4) {
+                    newTaxonSpecifics[key]["label"]["abbreviation"] = "";
+                    newTaxonSpecifics[key]["label"]["display"] = "none";
+                }
+            }
+            else {
+                top_1 = this.state.verticalShift + height / 2;
+                left = newTaxonSpecifics[key]["center"][0] - width / 2;
+                transformOrigin = "";
+                var lengthPerLetter = width / newTaxonSpecifics[key]["label"]["abbreviation"].length;
+                var howManyLettersFit = Math.floor(this.state.layerWidth * 2 / lengthPerLetter) - 1 > 0 ? Math.floor(this.state.layerWidth * 2 / lengthPerLetter) - 1 : 0;
+                abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
+                abbreviation = abbreviation.indexOf(".") >= 0 || !(newTaxonSpecifics[key]["label"]["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
+                newTaxonSpecifics[key]["label"]["abbreviation"] = abbreviation;
+                if (newTaxonSpecifics[key]["label"]["abbreviation"].length < 4) {
+                    newTaxonSpecifics[key]["label"]["abbreviation"] = "";
+                    newTaxonSpecifics[key]["label"]["display"] = "none";
+                }
+            }
+            if (alreadyRepeated && (newTaxonSpecifics[key]["label"]["direction"] === "verse" || newTaxonSpecifics[key]["label"]["direction"] === "horizontal")) {
+                var fourPoints = getFourCorners((top_1 - height) - 2, top_1 + 2, left - 2, left + width + 2, newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], angle);
+                var bottomLeft = document.querySelector("svg").createSVGPoint();
+                bottomLeft.x = fourPoints["bottomLeft"][0];
+                bottomLeft.y = fourPoints["bottomLeft"][1];
+                var bottomRight = document.querySelector("svg").createSVGPoint();
+                bottomRight.x = fourPoints["bottomRight"][0];
+                bottomRight.y = fourPoints["bottomRight"][1];
+                var topLeft = document.querySelector("svg").createSVGPoint();
+                topLeft.x = fourPoints["topLeft"][0];
+                topLeft.y = fourPoints["topLeft"][1];
+                var topRight = document.querySelector("svg").createSVGPoint();
+                topRight.x = fourPoints["topRight"][0];
+                topRight.y = fourPoints["topRight"][1];
+                var shape = document.getElementById("".concat(key, "_-_").concat(this.state.taxonSpecifics[key]["firstLayerUnaligned"]));
+                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight))) {
+                    console.log(key, "is (partially) outside!", top_1, left, top_1 + height, left + width, angle, fourPoints);
+                    if (!shape.isPointInFill(bottomLeft)) {
+                        console.log("bottomLeft");
+                    }
+                    else if (!shape.isPointInFill(topLeft)) {
+                        console.log("topLeft");
+                    }
+                    else if (!shape.isPointInFill(bottomRight)) {
+                        console.log("bottomRight");
+                    }
+                    else if (!shape.isPointInFill(topRight)) {
+                        console.log("topRight");
+                    }
+                    newTaxonSpecifics[key]["label"]["display"] = "none";
+                }
+            }
+            else if (alreadyRepeated && newTaxonSpecifics[key]["label"]["direction"] === "radial") {
+                var fourPoints = getFourCorners((top_1 - height) - 2, top_1 + 2, left - 2, left + width + 2, newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], angle);
+                var bottomLeft = document.querySelector("svg").createSVGPoint();
+                bottomLeft.x = fourPoints["bottomLeft"][0];
+                bottomLeft.y = fourPoints["bottomLeft"][1];
+                var bottomRight = document.querySelector("svg").createSVGPoint();
+                bottomRight.x = fourPoints["bottomRight"][0];
+                bottomRight.y = fourPoints["bottomRight"][1];
+                var topLeft = document.querySelector("svg").createSVGPoint();
+                topLeft.x = fourPoints["topLeft"][0];
+                topLeft.y = fourPoints["topLeft"][1];
+                var topRight = document.querySelector("svg").createSVGPoint();
+                topRight.x = fourPoints["topRight"][0];
+                topRight.y = fourPoints["topRight"][1];
+                var shape = document.getElementById("".concat(key, "_-_").concat(this.state.taxonSpecifics[key]["firstLayerUnaligned"]));
+                if (!((shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) || (shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)))) {
+                    console.log(key, "is (partially) outside!", top_1, left, top_1 + height, left + width, angle, fourPoints);
+                    if (!shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) {
+                        console.log("Left");
+                    }
+                    else if (!shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)) {
+                        console.log("Right");
+                    }
+                    newTaxonSpecifics[key]["label"]["display"] = "none";
+                }
+            }
+            newTaxonSpecifics[key]["label"]["top"] = top_1;
+            newTaxonSpecifics[key]["label"]["transformOrigin"] = transformOrigin;
+            newTaxonSpecifics[key]["label"]["left"] = left;
+            newTaxonSpecifics[key]["label"]["transform"] = !alreadyRepeated ? "rotate(0)" : "rotate(".concat(angle, ")");
+        }
+        if (!alreadyRepeated) {
+            this.setState({ taxonSpecifics: newTaxonSpecifics, alreadyRepeated: true, height: height });
+        }
+        else {
+            this.setState({ taxonSpecifics: newTaxonSpecifics, labelsPlaced: true });
+        }
+    };
     PlotDrawing.prototype.render = function () {
-        var _this = this;
         //console.log("layerWidth: ", this.state.layerWidth);
-        console.log("taxonSpecifics for animation: ", this.state.taxonSpecifics);
+        //console.log("taxonSpecifics for animation: ", this.state.taxonSpecifics);
+        /*
+        let forLukas:object = {}
+        for (let i=0; i<Object.keys(this.state.taxonSpecifics).length; i++) {
+            forLukas[Object.keys(this.state.taxonSpecifics)[i]] = {}
+            if (allTaxaReduced[Object.keys(this.state.taxonSpecifics)[i]]["taxID"]) {
+                forLukas[Object.keys(this.state.taxonSpecifics)[i]]["taxID"] = allTaxaReduced[Object.keys(this.state.taxonSpecifics)[i]]["taxID"];
+            }
+            else {
+                forLukas[Object.keys(this.state.taxonSpecifics)[i]]["taxID"] = null;
+            }
+        }
+        console.log("allTaxaReduced: ", allTaxaReduced)
+        console.log("forLukas: ", forLukas, JSON.stringify(forLukas));
+        */
+        var _this = this;
         currentState = this.state;
         var shapes = [];
         var labels = [];
+        var ancestors = [];
         var clipPaths = [];
         var tS = this.state.taxonSpecifics;
         var tSkeys = Object.keys(tS);
         var _loop_6 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_1.state.ancestors[this_1.state.ancestors.length - 1], "_-_0") : id;
-            shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"] }));
+            shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"], transformOrigin: tS[item]["label"]["transformOrigin"] }));
             if (tS[item]["married"]) {
                 clipPaths.push(React.createElement("path", { d: tS[item]["svgPath"] }));
             }
@@ -936,7 +1104,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_7 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_2.state.ancestors[this_2.state.ancestors.length - 1], "_-_0") : id;
-            var label = React.createElement(TaxonLabel, { key: "".concat(id, "-label"), id: id, abbr: tS[item]["label"]["abbreviation"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], right: tS[item]["label"]["right"], top: tS[item]["label"]["top"], transformOrigin: tS[item]["label"]["transformOrigin"], opacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"] });
+            var label = React.createElement(TaxonLabel, { key: "".concat(id, "-label"), id: id, abbr: tS[item]["label"]["abbreviation"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], top: tS[item]["label"]["top"], transformOrigin: tS[item]["label"]["transformOrigin"], opacity: tS[item]["label"]["opacity"], display: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"] });
             labels.push(label);
         };
         var this_2 = this;
@@ -947,7 +1115,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_8 = function (i) {
             ancestor = this_3.state.ancestors[i];
             actualI = i - this_3.state.ancestors.length;
-            labels.push(React.createElement(AncestorLabel, { key: "".concat(ancestor, "_-_").concat(actualI + 1), id: "".concat(ancestor, "_-_").concat(actualI + 1), taxon: ancestor, top: "".concat(10 + 2.5 * (this_3.state.ancestors.length - i), "vmin"), onClick: function () { _this.handleClick("".concat(_this.state.ancestors[i], "_-_").concat((i - _this.state.ancestors.length) + 1)); } }));
+            ancestors.push(React.createElement(AncestorLabel, { key: "".concat(ancestor, "_-_").concat(actualI + 1), id: "".concat(ancestor, "_-_").concat(actualI + 1), taxon: ancestor, top: "".concat(10 + 2.5 * (this_3.state.ancestors.length - i), "vmin"), onClick: function () { _this.handleClick("".concat(_this.state.ancestors[i], "_-_").concat((i - _this.state.ancestors.length) + 1)); } }));
         };
         var this_3 = this, ancestor, actualI;
         for (var i = this.state.ancestors.length - 1; i >= 0; i--) {
@@ -956,7 +1124,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         return [React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", style: { "height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none" }, id: "shapes" },
                 shapes,
                 " ",
-                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "labels" }, labels)];
+                labels,
+                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "ancestors" }, ancestors)];
     };
     return PlotDrawing;
 }(React.Component));
@@ -974,10 +1143,6 @@ function loadDataFromTSV(tsv_path) {
             allTaxaReduced = response["allTaxaReduced"];
             var allTaxa = response["allTaxa"];
             rankPatternFull = response["rankPatternFull"];
-            console.log("lineagesNames: ", JSON.stringify(lineagesNames));
-            console.log("lineagesRanks: ", JSON.stringify(lineagesRanks));
-            console.log("allTaxaReduced: ", JSON.stringify(allTaxaReduced));
-            console.log("rankPatternFull: ", rankPatternFull);
             reactRoot.render(React.createElement(PlotDrawing, { lineages: lineagesNames, ranks: lineagesRanks }));
             /*
             let keys = Object.keys(allTaxaFlask);
@@ -1002,22 +1167,25 @@ function getViewportDimensions() {
     var dpmm = document.getElementById('dpmm').offsetWidth; // returns the div's width in px, thereby telling us how many px equal 1mm for our particular screen
     var cx = window.innerWidth / 2;
     var cy = window.innerHeight / 2;
+    var twoVMin = window.innerHeight < window.innerWidth ? window.innerHeight / 50 : window.innerWidth / 50;
+    console.log("2vmin: ", twoVMin);
     return {
         "cx": cx,
         "cy": cy,
-        "dpmm": dpmm
+        "dpmm": dpmm,
+        "2vmin": twoVMin
     };
 }
 function TaxonShape(props) {
     return React.createElement("path", { id: props.id, d: props.d, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelOpacity, props.abbr, props.display); }, onClick: props.onClick, style: { "stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor } });
 }
 function TaxonLabel(props) {
-    return React.createElement("p", { id: "".concat(props.id, "-label"), onMouseOver: function () { return hoverHandler(props.id, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.opacity, props.abbr, props.display); }, onClick: props.onClick, style: { "margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "left": props.left, "right": props.right, "top": props.top, "transformOrigin": props.transformOrigin, "transform": props.transform, "color": "#800080", "opacity": props.opacity, "display": props.display } }, props.abbr);
+    return React.createElement("text", { x: props.left, y: props.top, transform: props.transform, "transform-origin": props.transformOrigin, id: "".concat(props.id, "-label"), onMouseOver: function () { return hoverHandler(props.id, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.opacity, props.abbr, props.display); }, onClick: props.onClick, style: { "margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display } }, props.abbr);
 }
 function AncestorLabel(props) {
     return React.createElement("p", { id: props.id, className: "ancestor", style: { "margin": "0", "position": "fixed", "fontFamily": "calibri", "fontSize": "2vmin", "top": props.top, "right": "2vmin", "color": skeletonColor, "fontWeight": "bold" }, onClick: props.onClick }, props.taxon);
 }
-//addEventListener("mousemove", (event) => handleMouseMove(event));
+addEventListener("mousemove", function (event) { return handleMouseMove(event); });
 function handleMouseMove(event) {
     var eventDoc, doc, body;
     event = event || window.event; // IE-ism
@@ -1157,8 +1325,8 @@ $('#uploadForm').submit(function (e) {
     e.preventDefault();
     var uploadForm = document.getElementById("uploadForm");
     var form_data = new FormData(uploadForm);
-    console.log("e: ", e);
-    console.log("form_data keys: ", (form_data));
+    //console.log("e: ", e)
+    //console.log("form_data keys: ", (form_data))
     $.ajax({
         url: '/load_tsv_data',
         data: form_data,
@@ -1172,7 +1340,7 @@ $('#uploadForm').submit(function (e) {
             rankPatternFull = response["rankPatternFull"];
             var newData = document.getElementById("new-data");
             newData.checked = true;
-            console.log("response: ", response["allTaxa"]);
+            //console.log("response: ", response["allTaxa"])
             var evt = new CustomEvent('change');
             newData.dispatchEvent(evt);
         }
@@ -1190,3 +1358,22 @@ function downloadSVGasTextFile() {
 document.getElementById("download").addEventListener("click", function () {
     downloadSVGasTextFile();
 });
+function lineIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+    var ua, ub, denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+    if (denom == 0) {
+        console.log("(y4 - y3): ", (y4 - y3), y4, y3);
+        console.log("(x2 - x1): ", (x2 - x1), x2, x1);
+        console.log("(x4 - x3): ", (x4 - x3), x4, x3);
+        console.log("(y2 - y1): ", (y2 - y1), y2, y1);
+        return null;
+    }
+    ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom;
+    ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
+    return {
+        x: x1 + ua * (x2 - x1),
+        y: y1 + ua * (y2 - y1)
+    };
+}
+function lineLength(x1, y1, x2, y2) {
+    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+}
