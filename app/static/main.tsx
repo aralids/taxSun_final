@@ -85,7 +85,7 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
         for (let i=0; i<this.props.ancestors.length; i++) {
             ps.push(<p style={{"padding": 0, "margin": 0}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i]}</b></p>)
         }
-        return <div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "color": "#800080", "width": "20%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0}}>{ps}</div>
+        return <div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "color": "#800080", "width": "100%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0}}>{ps}</div>
     }
 }
 
@@ -170,7 +170,7 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
         else {
             console.log("Hey hey!")
         }
-        return <div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "color": "#800080", "width": "20%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0}}>{ps}</div>
+        return <div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "color": "#800080", "width": "100%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0}}>{ps}</div>
     }
 }
 
@@ -1109,15 +1109,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             labels.push(hoverLabel);
         }
 
-        for (let i=this.state.ancestors.length-1; i>=0; i--) {
-            var ancestor = this.state.ancestors[i];
-            var actualI = i - this.state.ancestors.length;
-            ancestors.push(<AncestorLabel key={`${ancestor}_-_${actualI+1}`} id={`${ancestor}_-_${actualI+1}`} taxon={ancestor} top={`${10+2.5*(this.state.ancestors.length-i)}vmin`} onClick={() => {this.handleClick(`${this.state.ancestors[i]}_-_${(i-this.state.ancestors.length)+1}`)}}/>)
-        }
-
         let anc:any[] = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
 
-        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<DescendantSection self="Felinae" layer={0} ancestor="Felidae" hovered={true}/>]
+        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "width": "20%", "padding": 0, "margin": 0}}><AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
     }
     //<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>
 }
@@ -1178,10 +1172,6 @@ function TaxonShape(props) {
 }
 function TaxonLabel(props) {
     return <text className="thing" x={props.left} y={props.top} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight}}>{props.abbr}</text>
-}
-
-function AncestorLabel(props) {
-    return <p id={props.id} className="ancestor" style={{"margin": "0", "position": "fixed", "fontFamily": "calibri", "fontSize": "2vmin", "top": props.top, "right": "2vmin", "color": skeletonColor, "fontWeight": "bold"}} onClick={props.onClick}>{props.taxon}</p>
 }
 
 function LabelBackground(props) {

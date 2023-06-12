@@ -115,7 +115,7 @@ var AncestorSection = /** @class */ (function (_super) {
                 " of ",
                 React.createElement("b", null, this.props.ancestors[i])));
         }
-        return React.createElement("div", { style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "color": "#800080", "width": "20%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0 } }, ps);
+        return React.createElement("div", { style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "color": "#800080", "width": "100%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0 } }, ps);
     };
     return AncestorSection;
 }(React.Component));
@@ -212,7 +212,7 @@ var DescendantSection = /** @class */ (function (_super) {
         else {
             console.log("Hey hey!");
         }
-        return React.createElement("div", { style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "color": "#800080", "width": "20%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0 } }, ps);
+        return React.createElement("div", { style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "color": "#800080", "width": "100%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0 } }, ps);
     };
     return DescendantSection;
 }(React.Component));
@@ -1140,21 +1140,14 @@ var PlotDrawing = /** @class */ (function (_super) {
             var item = tSkeys_3[_b];
             _loop_8(item);
         }
-        var _loop_9 = function (i) {
-            ancestor = this_4.state.ancestors[i];
-            actualI = i - this_4.state.ancestors.length;
-            ancestors.push(React.createElement(AncestorLabel, { key: "".concat(ancestor, "_-_").concat(actualI + 1), id: "".concat(ancestor, "_-_").concat(actualI + 1), taxon: ancestor, top: "".concat(10 + 2.5 * (this_4.state.ancestors.length - i), "vmin"), onClick: function () { _this.handleClick("".concat(_this.state.ancestors[i], "_-_").concat((i - _this.state.ancestors.length) + 1)); } }));
-        };
-        var this_4 = this, ancestor, actualI;
-        for (var i = this.state.ancestors.length - 1; i >= 0; i--) {
-            _loop_9(i);
-        }
         var anc = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
         return [React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", style: { "height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none" }, id: "shapes" },
                 shapes,
                 " ",
                 labels,
-                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "ancestors" }, ancestors), React.createElement(DescendantSection, { self: "Felinae", layer: 0, ancestor: "Felidae", hovered: true })];
+                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "ancestors" }, ancestors), React.createElement("div", { style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "width": "20%", "padding": 0, "margin": 0 } },
+                React.createElement(AncestorSection, { ancestors: anc, root: this.state.root, layer: this.state.layer, onClickArray: anc.map(function (self, index) { return function () { _this.handleClick("".concat(self, "_-_").concat(-index)); }; }) }),
+                React.createElement(DescendantSection, { self: "Felinae", layer: 0, ancestor: "Felidae", hovered: true }))];
     };
     return PlotDrawing;
 }(React.Component));
@@ -1210,9 +1203,6 @@ function TaxonShape(props) {
 }
 function TaxonLabel(props) {
     return React.createElement("text", { className: "thing", x: props.left, y: props.top, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, style: { "margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight } }, props.abbr);
-}
-function AncestorLabel(props) {
-    return React.createElement("p", { id: props.id, className: "ancestor", style: { "margin": "0", "position": "fixed", "fontFamily": "calibri", "fontSize": "2vmin", "top": props.top, "right": "2vmin", "color": skeletonColor, "fontWeight": "bold" }, onClick: props.onClick }, props.taxon);
 }
 function LabelBackground(props) {
     return React.createElement("rect", { className: "thing", x: props.left, y: props.top, height: props.height, width: props.width, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, fill: props.fill, stroke: props.stroke, style: { "position": "fixed", "display": props.selfDisplay, "strokeWidth": "0.2vmin" } });
