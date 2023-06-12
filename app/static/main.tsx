@@ -31,12 +31,69 @@ for (let i=0; i<7; i++) {
     colorOffset += 3;
 }
 
-/* ===== DEFINING THE REACT COMPONENT ===== */
+/* ===== DEFINING THE REACT COMPONENTS ===== */
+
+class AncestorSection extends React.Component<{ancestors:string[], root:string, layer:number, onClickArray:any}, {root:string, layer:number, rank:string, totalCount:number, unassignedCount:number, lines:string[]}> {
+    constructor(props) {
+        super(props);
+        this.state = {
+            root: "",
+            layer: -1,
+            rank: allTaxaReduced[props.root]["rank"],
+            totalCount: 0,
+            unassignedCount: 0,
+            lines: []
+        }
+    }
+
+    componentDidUpdate() {
+        console.log("Here!", this.props.root, this.state.root)
+        if (this.props.root !== this.state.root) {
+            console.log("Here!1")
+            this.getCounts();
+        }
+    }
+
+    getCounts() {
+        let totalCount:number = 0;
+        let unassignedCount:number = 0;
+        if (this.props.root.indexOf("&") > -1) {
+            let groupedTaxa:string[] = this.props.root.split(" & ");
+            for (let taxon of groupedTaxa) {
+                totalCount += allTaxaReduced[taxon]["totalCount"]
+            }
+            unassignedCount = 0;
+        }
+        else {
+            totalCount = allTaxaReduced[this.props.root]["totalCount"];
+            unassignedCount = allTaxaReduced[this.props.root]["unassignedCount"];
+        }
+
+        console.log("this.props.ancestors: ", this.props.ancestors);
+        let lines:string[] = this.props.ancestors.map(item => (`${round(totalCount * 100 / allTaxaReduced[item]["totalCount"], 3)}%`));
+        console.log("lines: ", lines)
+
+        this.setState({totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines});
+    }
+
+    render() {
+        console.log("this.state.rank: ", this.state.rank, this.state.totalCount, this.state.unassignedCount, allTaxaReduced);
+        let firstLine:any = <p style={{"padding": 0, "margin": 0}}>Current layer: <b>{this.state.root}</b>, {this.state.layer}</p>;
+        let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: {this.state.totalCount}</p>;
+        let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned count: {this.state.unassignedCount}</p>
+        let ps:any = [firstLine, totalCountLine, unassignedCountLine]
+        for (let i=0; i<this.props.ancestors.length; i++) {
+            ps.push(<p style={{"padding": 0, "margin": 0}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i]}</b></p>)
+        }
+        return <div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "color": "#800080", "width": "20%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0}}>{ps}</div>
+    }
+}
+
 class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number, numberOfLayers:number, layerWidth:number, count:number, abbreviateLabels:boolean, labelsPlaced:boolean, height:number, alreadyRepeated:boolean}> {
     constructor(props) {
         super(props);
         this.state = {
-            root: "Passeriformes",
+            root: "Laurasiatheria",
             layer: 7,
             collapse: false,
             horizontalShift: viewportDimensions["cx"],
@@ -427,8 +484,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
         else {     
             var totalUnassignedCounts = newState["totalUnassignedCount"];
-            //console.log("totalUnassignedCounts: ", totalUnassignedCounts)
-            //console.log("allTaxaReduced['root']['totalCount']: ", allTaxaReduced['root']['totalCount'])
         }
 
         let ranges:object = {};
@@ -629,6 +684,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 taxonSpecifics[key]["label"] = {
                     "direction": "horizontal",
                     "opacity": "1",
+                    "left": 0,
+                    "hoverLeft": 0,
+                    "hoverWidth": 0,
+                    "hoverDisplay": "unset",
                     "angle": 0,
                     "abbreviation": root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|")),""),
                     "display": "unset",
@@ -649,6 +708,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "direction": direction,
                     "opacity": "1",
                     "left": 0,
+                    "hoverLeft": 0,
+                    "hoverDisplay": "unset",
+                    "hoverWidth": 0,
                     "top": 0,
                     "angle": angle,
                     "abbreviation": key.replace(RegExp(rankPatternFull.map(item => " " + item).join("|")),""),
@@ -721,6 +783,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     handleClick(shapeId):void {
+        console.log("shapeId: ", shapeId);
         var taxon:string = shapeId.match(/.+?(?=_)/)[0];
         var currLayer:number = parseInt(shapeId.match(/-?\d+/)[0]);
         var nextLayer;
@@ -735,147 +798,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
         }
+        console.log("root, nL: ", taxon, nextLayer)
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
-    }
-
-    checkTaxonLabelWidth():string[] {
-        var taxonSpecifics:object = this.state.taxonSpecifics;
-        var tooWide:string[] = [];
-        for (let key of Object.keys(taxonSpecifics)) {
-            let labelElement:any = document.getElementById(`${key}_-_${taxonSpecifics[key]["firstLayerUnaligned"]}-label`)!;
-            let height = labelElement.getBBox().height;
-            let width = labelElement.getBBox().width;
-            
-            if (taxonSpecifics[key]["label"]["direction"] === "radial") {
-                var topBeforeRotation = taxonSpecifics[key]["center"][1] - height/2;
-                var bottomBeforeRotation = taxonSpecifics[key]["center"][1] + height/2;
-                var leftBeforeRotation = taxonSpecifics[key]["center"][0];
-                var rightBeforeRotation = taxonSpecifics[key]["center"][0] + width;
-                var cx = taxonSpecifics[key]["center"][0];
-                var cy = taxonSpecifics[key]["center"][1];
-                var angle = taxonSpecifics[key]["label"]["angle"];
-                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
-
-                var shape:any = document.getElementById(`${key}_-_${taxonSpecifics[key]["firstLayerUnaligned"]}`)!;
-                let bottomLeft = document.querySelector("svg")!.createSVGPoint();
-                bottomLeft.x = fourPoints["bottomLeft"][0];
-                bottomLeft.y = fourPoints["bottomLeft"][1];
-
-                let bottomRight = document.querySelector("svg")!.createSVGPoint();
-                bottomRight.x = fourPoints["bottomRight"][0];
-                bottomRight.y = fourPoints["bottomRight"][1];
-
-                let topLeft = document.querySelector("svg")!.createSVGPoint();
-                topLeft.x = fourPoints["topLeft"][0];
-                topLeft.y = fourPoints["topLeft"][1];
-
-                let topRight = document.querySelector("svg")!.createSVGPoint();
-                topRight.x = fourPoints["topRight"][0];
-                topRight.y = fourPoints["topRight"][1];
-                if (!((shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) || (shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)))) {
-                    tooWide.push(key);
-                }
-            } else {
-                var shapeCenters0:number = taxonSpecifics[key]["center"][0];
-                var shapeCenters1:number = taxonSpecifics[key]["center"][1];
-                var topBeforeRotation = shapeCenters1 - height/2;
-                var bottomBeforeRotation = shapeCenters1 + height/2;
-                var leftBeforeRotation = shapeCenters0 - width/2;
-                var rightBeforeRotation = shapeCenters0 + width/2;
-                var cx = shapeCenters0;
-                var cy = shapeCenters1;
-                var angle = taxonSpecifics[key]["label"]["angle"];
-                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
-
-                var shape:any = document.getElementById(`${key}_-_${taxonSpecifics[key]["firstLayerUnaligned"]}`)!;
-                let bottomLeft = document.querySelector("svg")!.createSVGPoint();
-                bottomLeft.x = fourPoints["bottomLeft"][0];
-                bottomLeft.y = fourPoints["bottomLeft"][1];
-
-                let bottomRight = document.querySelector("svg")!.createSVGPoint();
-                bottomRight.x = fourPoints["bottomRight"][0];
-                bottomRight.y = fourPoints["bottomRight"][1];
-
-                let topLeft = document.querySelector("svg")!.createSVGPoint();
-                topLeft.x = fourPoints["topLeft"][0];
-                topLeft.y = fourPoints["topLeft"][1];
-
-                let topRight = document.querySelector("svg")!.createSVGPoint();
-                topRight.x = fourPoints["topRight"][0];
-                topRight.y = fourPoints["topRight"][1];
-
-                // Calculate where radial, radially positioned label would fit into the shape:
-                var radialTopBeforeRotation = taxonSpecifics[key]["center"][1] - height/2;
-                var radialBottomBeforeRotation = taxonSpecifics[key]["center"][1] + height/2;
-                var radialLeftBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] : taxonSpecifics[key]["center"][0] - width;
-                var radialRightBeforeRotation = taxonSpecifics[key]["center"][0] > this.state.horizontalShift ? taxonSpecifics[key]["center"][0] + width : taxonSpecifics[key]["center"][0];
-                var radialAngle = taxonSpecifics[key]["label"]["radialAngle"];
-                var radialFourPoints = getFourCorners(radialTopBeforeRotation, radialBottomBeforeRotation, radialLeftBeforeRotation, radialRightBeforeRotation, cx, cy, radialAngle);
-
-                let radialBottomLeft = document.querySelector("svg")!.createSVGPoint();
-                radialBottomLeft.x = radialFourPoints["bottomLeft"][0];
-                radialBottomLeft.y = radialFourPoints["bottomLeft"][1];
-
-                let radialBottomRight = document.querySelector("svg")!.createSVGPoint();
-                radialBottomRight.x = radialFourPoints["bottomRight"][0];
-                radialBottomRight.y = radialFourPoints["bottomRight"][1];
-
-                let radialTopLeft = document.querySelector("svg")!.createSVGPoint();
-                radialTopLeft.x = radialFourPoints["topLeft"][0];
-                radialTopLeft.y = radialFourPoints["topLeft"][1];
-
-                let radialTopRight = document.querySelector("svg")!.createSVGPoint();
-                radialTopRight.x = radialFourPoints["topRight"][0];
-                radialTopRight.y = radialFourPoints["topRight"][1];
-
-                let radialMidLeft = document.querySelector("svg")!.createSVGPoint();
-                radialMidLeft.x = radialFourPoints["topLeft"][0] / 2 + radialFourPoints["bottomLeft"][0] / 2;
-                radialMidLeft.y = radialFourPoints["topLeft"][1] / 2 + radialFourPoints["bottomLeft"][1] / 2;
-
-                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topLeft) && shape.isPointInFill(topRight)) && !(taxonSpecifics[key]["label"]["abbreviation"] === "") && !(shape.isPointInFill(radialBottomLeft) && shape.isPointInFill(radialBottomRight) && shape.isPointInFill(radialTopLeft) && shape.isPointInFill(radialTopRight) && shape.isPointInFill(radialMidLeft))) {
-                    tooWide.push(key);
-                } else {
-                    if (shape.isPointInFill(radialBottomLeft) && shape.isPointInFill(radialBottomRight) && shape.isPointInFill(radialTopLeft) && shape.isPointInFill(radialTopRight) && shape.isPointInFill(radialMidLeft)) {
-                        taxonSpecifics[key]["label"]["angle"] = taxonSpecifics[key]["label"]["radialAngle"];
-                        taxonSpecifics[key]["label"]["left"] = taxonSpecifics[key]["label"]["radialLeft"];
-                        taxonSpecifics[key]["label"]["right"] = taxonSpecifics[key]["label"]["radialRight"];
-                        taxonSpecifics[key]["label"]["transform"] = taxonSpecifics[key]["label"]["radialTransform"];
-                        taxonSpecifics[key]["label"]["transformOrigin"] = taxonSpecifics[key]["label"]["radialTransformOrigin"];
-                        taxonSpecifics[key]["label"]["top"] = taxonSpecifics[key]["label"]["radialTop"];
-                    }
-                }
-            }
-        }
-        return tooWide;
-    }    
-
-    abbreviate(abbreviatables:string[]) {
-        let newTaxonSpecifics:object = JSON.parse(JSON.stringify(this.state.taxonSpecifics))
-        for (let key of abbreviatables) {
-            let newAbbreviation:string;
-            let newAbbreviationPlusOne:string;
-            if (newTaxonSpecifics[key]["label"]["abbreviation"].length > 25) {
-                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, 24) + ".";
-            } else {
-                newAbbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length/2) + ".";
-                newAbbreviationPlusOne = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, newTaxonSpecifics[key]["label"]["abbreviation"].length/2 + 1) + ".";
-            }
-            let dotIndex:number = newAbbreviation.indexOf(".");
-            if (newTaxonSpecifics[key]["label"]["fullLabel"][dotIndex] === " ") {
-                newAbbreviation = newAbbreviation.slice(0, newAbbreviation.length-1);
-            }
-            if (newTaxonSpecifics[key]["label"]["fullLabel"][dotIndex-1] === " ") {
-                newAbbreviation = newAbbreviation.slice(0, newAbbreviation.length-2);
-            }
-            newAbbreviation = newAbbreviation.length < 4 ? "" : newAbbreviation;
-            if (newAbbreviation.length === 0) {
-                newTaxonSpecifics[key]["label"]["display"] = "none";
-                newTaxonSpecifics[key]["label"]["direction"] = "verse";
-            }
-            newTaxonSpecifics[key]["label"]["abbreviation"] = newAbbreviation;
-            //newTaxonSpecifics[key]["label"]["abbreviationPlusOne"] = newAbbreviationPlusOne;
-        }
-        this.setState({taxonSpecifics: newTaxonSpecifics});
     }
 
     placeLabels(alreadyRepeated:boolean = this.state.alreadyRepeated) {
@@ -883,66 +807,73 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         let height:number = 0;
         for (let key of Object.keys(newTaxonSpecifics)) {
             let labelElement:any = document.getElementById(`${key}_-_${newTaxonSpecifics[key]["firstLayerUnaligned"]}-label`)!;
+            let hoverLabelElement:any = document.getElementById(`${key}_-_${newTaxonSpecifics[key]["firstLayerUnaligned"]}-hoverLabel`)!;
             height = !alreadyRepeated ? labelElement.getBoundingClientRect().height / 2 : this.state.height;
             let width = labelElement.getBoundingClientRect().width;
-            let top, left, radialLeft, transformOrigin, horizontalSpace, abbreviation;
+            let hoverWidth = hoverLabelElement.getBoundingClientRect().width;
             let angle = newTaxonSpecifics[key]["label"]["angle"];
             let centerDegree:number = newTaxonSpecifics[key]["center"][2];
-            transformOrigin = `${newTaxonSpecifics[key]["center"][0]} ${newTaxonSpecifics[key]["center"][1]}`;
-            top = newTaxonSpecifics[key]["center"][1] + height/2;
+            let transformOrigin = `${newTaxonSpecifics[key]["center"][0]} ${newTaxonSpecifics[key]["center"][1]}`;
+            let top = newTaxonSpecifics[key]["center"][1] + height/2;
+            let left, radialLeft, horizontalSpace, abbreviation, howManyLettersFit, hoverLeft, hoverRadialLeft;
+
+            // Calculate left and angle for all labels of the last layer, which are always radial.
             if (newTaxonSpecifics[key]["label"]["direction"] === "radial") {
                 if (centerDegree >= 180 && centerDegree < 360) {
-                    left = newTaxonSpecifics[key]["center"][0];
+                    left = hoverLeft = newTaxonSpecifics[key]["center"][0];
                     angle = 360 - (270 - angle);    
                 }
                 else if (centerDegree >= 0 && centerDegree <= 180) {
                     left = newTaxonSpecifics[key]["center"][0] - width;
+                    hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
                     angle = 270 - angle;
                 }
+                abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"];
             }
+
+            // For internal wedges, calculate: 
             else if (newTaxonSpecifics[key]["label"]["direction"] === "verse") {
                 left = newTaxonSpecifics[key]["center"][0] - width/2;
+                hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth/2;
                 let radialAngle = newTaxonSpecifics[key]["label"]["radialAngle"];
-                if (centerDegree >= 180 && centerDegree < 360) {
-                    radialLeft = newTaxonSpecifics[key]["center"][0];
-                    radialAngle = 360 - (270 - radialAngle);
 
-                    var topBeforeRotation = newTaxonSpecifics[key]["center"][1] - height/2;
-                    var bottomBeforeRotation = newTaxonSpecifics[key]["center"][1] + height/2;
-                    var leftBeforeRotation = left;
-                    var rightBeforeRotation = left + width;
-                    var cx = newTaxonSpecifics[key]["center"][0];
-                    var cy = newTaxonSpecifics[key]["center"][1];
-                    var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
-                    let leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
-                    let rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
-                    if (leftIntersect === null || rightIntersect === null) {
-                        horizontalSpace = 0;
-                    }
-                    else {
-                        horizontalSpace = lineLength(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"])
-                    }
+                // The circumferential space of the wedge (1).
+                var topBeforeRotation = newTaxonSpecifics[key]["center"][1] - height/2;
+                var bottomBeforeRotation = newTaxonSpecifics[key]["center"][1] + height/2;
+                var leftBeforeRotation = left;
+                var rightBeforeRotation = left + width;
+                var cx = newTaxonSpecifics[key]["center"][0];
+                var cy = newTaxonSpecifics[key]["center"][1];
+                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
+
+                let leftIntersect, rightIntersect;
+                if (centerDegree >= 180 && centerDegree < 360) {
+                    radialLeft = hoverRadialLeft = newTaxonSpecifics[key]["center"][0];
+                    radialAngle = 360 - (270 - radialAngle);
+                    
+                    // (1)
+                    leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
+                    rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
                 }
                 else if (centerDegree >= 0 && centerDegree <= 180) {
                     radialLeft = newTaxonSpecifics[key]["center"][0] - width;
+                    hoverRadialLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
                     radialAngle = 270 - radialAngle;
 
-                    var topBeforeRotation = newTaxonSpecifics[key]["center"][1] - height/2;
-                    var bottomBeforeRotation = newTaxonSpecifics[key]["center"][1] + height/2;
-                    var leftBeforeRotation = left;
-                    var rightBeforeRotation = left + width;
-                    var cx = newTaxonSpecifics[key]["center"][0];
-                    var cy = newTaxonSpecifics[key]["center"][1];
-                    var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
-                    let leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
-                    let rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
-                    if (leftIntersect === null || rightIntersect === null) {
-                        horizontalSpace = 0;
-                    }
-                    else {
-                        horizontalSpace = lineLength(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"])
-                    }
+                    // (1)
+                    leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
+                    rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
                 }
+
+                // (1)
+                if (leftIntersect === null || rightIntersect === null) {
+                    horizontalSpace = 0;
+                }
+                else {
+                    horizontalSpace = lineLength(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"])
+                }
+
+                // Calculate radial space.
                 let layersCopy = JSON.parse(JSON.stringify(newTaxonSpecifics[key]["layers"]));
                 let lastViableLayer = layersCopy.sort(function(a, b){return a-b})[1]
                 let pointOnLastLayerX = lastViableLayer * this.state.layerWidth * cos(newTaxonSpecifics[key]["center"][2]);
@@ -951,107 +882,69 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 pointOnLastLayerY = round(pointOnLastLayerY) + viewportDimensions["cy"];
                 let verticalSpace = lineLength(newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], pointOnLastLayerX, pointOnLastLayerY);
 
-                let howManyLettersFit:number = 0;
+                // Decide between radial and circumferential.
                 if (verticalSpace > horizontalSpace) {
                     left = radialLeft;
+                    hoverLeft = hoverRadialLeft;
                     angle = radialAngle;
 
                     let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
-                    howManyLettersFit = Math.floor(verticalSpace/lengthPerLetter) - 1;
+                    howManyLettersFit = Math.floor(verticalSpace/lengthPerLetter) - 2;
                     abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
                 }
                 else {
                     let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
-                    howManyLettersFit = Math.floor(horizontalSpace/lengthPerLetter) - 1 > 0 ? Math.floor(horizontalSpace/lengthPerLetter) - 1 : 0;
+                    howManyLettersFit = Math.floor(horizontalSpace/lengthPerLetter) - 2 > 0 ? Math.floor(horizontalSpace/lengthPerLetter) - 2 : 0;
                     abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
                 }
-                abbreviation = abbreviation.indexOf(".") >= 0 || !(newTaxonSpecifics[key]["label"]["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
-                newTaxonSpecifics[key]["label"]["abbreviation"] = abbreviation;
-                if (newTaxonSpecifics[key]["label"]["abbreviation"].length < 4) {
-                    newTaxonSpecifics[key]["label"]["abbreviation"] = "";
-                    newTaxonSpecifics[key]["label"]["display"] = "none"; 
-                } 
             }
+
+            // Calculations for root shape in the center.
             else {
                 top = this.state.verticalShift + height/2;
                 left = newTaxonSpecifics[key]["center"][0] - width/2;
+                hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth/2;
                 transformOrigin = "";
 
                 let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
-                let howManyLettersFit = Math.floor(this.state.layerWidth*2/lengthPerLetter) - 1 > 0 ? Math.floor(this.state.layerWidth*2/lengthPerLetter) - 1 : 0;
+                howManyLettersFit = Math.floor(this.state.layerWidth*2/lengthPerLetter) - 2 > 0 ? Math.floor(this.state.layerWidth*2/lengthPerLetter) - 2 : 0;
                 abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
-
-                abbreviation = abbreviation.indexOf(".") >= 0 || !(newTaxonSpecifics[key]["label"]["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
-                newTaxonSpecifics[key]["label"]["abbreviation"] = abbreviation;
-                if (newTaxonSpecifics[key]["label"]["abbreviation"].length < 4) {
-                    newTaxonSpecifics[key]["label"]["abbreviation"] = "";
-                    newTaxonSpecifics[key]["label"]["display"] = "none"; 
-                }
             }
 
+            // Decide if the label should be hidden due to being too short, and if a dot is needed.
+            abbreviation = abbreviation.indexOf(".") >= 0 || !(newTaxonSpecifics[key]["label"]["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
+            newTaxonSpecifics[key]["label"]["abbreviation"] = abbreviation;
+            if (newTaxonSpecifics[key]["label"]["abbreviation"].length < 4) {
+                newTaxonSpecifics[key]["label"]["abbreviation"] = "";
+                newTaxonSpecifics[key]["label"]["display"] = "none"; 
+            } 
+
+            // Check one time if, after all the calculations, the abbreviated label indeed fits its shape. If not, set its display to none.
+            var fourPoints = getFourCorners((top-height)-2, top+2, left-2, left+width+2, newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], angle);
+            let bottomLeft = document.querySelector("svg")!.createSVGPoint();
+            bottomLeft.x = fourPoints!["bottomLeft"][0];
+            bottomLeft.y = fourPoints!["bottomLeft"][1];
+
+            let bottomRight = document.querySelector("svg")!.createSVGPoint();
+            bottomRight.x = fourPoints!["bottomRight"][0];
+            bottomRight.y = fourPoints!["bottomRight"][1];
+
+            let topLeft = document.querySelector("svg")!.createSVGPoint();
+            topLeft.x = fourPoints!["topLeft"][0];
+            topLeft.y = fourPoints!["topLeft"][1];
+
+            let topRight = document.querySelector("svg")!.createSVGPoint();
+            topRight.x = fourPoints!["topRight"][0];
+            topRight.y = fourPoints!["topRight"][1];
+
+            var shape:any = document.getElementById(`${key}_-_${this.state.taxonSpecifics[key]["firstLayerUnaligned"]}`)!;
+
             if (alreadyRepeated && (newTaxonSpecifics[key]["label"]["direction"] === "verse" || newTaxonSpecifics[key]["label"]["direction"] === "horizontal")) {
-
-                var fourPoints = getFourCorners((top-height)-2, top+2, left-2, left+width+2, newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], angle);
-
-                let bottomLeft = document.querySelector("svg")!.createSVGPoint();
-                bottomLeft.x = fourPoints!["bottomLeft"][0];
-                bottomLeft.y = fourPoints!["bottomLeft"][1];
-
-                let bottomRight = document.querySelector("svg")!.createSVGPoint();
-                bottomRight.x = fourPoints!["bottomRight"][0];
-                bottomRight.y = fourPoints!["bottomRight"][1];
-
-                let topLeft = document.querySelector("svg")!.createSVGPoint();
-                topLeft.x = fourPoints!["topLeft"][0];
-                topLeft.y = fourPoints!["topLeft"][1];
-
-                let topRight = document.querySelector("svg")!.createSVGPoint();
-                topRight.x = fourPoints!["topRight"][0];
-                topRight.y = fourPoints!["topRight"][1];
-
-                var shape:any = document.getElementById(`${key}_-_${this.state.taxonSpecifics[key]["firstLayerUnaligned"]}`)!;
-
                 if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight))) {
-                    console.log(key, "is (partially) outside!", top, left, top+height, left+width, angle, fourPoints!)
-                    if (!shape.isPointInFill(bottomLeft)) {
-                        console.log("bottomLeft")
-                    } else if (!shape.isPointInFill(topLeft)) {
-                        console.log("topLeft")
-                    } else if (!shape.isPointInFill(bottomRight)) {
-                        console.log("bottomRight")
-                    } else if (!shape.isPointInFill(topRight)) {
-                        console.log("topRight")
-                    }
                     newTaxonSpecifics[key]["label"]["display"] = "none"; 
                 }
             } else if (alreadyRepeated && newTaxonSpecifics[key]["label"]["direction"] === "radial") {
-                var fourPoints = getFourCorners((top-height)-2, top+2, left-2, left+width+2, newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], angle);
-
-                let bottomLeft = document.querySelector("svg")!.createSVGPoint();
-                bottomLeft.x = fourPoints!["bottomLeft"][0];
-                bottomLeft.y = fourPoints!["bottomLeft"][1];
-
-                let bottomRight = document.querySelector("svg")!.createSVGPoint();
-                bottomRight.x = fourPoints!["bottomRight"][0];
-                bottomRight.y = fourPoints!["bottomRight"][1];
-
-                let topLeft = document.querySelector("svg")!.createSVGPoint();
-                topLeft.x = fourPoints!["topLeft"][0];
-                topLeft.y = fourPoints!["topLeft"][1];
-
-                let topRight = document.querySelector("svg")!.createSVGPoint();
-                topRight.x = fourPoints!["topRight"][0];
-                topRight.y = fourPoints!["topRight"][1];
-
-                var shape:any = document.getElementById(`${key}_-_${this.state.taxonSpecifics[key]["firstLayerUnaligned"]}`)!;
-
                 if (!((shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) || (shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)))) {
-                    console.log(key, "is (partially) outside!", top, left, top+height, left+width, angle, fourPoints!)
-                    if (!shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) {
-                        console.log("Left")
-                    } else if (!shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)) {
-                        console.log("Right")
-                    }
                     newTaxonSpecifics[key]["label"]["display"] = "none"; 
                 }
             }
@@ -1060,6 +953,12 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             newTaxonSpecifics[key]["label"]["transformOrigin"] = transformOrigin;
             newTaxonSpecifics[key]["label"]["left"] = left;
             newTaxonSpecifics[key]["label"]["transform"] = !alreadyRepeated ? `rotate(0)` : `rotate(${angle})`;
+
+            if (!alreadyRepeated) {
+                newTaxonSpecifics[key]["label"]["hoverLeft"] = hoverLeft;
+                newTaxonSpecifics[key]["label"]["hoverDisplay"] = "none";
+                newTaxonSpecifics[key]["label"]["hoverWidth"] = hoverWidth;
+            }
 
         }
         if (!alreadyRepeated) {
@@ -1100,7 +999,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (let item of tSkeys) {
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
-            shapes.push(<TaxonShape key={id} id={id} abbr={tS[item]["label"]["abbreviation"]} onClick={() => this.handleClick(redirectTo)} d={tS[item]["svgPath"]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} display={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]} transformOrigin={tS[item]["label"]["transformOrigin"]}/>);
+            shapes.push(<TaxonShape key={id} id={id} abbr={tS[item]["label"]["abbreviation"]} onClick={() => this.handleClick(redirectTo)} d={tS[item]["svgPath"]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]} transformOrigin={tS[item]["label"]["transformOrigin"]}/>);
             if (tS[item]["married"]) {
                 clipPaths.push(<path d={tS[item]["svgPath"]}/>)
             }
@@ -1109,8 +1008,20 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (let item of tSkeys) {
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
-            let label = <TaxonLabel key={`${id}-label`} id={id} abbr={tS[item]["label"]["abbreviation"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["left"]} top={tS[item]["label"]["top"]} transformOrigin={tS[item]["label"]["transformOrigin"]} opacity={tS[item]["label"]["opacity"]} display={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]}/>;
+            let label = <TaxonLabel key={`${id}-label`} id={`${id}-label`} abbr={tS[item]["label"]["abbreviation"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["left"]} top={tS[item]["label"]["top"]} transformOrigin={tS[item]["label"]["transformOrigin"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="normal"/>;
+
             labels.push(label);
+        }
+
+        for (let item of tSkeys) {
+            let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
+            let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
+
+            let labelBackground = <LabelBackground key={`${id}-labelBackground`} id={`${id}-labelBackground`} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]-4} top={(tS[item]["label"]["top"]-this.state.height) - 4} transformOrigin={tS[item]["label"]["transformOrigin"]} selfDisplay="none" labelDisplay={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} height={this.state.height+8} width={tS[item]["label"]["hoverWidth"]+8} stroke="#800080" fill="#ffffff"/>
+
+            let hoverLabel = <TaxonLabel key={`${id}-hoverLabel`} id={`${id}-hoverLabel`} abbr={tS[item]["label"]["fullLabel"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]} top={tS[item]["label"]["top"]} transformOrigin={tS[item]["label"]["transformOrigin"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["hoverDisplay"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="bold"/>;
+            labels.push(labelBackground);
+            labels.push(hoverLabel);
         }
 
         for (let i=this.state.ancestors.length-1; i>=0; i--) {
@@ -1119,7 +1030,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             ancestors.push(<AncestorLabel key={`${ancestor}_-_${actualI+1}`} id={`${ancestor}_-_${actualI+1}`} taxon={ancestor} top={`${10+2.5*(this.state.ancestors.length-i)}vmin`} onClick={() => {this.handleClick(`${this.state.ancestors[i]}_-_${(i-this.state.ancestors.length)+1}`)}}/>)
         }
 
-        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>]
+        let anc:any[] = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
+
+        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>]
     }
 }
 
@@ -1175,17 +1088,21 @@ function getViewportDimensions():object {
 }
 
 function TaxonShape(props) {
-    return <path id={props.id} d={props.d} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.labelOpacity, props.abbr, props.display)} onClick={props.onClick} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
+    return <path id={props.id} d={props.d} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
 }
 function TaxonLabel(props) {
-    return <text x={props.left} y={props.top} transform={props.transform} transform-origin={props.transformOrigin} id={`${props.id}-label`} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.opacity, props.abbr, props.display)} onClick={props.onClick} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display}}>{props.abbr}</text>
+    return <text x={props.left} y={props.top} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight}}>{props.abbr}</text>
 }
 
 function AncestorLabel(props) {
     return <p id={props.id} className="ancestor" style={{"margin": "0", "position": "fixed", "fontFamily": "calibri", "fontSize": "2vmin", "top": props.top, "right": "2vmin", "color": skeletonColor, "fontWeight": "bold"}} onClick={props.onClick}>{props.taxon}</p>
 }
 
-addEventListener("mousemove", (event) => handleMouseMove(event));
+function LabelBackground(props) {
+    return <rect x={props.left} y={props.top} height={props.height} width={props.width} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} fill={props.fill} stroke={props.stroke} style={{"position": "fixed", "display": props.selfDisplay, "strokeWidth":"0.2vmin"}}/>
+}
+
+//addEventListener("mousemove", (event) => handleMouseMove(event));
 function handleMouseMove(event):void {
     var eventDoc, doc, body;
 
@@ -1251,40 +1168,63 @@ function tintify(rgb:string, tintFactor:number):string {
 }
 
 function hoverHandler(id:string, fullLabel:string):void {
-    if (id.indexOf("-label") > -1) {
+    if (id.indexOf("-labelBackground") > -1) {
+        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
+        var shape = id.replace("-labelBackground", "");
+        var label = id.replace("-labelBackground", "-label");
+        var labelBackground = id;
+    } else if (id.indexOf("-hoverLabel") > -1) {
+        var hoverLabel = id;
+        var shape = id.replace("-hoverLabel", "");
+        var label = id.replace("-hoverLabel", "-label");
+        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
+    }
+    else if (id.indexOf("-label") > -1) {
         var label = id;
         var shape = id.replace("-label", "");
+        var hoverLabel = id.replace("-label", "-hoverLabel");
+        var labelBackground = id.replace("-label", "-labelBackground");
     } else {
         var shape = id;
         var label = id + "-label";
+        var hoverLabel = id + "-hoverLabel";
+        var labelBackground = id + "-labelBackground";
     }
 
     document.getElementById(shape)!.style.strokeWidth = "0.4vmin";
-    document.getElementById(label)!.style.fontWeight = "bold";
-    document.getElementById(label)!.style.zIndex = "1000";
-    document.getElementById(label)!.style.border = "0.4vmin solid #800080";
-    document.getElementById(label)!.style.opacity = "1";
-    document.getElementById(label)!.style.display = "unset";
-    document.getElementById(label)!.style.backgroundColor = "white";
-    document.getElementById(label)!.innerText = fullLabel;
+    document.getElementById(hoverLabel)!.style.display = "unset";
+    document.getElementById(label)!.style.display = "none";
+    document.getElementById(labelBackground)!.style.display = "unset";
 }
 
-function onMouseOutHandler(id:string, usualOpacity:string, abbreviation:string, display:string):void {
-    if (id.indexOf("-label") > -1) {
+function onMouseOutHandler(id:string, initialLabelDisplay:string):void {
+    if (id.indexOf("-labelBackground") > -1) {
+        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
+        var shape = id.replace("-labelBackground", "");
+        var label = id.replace("-labelBackground", "-label");
+        var labelBackground = id;
+    } else if (id.indexOf("-hoverLabel") > -1) {
+        var hoverLabel = id;
+        var shape = id.replace("-hoverLabel", "");
+        var label = id.replace("-hoverLabel", "-label");
+        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
+    }
+    else if (id.indexOf("-label") > -1) {
         var label = id;
         var shape = id.replace("-label", "");
+        var hoverLabel = id.replace("-label", "-hoverLabel");
+        var labelBackground = id.replace("-label", "-labelBackground");
     } else {
         var shape = id;
         var label = id + "-label";
+        var hoverLabel = id + "-hoverLabel";
+        var labelBackground = id + "-labelBackground";
     }
+
     document.getElementById(shape)!.style.strokeWidth = "0.2vmin";
-    document.getElementById(label)!.style.fontWeight = "normal";
-    document.getElementById(label)!.style.zIndex = "unset";
-    document.getElementById(label)!.style.border = "none";
-    document.getElementById(label)!.style.backgroundColor = "unset";
-    document.getElementById(label)!.style.opacity = usualOpacity;
-    document.getElementById(label)!.innerText = abbreviation;
-    document.getElementById(label)!.style.display = display;
+    document.getElementById(label)!.style.display = initialLabelDisplay;
+    document.getElementById(hoverLabel)!.style.display = "none";
+    document.getElementById(labelBackground)!.style.display = "none";
 }
 
 
@@ -1374,10 +1314,6 @@ document.getElementById("download")!.addEventListener("click", () => {
 function lineIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
     var ua, ub, denom = (y4 - y3)*(x2 - x1) - (x4 - x3)*(y2 - y1);
     if (denom == 0) {
-        console.log("(y4 - y3): ", (y4 - y3), y4, y3)
-        console.log("(x2 - x1): ", (x2 - x1), x2, x1)
-        console.log("(x4 - x3): ", (x4 - x3), x4, x3)
-        console.log("(y2 - y1): ", (y2 - y1), y2, y1)
         return null;
     }
     ua = ((x4 - x3)*(y1 - y3) - (y4 - y3)*(x1 - x3))/denom;
