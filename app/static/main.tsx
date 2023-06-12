@@ -39,7 +39,7 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
         this.state = {
             root: "",
             layer: -1,
-            rank: allTaxaReduced[props.root]["rank"],
+            rank: "",
             totalCount: 0,
             unassignedCount: 0,
             lines: []
@@ -47,7 +47,6 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
     }
 
     componentDidUpdate() {
-        console.log("Here!", this.props.root, this.state.root)
         if (this.props.root !== this.state.root) {
             console.log("Here!1")
             this.getCounts();
@@ -57,33 +56,119 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
     getCounts() {
         let totalCount:number = 0;
         let unassignedCount:number = 0;
+        let rank:string = "";
         if (this.props.root.indexOf("&") > -1) {
             let groupedTaxa:string[] = this.props.root.split(" & ");
             for (let taxon of groupedTaxa) {
                 totalCount += allTaxaReduced[taxon]["totalCount"]
             }
             unassignedCount = 0;
+            rank = allTaxaReduced[groupedTaxa[0]]["rank"];
         }
         else {
             totalCount = allTaxaReduced[this.props.root]["totalCount"];
             unassignedCount = allTaxaReduced[this.props.root]["unassignedCount"];
+            rank = allTaxaReduced[this.props.root]["rank"];
         }
 
-        console.log("this.props.ancestors: ", this.props.ancestors);
-        let lines:string[] = this.props.ancestors.map(item => (`${round(totalCount * 100 / allTaxaReduced[item]["totalCount"], 3)}%`));
-        console.log("lines: ", lines)
+        let lines:string[] = this.props.ancestors.map(item => (`${round(totalCount * 100 / allTaxaReduced[item]["totalCount"], 2)}%`));
 
-        this.setState({totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines});
+        this.setState({totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank});
     }
 
     render() {
-        console.log("this.state.rank: ", this.state.rank, this.state.totalCount, this.state.unassignedCount, allTaxaReduced);
         let firstLine:any = <p style={{"padding": 0, "margin": 0}}>Current layer: <b>{this.state.root}</b>, {this.state.layer}</p>;
+        let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: {this.state.rank}</p>;
         let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: {this.state.totalCount}</p>;
         let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned count: {this.state.unassignedCount}</p>
-        let ps:any = [firstLine, totalCountLine, unassignedCountLine]
+        let ps:any = [firstLine, rankLine, totalCountLine, unassignedCountLine]
         for (let i=0; i<this.props.ancestors.length; i++) {
             ps.push(<p style={{"padding": 0, "margin": 0}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i]}</b></p>)
+        }
+        return <div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "color": "#800080", "width": "20%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0}}>{ps}</div>
+    }
+}
+
+class DescendantSection extends React.Component<{self:string, ancestor:string, layer:number, hovered:boolean}, {rank:string, totalCount:number, unassignedCount:number, percentage:number, self:string, layer:number, hovered:boolean}> {
+    constructor(props) {
+        super(props);
+        this.state = {
+            self: "",
+            layer: -1,
+            rank: "",
+            totalCount: 0,
+            unassignedCount: 0,
+            percentage: 0,
+            hovered: false
+        }
+    }
+
+    componentDidMount(): void {
+        document.getElementById("descendant-section")?.addEventListener("change", () => {
+            let el:any = document.getElementById("descendant-section")!;
+            let values:any[];
+            let self:string;
+            let layer:number;
+            let ancestor:string;
+            let hovered:boolean;
+            if (el.value.length === 0) {
+                self = "";
+                layer = 0;
+                ancestor = "";
+                hovered = false;
+                console.log("Here! 0")
+            }
+            else {
+                values = el.value.split("*");
+                self = values[0];
+                layer = parseInt(values[1]);
+                ancestor = values[2];
+                hovered = true;
+                console.log("Here! MORE")
+            }
+            if (!(this.state.self === self)) {
+                this.calculateParams(self, layer, ancestor, hovered);
+            }
+        })
+    }
+
+    calculateParams(self, layer, ancestor, hovered) {
+        if (hovered) {
+            let totalCount:number = 0;
+            let unassignedCount:number = 0;
+            let rank:string;
+            if (self.indexOf("&") > -1) {
+                let groupedTaxa:string[] = self.split(" & ");
+                for (let taxon of groupedTaxa) {
+                    totalCount += allTaxaReduced[taxon]["totalCount"]
+                }
+                unassignedCount = 0;
+                rank = allTaxaReduced[groupedTaxa[0]]["rank"];
+            }
+            else {
+                totalCount = allTaxaReduced[self]["totalCount"];
+                unassignedCount = allTaxaReduced[self]["unassignedCount"];
+                rank = allTaxaReduced[self]["rank"];
+            }
+            let percentage:number = totalCount * 100 / allTaxaReduced[ancestor]["totalCount"];
+            this.setState({totalCount: totalCount, unassignedCount: unassignedCount, rank: rank, percentage: percentage, layer: layer, self: self, hovered: hovered});
+        }
+        else {
+            this.setState({totalCount: 0, unassignedCount: 0, rank: "", percentage: 0, self: "", layer: 0, hovered: hovered});
+        }
+    }
+
+    render() {
+        let ps:any[] = [];
+        if (this.state.hovered) {
+            let firstLine:any = <p style={{"padding": 0, "margin": 0}}>Hovering over: <b>{this.state.self}</b>, {this.state.layer}</p>;
+            let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: {this.state.rank}</p>;
+            let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: {this.state.totalCount}</p>;
+            let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned count: {this.state.unassignedCount}</p>
+            ps = [firstLine, rankLine, totalCountLine, unassignedCountLine]
+        }
+        else {
+            console.log("Hey hey!")
         }
         return <div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "color": "#800080", "width": "20%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0}}>{ps}</div>
     }
@@ -999,7 +1084,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (let item of tSkeys) {
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
-            shapes.push(<TaxonShape key={id} id={id} abbr={tS[item]["label"]["abbreviation"]} onClick={() => this.handleClick(redirectTo)} d={tS[item]["svgPath"]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]} transformOrigin={tS[item]["label"]["transformOrigin"]}/>);
+            shapes.push(<TaxonShape key={id} id={id} abbr={tS[item]["label"]["abbreviation"]} onClick={() => this.handleClick(redirectTo)} d={tS[item]["svgPath"]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]} transformOrigin={tS[item]["label"]["transformOrigin"]} root={this.state.root}/>);
             if (tS[item]["married"]) {
                 clipPaths.push(<path d={tS[item]["svgPath"]}/>)
             }
@@ -1008,7 +1093,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (let item of tSkeys) {
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
-            let label = <TaxonLabel key={`${id}-label`} id={`${id}-label`} abbr={tS[item]["label"]["abbreviation"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["left"]} top={tS[item]["label"]["top"]} transformOrigin={tS[item]["label"]["transformOrigin"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="normal"/>;
+            let label = <TaxonLabel key={`${id}-label`} id={`${id}-label`} abbr={tS[item]["label"]["abbreviation"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["left"]} top={tS[item]["label"]["top"]} transformOrigin={tS[item]["label"]["transformOrigin"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="normal" root={this.state.root}/>;
 
             labels.push(label);
         }
@@ -1017,9 +1102,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
 
-            let labelBackground = <LabelBackground key={`${id}-labelBackground`} id={`${id}-labelBackground`} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]-4} top={(tS[item]["label"]["top"]-this.state.height) - 4} transformOrigin={tS[item]["label"]["transformOrigin"]} selfDisplay="none" labelDisplay={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} height={this.state.height+8} width={tS[item]["label"]["hoverWidth"]+8} stroke="#800080" fill="#ffffff"/>
+            let labelBackground = <LabelBackground key={`${id}-labelBackground`} id={`${id}-labelBackground`} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]-4} top={(tS[item]["label"]["top"]-this.state.height) - 4} transformOrigin={tS[item]["label"]["transformOrigin"]} selfDisplay="none" labelDisplay={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} height={this.state.height+8} width={tS[item]["label"]["hoverWidth"]+8} stroke="#800080" fill="#ffffff" root={this.state.root}/>
 
-            let hoverLabel = <TaxonLabel key={`${id}-hoverLabel`} id={`${id}-hoverLabel`} abbr={tS[item]["label"]["fullLabel"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]} top={tS[item]["label"]["top"]} transformOrigin={tS[item]["label"]["transformOrigin"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["hoverDisplay"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="bold"/>;
+            let hoverLabel = <TaxonLabel key={`${id}-hoverLabel`} id={`${id}-hoverLabel`} abbr={tS[item]["label"]["fullLabel"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]} top={tS[item]["label"]["top"]} transformOrigin={tS[item]["label"]["transformOrigin"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["hoverDisplay"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="bold" root={this.state.root}/>;
             labels.push(labelBackground);
             labels.push(hoverLabel);
         }
@@ -1032,8 +1117,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         let anc:any[] = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
 
-        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>]
+        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<DescendantSection self="Felinae" layer={0} ancestor="Felidae" hovered={true}/>]
     }
+    //<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>
 }
 
 /* ===== DRAWING THE PLOT ===== */
@@ -1088,10 +1174,10 @@ function getViewportDimensions():object {
 }
 
 function TaxonShape(props) {
-    return <path id={props.id} d={props.d} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
+    return <path id={props.id} className="thing" d={props.d} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
 }
 function TaxonLabel(props) {
-    return <text x={props.left} y={props.top} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight}}>{props.abbr}</text>
+    return <text className="thing" x={props.left} y={props.top} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight}}>{props.abbr}</text>
 }
 
 function AncestorLabel(props) {
@@ -1099,7 +1185,7 @@ function AncestorLabel(props) {
 }
 
 function LabelBackground(props) {
-    return <rect x={props.left} y={props.top} height={props.height} width={props.width} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} fill={props.fill} stroke={props.stroke} style={{"position": "fixed", "display": props.selfDisplay, "strokeWidth":"0.2vmin"}}/>
+    return <rect className="thing" x={props.left} y={props.top} height={props.height} width={props.width} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} fill={props.fill} stroke={props.stroke} style={{"position": "fixed", "display": props.selfDisplay, "strokeWidth":"0.2vmin"}}/>
 }
 
 //addEventListener("mousemove", (event) => handleMouseMove(event));
@@ -1167,7 +1253,7 @@ function tintify(rgb:string, tintFactor:number):string {
     return `rgb(${newRgb[0]}, ${newRgb[1]}, ${newRgb[2]})`;
 }
 
-function hoverHandler(id:string, fullLabel:string):void {
+function hoverHandler(id:string, fullLabel:string, root:string):void {
     if (id.indexOf("-labelBackground") > -1) {
         var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
         var shape = id.replace("-labelBackground", "");
@@ -1195,6 +1281,9 @@ function hoverHandler(id:string, fullLabel:string):void {
     document.getElementById(hoverLabel)!.style.display = "unset";
     document.getElementById(label)!.style.display = "none";
     document.getElementById(labelBackground)!.style.display = "unset";
+    document.getElementById("descendant-section")!.setAttribute('value', `${shape.split("_-_")[0]}*${shape.split("_-_")[1]}*${root}`);
+    var evt = new CustomEvent('change');
+    document.getElementById("descendant-section")!.dispatchEvent(evt);
 }
 
 function onMouseOutHandler(id:string, initialLabelDisplay:string):void {
@@ -1225,6 +1314,7 @@ function onMouseOutHandler(id:string, initialLabelDisplay:string):void {
     document.getElementById(label)!.style.display = initialLabelDisplay;
     document.getElementById(hoverLabel)!.style.display = "none";
     document.getElementById(labelBackground)!.style.display = "none";
+    console.log("aus ", shape === id, label === id, hoverLabel === id, labelBackground === id)
 }
 
 
@@ -1328,3 +1418,12 @@ function lineIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
 function lineLength(x1, y1,x2, y2) {
     return Math.sqrt(Math.pow(x2-x1,2) + Math.pow(y2-y1,2));
 }
+
+addEventListener("mousemove", (e) => {
+    let target:any = e.target!
+    if (!target.classList.contains('thing')) {
+        document.getElementById("descendant-section")!.setAttribute('value', "");
+        var evt = new CustomEvent('change');
+        document.getElementById("descendant-section")!.dispatchEvent(evt);
+    }
+})

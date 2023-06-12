@@ -325,7 +325,7 @@ var AncestorSection = /** @class */ (function (_super) {
         _this.state = {
             root: "",
             layer: -1,
-            rank: allTaxaReduced[props.root]["rank"],
+            rank: "",
             totalCount: 0,
             unassignedCount: 0,
             lines: []
@@ -333,7 +333,6 @@ var AncestorSection = /** @class */ (function (_super) {
         return _this;
     }
     AncestorSection.prototype.componentDidUpdate = function () {
-        console.log("Here!", this.props.root, this.state.root);
         if (this.props.root !== this.state.root) {
             console.log("Here!1");
             this.getCounts();
@@ -342,6 +341,7 @@ var AncestorSection = /** @class */ (function (_super) {
     AncestorSection.prototype.getCounts = function () {
         var totalCount = 0;
         var unassignedCount = 0;
+        var rank = "";
         if (this.props.root.indexOf("&") > -1) {
             var groupedTaxa = this.props.root.split(" & ");
             for (var _i = 0, groupedTaxa_1 = groupedTaxa; _i < groupedTaxa_1.length; _i++) {
@@ -349,30 +349,32 @@ var AncestorSection = /** @class */ (function (_super) {
                 totalCount += allTaxaReduced[taxon]["totalCount"];
             }
             unassignedCount = 0;
+            rank = allTaxaReduced[groupedTaxa[0]]["rank"];
         }
         else {
             totalCount = allTaxaReduced[this.props.root]["totalCount"];
             unassignedCount = allTaxaReduced[this.props.root]["unassignedCount"];
+            rank = allTaxaReduced[this.props.root]["rank"];
         }
-        console.log("this.props.ancestors: ", this.props.ancestors);
-        var lines = this.props.ancestors.map(function (item) { return ("".concat(round(totalCount * 100 / allTaxaReduced[item]["totalCount"], 3), "%")); });
-        console.log("lines: ", lines);
-        this.setState({ totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines });
+        var lines = this.props.ancestors.map(function (item) { return ("".concat(round(totalCount * 100 / allTaxaReduced[item]["totalCount"], 2), "%")); });
+        this.setState({ totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank });
     };
     AncestorSection.prototype.render = function () {
-        console.log("this.state.rank: ", this.state.rank, this.state.totalCount, this.state.unassignedCount, allTaxaReduced);
         var firstLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
             "Current layer: ",
             React.createElement("b", null, this.state.root),
             ", ",
             this.state.layer);
+        var rankLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+            "Rank: ",
+            this.state.rank);
         var totalCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
             "Total count: ",
             this.state.totalCount);
         var unassignedCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
             "Unassigned count: ",
             this.state.unassignedCount);
-        var ps = [firstLine, totalCountLine, unassignedCountLine];
+        var ps = [firstLine, rankLine, totalCountLine, unassignedCountLine];
         for (var i = 0; i < this.props.ancestors.length; i++) {
             ps.push(React.createElement("p", { style: { "padding": 0, "margin": 0 }, onClick: this.props.onClickArray[i] },
                 this.state.lines[i],
@@ -382,6 +384,103 @@ var AncestorSection = /** @class */ (function (_super) {
         return React.createElement("div", { style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "color": "#800080", "width": "20%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0 } }, ps);
     };
     return AncestorSection;
+}(React.Component));
+var DescendantSection = /** @class */ (function (_super) {
+    __extends(DescendantSection, _super);
+    function DescendantSection(props) {
+        var _this = _super.call(this, props) || this;
+        _this.state = {
+            self: "",
+            layer: -1,
+            rank: "",
+            totalCount: 0,
+            unassignedCount: 0,
+            percentage: 0,
+            hovered: false
+        };
+        return _this;
+    }
+    DescendantSection.prototype.componentDidMount = function () {
+        var _this = this;
+        var _a;
+        (_a = document.getElementById("descendant-section")) === null || _a === void 0 ? void 0 : _a.addEventListener("change", function () {
+            var el = document.getElementById("descendant-section");
+            var values;
+            var self;
+            var layer;
+            var ancestor;
+            var hovered;
+            if (el.value.length === 0) {
+                self = "";
+                layer = 0;
+                ancestor = "";
+                hovered = false;
+                console.log("Here! 0");
+            }
+            else {
+                values = el.value.split("*");
+                self = values[0];
+                layer = parseInt(values[1]);
+                ancestor = values[2];
+                hovered = true;
+                console.log("Here! MORE");
+            }
+            if (!(_this.state.self === self)) {
+                _this.calculateParams(self, layer, ancestor, hovered);
+            }
+        });
+    };
+    DescendantSection.prototype.calculateParams = function (self, layer, ancestor, hovered) {
+        if (hovered) {
+            var totalCount = 0;
+            var unassignedCount = 0;
+            var rank = void 0;
+            if (self.indexOf("&") > -1) {
+                var groupedTaxa = self.split(" & ");
+                for (var _i = 0, groupedTaxa_2 = groupedTaxa; _i < groupedTaxa_2.length; _i++) {
+                    var taxon = groupedTaxa_2[_i];
+                    totalCount += allTaxaReduced[taxon]["totalCount"];
+                }
+                unassignedCount = 0;
+                rank = allTaxaReduced[groupedTaxa[0]]["rank"];
+            }
+            else {
+                totalCount = allTaxaReduced[self]["totalCount"];
+                unassignedCount = allTaxaReduced[self]["unassignedCount"];
+                rank = allTaxaReduced[self]["rank"];
+            }
+            var percentage = totalCount * 100 / allTaxaReduced[ancestor]["totalCount"];
+            this.setState({ totalCount: totalCount, unassignedCount: unassignedCount, rank: rank, percentage: percentage, layer: layer, self: self, hovered: hovered });
+        }
+        else {
+            this.setState({ totalCount: 0, unassignedCount: 0, rank: "", percentage: 0, self: "", layer: 0, hovered: hovered });
+        }
+    };
+    DescendantSection.prototype.render = function () {
+        var ps = [];
+        if (this.state.hovered) {
+            var firstLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+                "Hovering over: ",
+                React.createElement("b", null, this.state.self),
+                ", ",
+                this.state.layer);
+            var rankLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+                "Rank: ",
+                this.state.rank);
+            var totalCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+                "Total count: ",
+                this.state.totalCount);
+            var unassignedCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+                "Unassigned count: ",
+                this.state.unassignedCount);
+            ps = [firstLine, rankLine, totalCountLine, unassignedCountLine];
+        }
+        else {
+            console.log("Hey hey!");
+        }
+        return React.createElement("div", { style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "color": "#800080", "width": "20%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0 } }, ps);
+    };
+    return DescendantSection;
 }(React.Component));
 var PlotDrawing = /** @class */ (function (_super) {
     __extends(PlotDrawing, _super);
@@ -1273,7 +1372,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_6 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_1.state.ancestors[this_1.state.ancestors.length - 1], "_-_0") : id;
-            shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"], transformOrigin: tS[item]["label"]["transformOrigin"] }));
+            shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"], transformOrigin: tS[item]["label"]["transformOrigin"], root: this_1.state.root }));
             if (tS[item]["married"]) {
                 clipPaths.push(React.createElement("path", { d: tS[item]["svgPath"] }));
             }
@@ -1286,7 +1385,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_7 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_2.state.ancestors[this_2.state.ancestors.length - 1], "_-_0") : id;
-            var label = React.createElement(TaxonLabel, { key: "".concat(id, "-label"), id: "".concat(id, "-label"), abbr: tS[item]["label"]["abbreviation"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], top: tS[item]["label"]["top"], transformOrigin: tS[item]["label"]["transformOrigin"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "normal" });
+            var label = React.createElement(TaxonLabel, { key: "".concat(id, "-label"), id: "".concat(id, "-label"), abbr: tS[item]["label"]["abbreviation"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], top: tS[item]["label"]["top"], transformOrigin: tS[item]["label"]["transformOrigin"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "normal", root: this_2.state.root });
             labels.push(label);
         };
         var this_2 = this;
@@ -1297,8 +1396,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_8 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_3.state.ancestors[this_3.state.ancestors.length - 1], "_-_0") : id;
-            var labelBackground = React.createElement(LabelBackground, { key: "".concat(id, "-labelBackground"), id: "".concat(id, "-labelBackground"), transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"] - 4, top: (tS[item]["label"]["top"] - this_3.state.height) - 4, transformOrigin: tS[item]["label"]["transformOrigin"], selfDisplay: "none", labelDisplay: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], height: this_3.state.height + 8, width: tS[item]["label"]["hoverWidth"] + 8, stroke: "#800080", fill: "#ffffff" });
-            var hoverLabel = React.createElement(TaxonLabel, { key: "".concat(id, "-hoverLabel"), id: "".concat(id, "-hoverLabel"), abbr: tS[item]["label"]["fullLabel"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"], top: tS[item]["label"]["top"], transformOrigin: tS[item]["label"]["transformOrigin"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["hoverDisplay"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "bold" });
+            var labelBackground = React.createElement(LabelBackground, { key: "".concat(id, "-labelBackground"), id: "".concat(id, "-labelBackground"), transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"] - 4, top: (tS[item]["label"]["top"] - this_3.state.height) - 4, transformOrigin: tS[item]["label"]["transformOrigin"], selfDisplay: "none", labelDisplay: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], height: this_3.state.height + 8, width: tS[item]["label"]["hoverWidth"] + 8, stroke: "#800080", fill: "#ffffff", root: this_3.state.root });
+            var hoverLabel = React.createElement(TaxonLabel, { key: "".concat(id, "-hoverLabel"), id: "".concat(id, "-hoverLabel"), abbr: tS[item]["label"]["fullLabel"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"], top: tS[item]["label"]["top"], transformOrigin: tS[item]["label"]["transformOrigin"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["hoverDisplay"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "bold", root: this_3.state.root });
             labels.push(labelBackground);
             labels.push(hoverLabel);
         };
@@ -1321,7 +1420,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 shapes,
                 " ",
                 labels,
-                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "ancestors" }, ancestors), React.createElement(AncestorSection, { ancestors: anc, root: this.state.root, layer: this.state.layer, onClickArray: anc.map(function (self, index) { return function () { _this.handleClick("".concat(self, "_-_").concat(-index)); }; }) })];
+                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "ancestors" }, ancestors), React.createElement(DescendantSection, { self: "Felinae", layer: 0, ancestor: "Felidae", hovered: true })];
     };
     return PlotDrawing;
 }(React.Component));
@@ -1373,16 +1472,16 @@ function getViewportDimensions() {
     };
 }
 function TaxonShape(props) {
-    return React.createElement("path", { id: props.id, d: props.d, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, style: { "stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor } });
+    return React.createElement("path", { id: props.id, className: "thing", d: props.d, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, style: { "stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor } });
 }
 function TaxonLabel(props) {
-    return React.createElement("text", { x: props.left, y: props.top, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, style: { "margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight } }, props.abbr);
+    return React.createElement("text", { className: "thing", x: props.left, y: props.top, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, style: { "margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight } }, props.abbr);
 }
 function AncestorLabel(props) {
     return React.createElement("p", { id: props.id, className: "ancestor", style: { "margin": "0", "position": "fixed", "fontFamily": "calibri", "fontSize": "2vmin", "top": props.top, "right": "2vmin", "color": skeletonColor, "fontWeight": "bold" }, onClick: props.onClick }, props.taxon);
 }
 function LabelBackground(props) {
-    return React.createElement("rect", { x: props.left, y: props.top, height: props.height, width: props.width, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, fill: props.fill, stroke: props.stroke, style: { "position": "fixed", "display": props.selfDisplay, "strokeWidth": "0.2vmin" } });
+    return React.createElement("rect", { className: "thing", x: props.left, y: props.top, height: props.height, width: props.width, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, fill: props.fill, stroke: props.stroke, style: { "position": "fixed", "display": props.selfDisplay, "strokeWidth": "0.2vmin" } });
 }
 //addEventListener("mousemove", (event) => handleMouseMove(event));
 function handleMouseMove(event) {
@@ -1442,7 +1541,7 @@ function tintify(rgb, tintFactor) {
     }
     return "rgb(".concat(newRgb[0], ", ").concat(newRgb[1], ", ").concat(newRgb[2], ")");
 }
-function hoverHandler(id, fullLabel) {
+function hoverHandler(id, fullLabel, root) {
     if (id.indexOf("-labelBackground") > -1) {
         var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
         var shape = id.replace("-labelBackground", "");
@@ -1471,6 +1570,9 @@ function hoverHandler(id, fullLabel) {
     document.getElementById(hoverLabel).style.display = "unset";
     document.getElementById(label).style.display = "none";
     document.getElementById(labelBackground).style.display = "unset";
+    document.getElementById("descendant-section").setAttribute('value', "".concat(shape.split("_-_")[0], "*").concat(shape.split("_-_")[1], "*").concat(root));
+    var evt = new CustomEvent('change');
+    document.getElementById("descendant-section").dispatchEvent(evt);
 }
 function onMouseOutHandler(id, initialLabelDisplay) {
     if (id.indexOf("-labelBackground") > -1) {
@@ -1501,6 +1603,7 @@ function onMouseOutHandler(id, initialLabelDisplay) {
     document.getElementById(label).style.display = initialLabelDisplay;
     document.getElementById(hoverLabel).style.display = "none";
     document.getElementById(labelBackground).style.display = "none";
+    console.log("aus ", shape === id, label === id, hoverLabel === id, labelBackground === id);
 }
 // Returns a set of arrays, where each array contains all elements that will be on the same level in the plot.
 function getLayers(lineagesCopy, unique) {
@@ -1596,6 +1699,14 @@ function lineIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
 function lineLength(x1, y1, x2, y2) {
     return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 }
+addEventListener("mousemove", function (e) {
+    var target = e.target;
+    if (!target.classList.contains('thing')) {
+        document.getElementById("descendant-section").setAttribute('value', "");
+        var evt = new CustomEvent('change');
+        document.getElementById("descendant-section").dispatchEvent(evt);
+    }
+});
 
 },{"html2canvas":4,"react":11,"react-dom/client":7}],4:[function(require,module,exports){
 /*!
