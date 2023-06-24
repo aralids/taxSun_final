@@ -289,6 +289,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
+var _a;
 exports.__esModule = true;
 var React = require("react");
 var ReactDOM = require("react-dom/client");
@@ -360,10 +361,11 @@ var AncestorSection = /** @class */ (function (_super) {
         this.setState({ totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank });
     };
     AncestorSection.prototype.render = function () {
-        var firstLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
-            "Current layer: ",
+        var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "Current layer:");
+        var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
+            "Taxon: ",
             React.createElement("b", null, this.state.root),
-            ", ",
+            ", #",
             this.state.layer);
         var rankLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
             "Rank: ",
@@ -371,17 +373,17 @@ var AncestorSection = /** @class */ (function (_super) {
         var totalCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
             "Total count: ",
             this.state.totalCount);
-        var unassignedCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+        var unassignedCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
             "Unassigned count: ",
             this.state.unassignedCount);
-        var ps = [firstLine, rankLine, totalCountLine, unassignedCountLine];
+        var ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine];
         for (var i = 0; i < this.props.ancestors.length; i++) {
             ps.push(React.createElement("p", { style: { "padding": 0, "margin": 0 }, onClick: this.props.onClickArray[i] },
                 this.state.lines[i],
                 " of ",
                 React.createElement("b", null, this.props.ancestors[i])));
         }
-        return React.createElement("div", { style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "color": "#800080", "width": "100%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0 } }, ps);
+        return React.createElement("fieldset", { style: { "borderColor": "#800080" } }, ps);
     };
     return AncestorSection;
 }(React.Component));
@@ -459,10 +461,11 @@ var DescendantSection = /** @class */ (function (_super) {
     DescendantSection.prototype.render = function () {
         var ps = [];
         if (this.state.hovered) {
-            var firstLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
-                "Hovering over: ",
+            var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "Hovering over:");
+            var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
+                "Taxon: ",
                 React.createElement("b", null, this.state.self),
-                ", ",
+                ", #",
                 this.state.layer);
             var rankLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
                 "Rank: ",
@@ -473,12 +476,10 @@ var DescendantSection = /** @class */ (function (_super) {
             var unassignedCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
                 "Unassigned count: ",
                 this.state.unassignedCount);
-            ps = [firstLine, rankLine, totalCountLine, unassignedCountLine];
+            ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine];
+            return React.createElement("fieldset", { style: { "borderColor": "#800080" } }, ps);
         }
-        else {
-            console.log("Hey hey!");
-        }
-        return React.createElement("div", { style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "color": "#800080", "width": "100%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0 } }, ps);
+        return React.createElement("div", null);
     };
     return DescendantSection;
 }(React.Component));
@@ -708,7 +709,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages = [];
-        var threshold = 0.01;
+        var threshold = 0.02;
         // Find all lineages that make up <1% of the whole, crop them so that they end in the most specific taxon >=1%, put them in an array called reducibleLineages. 
         for (var _a = 0, croppedLineages_2 = croppedLineages; _a < croppedLineages_2.length; _a++) {
             var lineage = croppedLineages_2[_a];
@@ -1330,7 +1331,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             newTaxonSpecifics[key]["label"]["top"] = top_1;
             newTaxonSpecifics[key]["label"]["transformOrigin"] = transformOrigin;
             newTaxonSpecifics[key]["label"]["left"] = left;
-            newTaxonSpecifics[key]["label"]["transform"] = !alreadyRepeated ? "rotate(0)" : "rotate(".concat(angle, ")");
+            newTaxonSpecifics[key]["label"]["transform"] = !alreadyRepeated ? "rotate(0)" : "rotate(".concat(angle, " ").concat(transformOrigin, ")");
             if (!alreadyRepeated) {
                 newTaxonSpecifics[key]["label"]["hoverLeft"] = hoverLeft;
                 newTaxonSpecifics[key]["label"]["hoverDisplay"] = "none";
@@ -1385,7 +1386,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_7 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_2.state.ancestors[this_2.state.ancestors.length - 1], "_-_0") : id;
-            var label = React.createElement(TaxonLabel, { key: "".concat(id, "-label"), id: "".concat(id, "-label"), abbr: tS[item]["label"]["abbreviation"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], top: tS[item]["label"]["top"], transformOrigin: tS[item]["label"]["transformOrigin"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "normal", root: this_2.state.root });
+            var label = React.createElement(TaxonLabel, { key: "".concat(id, "-label"), id: "".concat(id, "-label"), abbr: tS[item]["label"]["abbreviation"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], top: tS[item]["label"]["top"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "normal", root: this_2.state.root });
             labels.push(label);
         };
         var this_2 = this;
@@ -1396,8 +1397,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_8 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_3.state.ancestors[this_3.state.ancestors.length - 1], "_-_0") : id;
-            var labelBackground = React.createElement(LabelBackground, { key: "".concat(id, "-labelBackground"), id: "".concat(id, "-labelBackground"), transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"] - 4, top: (tS[item]["label"]["top"] - this_3.state.height) - 4, transformOrigin: tS[item]["label"]["transformOrigin"], selfDisplay: "none", labelDisplay: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], height: this_3.state.height + 8, width: tS[item]["label"]["hoverWidth"] + 8, stroke: "#800080", fill: "#ffffff", root: this_3.state.root });
-            var hoverLabel = React.createElement(TaxonLabel, { key: "".concat(id, "-hoverLabel"), id: "".concat(id, "-hoverLabel"), abbr: tS[item]["label"]["fullLabel"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"], top: tS[item]["label"]["top"], transformOrigin: tS[item]["label"]["transformOrigin"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["hoverDisplay"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "bold", root: this_3.state.root });
+            var labelBackground = React.createElement(LabelBackground, { key: "".concat(id, "-labelBackground"), id: "".concat(id, "-labelBackground"), transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"] - 4, top: (tS[item]["label"]["top"] - this_3.state.height) - 4, selfDisplay: "none", labelDisplay: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], height: this_3.state.height + 8, width: tS[item]["label"]["hoverWidth"] + 8, stroke: "#800080", fill: "#ffffff", root: this_3.state.root });
+            var hoverLabel = React.createElement(TaxonLabel, { key: "".concat(id, "-hoverLabel"), id: "".concat(id, "-hoverLabel"), abbr: tS[item]["label"]["fullLabel"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"], top: tS[item]["label"]["top"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["hoverDisplay"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "bold", root: this_3.state.root });
             labels.push(labelBackground);
             labels.push(hoverLabel);
         };
@@ -1627,8 +1628,8 @@ var descendants = {};
 for (var _i = 0, aTRKeys_1 = aTRKeys; _i < aTRKeys_1.length; _i++) {
     var taxName = aTRKeys_1[_i];
     var lineage = allTaxaReduced[taxName]["lineageNames"];
-    for (var _a = 0, lineage_1 = lineage; _a < lineage_1.length; _a++) {
-        var predecessor = lineage_1[_a];
+    for (var _b = 0, lineage_1 = lineage; _b < lineage_1.length; _b++) {
+        var predecessor = lineage_1[_b];
         if (!descendants[predecessor[1]]) {
             descendants[predecessor[1]] = [taxName];
         }
@@ -1637,8 +1638,12 @@ for (var _i = 0, aTRKeys_1 = aTRKeys; _i < aTRKeys_1.length; _i++) {
         }
     }
 }
-$('#uploadForm').submit(function (e) {
-    e.preventDefault();
+(_a = document.getElementById("file")) === null || _a === void 0 ? void 0 : _a.addEventListener("change", function () {
+    //e.preventDefault();
+    var fileInput = document.getElementById("file");
+    //console.log(fileInput.files[0].name)
+    //document.getElementById("file-name")!.innerHTML = fileInput.files[0].name;
+    document.getElementById("status").innerHTML = "pending";
     var uploadForm = document.getElementById("uploadForm");
     var form_data = new FormData(uploadForm);
     //console.log("e: ", e)
@@ -1656,9 +1661,14 @@ $('#uploadForm').submit(function (e) {
             rankPatternFull = response["rankPatternFull"];
             var newData = document.getElementById("new-data");
             newData.checked = true;
+            document.getElementById("status").innerHTML = "check";
             //console.log("response: ", response["allTaxa"])
             var evt = new CustomEvent('change');
             newData.dispatchEvent(evt);
+        },
+        error: function (response) {
+            console.log("ERROR", response);
+            document.getElementById("status").innerHTML = "close";
         }
     });
     //uploadForm.submit()
@@ -1696,6 +1706,9 @@ addEventListener("mousemove", function (e) {
         var evt = new CustomEvent('change');
         document.getElementById("descendant-section").dispatchEvent(evt);
     }
+});
+document.getElementById("upload-button").addEventListener("click", function () {
+    $('input[type="file"]').click();
 });
 
 },{"html2canvas":4,"react":11,"react-dom/client":7}],4:[function(require,module,exports){

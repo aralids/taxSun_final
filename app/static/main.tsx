@@ -77,15 +77,16 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
     }
 
     render() {
-        let firstLine:any = <p style={{"padding": 0, "margin": 0}}>Current layer: <b>{this.state.root}</b>, {this.state.layer}</p>;
+        let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>Current layer:</legend>;
+        let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Taxon: <b>{this.state.root}</b>, #{this.state.layer}</p>
         let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: {this.state.rank}</p>;
         let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: {this.state.totalCount}</p>;
-        let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned count: {this.state.unassignedCount}</p>
-        let ps:any = [firstLine, rankLine, totalCountLine, unassignedCountLine]
+        let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Unassigned count: {this.state.unassignedCount}</p>
+        let ps:any = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine]
         for (let i=0; i<this.props.ancestors.length; i++) {
             ps.push(<p style={{"padding": 0, "margin": 0}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i]}</b></p>)
         }
-        return <div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "color": "#800080", "width": "100%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0}}>{ps}</div>
+        return <fieldset style={{"borderColor": "#800080"}}>{ps}</fieldset>
     }
 }
 
@@ -161,16 +162,15 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
     render() {
         let ps:any[] = [];
         if (this.state.hovered) {
-            let firstLine:any = <p style={{"padding": 0, "margin": 0}}>Hovering over: <b>{this.state.self}</b>, {this.state.layer}</p>;
+            let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>Hovering over:</legend>;
+            let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Taxon: <b>{this.state.self}</b>, #{this.state.layer}</p>
             let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: {this.state.rank}</p>;
             let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: {this.state.totalCount}</p>;
             let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned count: {this.state.unassignedCount}</p>
-            ps = [firstLine, rankLine, totalCountLine, unassignedCountLine]
+            ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine]
+            return <fieldset style={{"borderColor": "#800080"}}>{ps}</fieldset>
         }
-        else {
-            console.log("Hey hey!")
-        }
-        return <div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "color": "#800080", "width": "100%", "fontFamily": "calibri", "fontSize": "2vmin", "padding": 0, "margin": 0}}>{ps}</div>
+        return <div></div>
     }
 }
 
@@ -400,7 +400,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages:any = [];
-        var threshold:number = 0.01;
+        var threshold:number = 0.02;
 
         // Find all lineages that make up <1% of the whole, crop them so that they end in the most specific taxon >=1%, put them in an array called reducibleLineages. 
         for (let lineage of croppedLineages) {
@@ -1037,7 +1037,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             newTaxonSpecifics[key]["label"]["top"] = top;
             newTaxonSpecifics[key]["label"]["transformOrigin"] = transformOrigin;
             newTaxonSpecifics[key]["label"]["left"] = left;
-            newTaxonSpecifics[key]["label"]["transform"] = !alreadyRepeated ? `rotate(0)` : `rotate(${angle})`;
+            newTaxonSpecifics[key]["label"]["transform"] = !alreadyRepeated ? `rotate(0)` : `rotate(${angle} ${transformOrigin})`;
 
             if (!alreadyRepeated) {
                 newTaxonSpecifics[key]["label"]["hoverLeft"] = hoverLeft;
@@ -1093,7 +1093,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (let item of tSkeys) {
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
-            let label = <TaxonLabel key={`${id}-label`} id={`${id}-label`} abbr={tS[item]["label"]["abbreviation"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["left"]} top={tS[item]["label"]["top"]} transformOrigin={tS[item]["label"]["transformOrigin"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="normal" root={this.state.root}/>;
+            let label = <TaxonLabel key={`${id}-label`} id={`${id}-label`} abbr={tS[item]["label"]["abbreviation"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["left"]} top={tS[item]["label"]["top"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="normal" root={this.state.root}/>;
 
             labels.push(label);
         }
@@ -1102,9 +1102,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
 
-            let labelBackground = <LabelBackground key={`${id}-labelBackground`} id={`${id}-labelBackground`} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]-4} top={(tS[item]["label"]["top"]-this.state.height) - 4} transformOrigin={tS[item]["label"]["transformOrigin"]} selfDisplay="none" labelDisplay={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} height={this.state.height+8} width={tS[item]["label"]["hoverWidth"]+8} stroke="#800080" fill="#ffffff" root={this.state.root}/>
+            let labelBackground = <LabelBackground key={`${id}-labelBackground`} id={`${id}-labelBackground`} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]-4} top={(tS[item]["label"]["top"]-this.state.height) - 4} selfDisplay="none" labelDisplay={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} height={this.state.height+8} width={tS[item]["label"]["hoverWidth"]+8} stroke="#800080" fill="#ffffff" root={this.state.root}/>
 
-            let hoverLabel = <TaxonLabel key={`${id}-hoverLabel`} id={`${id}-hoverLabel`} abbr={tS[item]["label"]["fullLabel"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]} top={tS[item]["label"]["top"]} transformOrigin={tS[item]["label"]["transformOrigin"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["hoverDisplay"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="bold" root={this.state.root}/>;
+            let hoverLabel = <TaxonLabel key={`${id}-hoverLabel`} id={`${id}-hoverLabel`} abbr={tS[item]["label"]["fullLabel"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]} top={tS[item]["label"]["top"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["hoverDisplay"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="bold" root={this.state.root}/>;
             labels.push(labelBackground);
             labels.push(hoverLabel);
         }
@@ -1350,8 +1350,12 @@ for (let taxName of aTRKeys) {
     }
 }
 
-$('#uploadForm').submit(function(e) {
-    e.preventDefault();
+document.getElementById("file")?.addEventListener("change", () => {
+    //e.preventDefault();
+    let fileInput:any = document.getElementById("file")!
+    //console.log(fileInput.files[0].name)
+    //document.getElementById("file-name")!.innerHTML = fileInput.files[0].name;
+    document.getElementById("status")!.innerHTML = "pending";
     let uploadForm:any = document.getElementById("uploadForm")!
     let form_data = new FormData(uploadForm);
     //console.log("e: ", e)
@@ -1369,9 +1373,14 @@ $('#uploadForm').submit(function(e) {
             rankPatternFull = response["rankPatternFull"];
             let newData:any = document.getElementById("new-data")!
             newData.checked = true;
+            document.getElementById("status")!.innerHTML = "check";
             //console.log("response: ", response["allTaxa"])
             var evt = new CustomEvent('change');
             newData.dispatchEvent(evt);
+        },
+        error: function (response) {
+            console.log("ERROR", response);
+            document.getElementById("status")!.innerHTML = "close";
         }
     });
     //uploadForm.submit()
@@ -1416,4 +1425,8 @@ addEventListener("mousemove", (e) => {
         var evt = new CustomEvent('change');
         document.getElementById("descendant-section")!.dispatchEvent(evt);
     }
+})
+
+document.getElementById("upload-button")!.addEventListener("click", () => {
+    $('input[type="file"]').click();
 })

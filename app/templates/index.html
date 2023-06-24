@@ -7,6 +7,7 @@
         <link rel="stylesheet" href=""/>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin></script>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0" />
         
         <script>var exports = {};</script>
     </head>
@@ -15,12 +16,12 @@
         <div id="interaction" style="display: flex; flex-direction: column; position: fixed; top: 0vmin; right: 0; width: 20%">
             <input type="text" id="descendant-section" style="display: flex; position: fixed; top: 0vmin; left: 50%; visibility: hidden">
             <div>
-                <form id="uploadForm" action = "http://127.0.0.1:5000/load_tsv_data" method = "POST" 
-                    enctype = "multipart/form-data">
+                <form id="uploadForm" action = "http://127.0.0.1:5000/load_tsv_data" method = "POST" enctype = "multipart/form-data">
                     <fieldset style="border-color: #800080;">
                         <legend style="color: #800080; font-weight: bold;">Upload your data:</legend>
-                        <input type = "file" name = "file"/>
-                        <input type = "submit"/>
+                        <div style="display: flex; max-width: 100%;">
+                            <input type = "file" name = "file" id="file" style="display: inline;"/><span id="status" class="material-symbols-outlined" style="display: inline; right: 2vmin"></span>
+                        </div>
                     </fieldset>
                 </form>
             </div>
@@ -53,7 +54,7 @@
                     <label for="new-data">New Data: Yes or No</label>
                 </div>
             </fieldset>
-            <fieldset>
+            <fieldset style="border-color: #800080;">
                 <legend style="color: #800080; font-weight: bold;">Download:</legend>
                 <button id="download">Download SVG</button>
             </fieldset>
