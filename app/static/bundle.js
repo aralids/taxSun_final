@@ -310,14 +310,19 @@ var allTaxaReduced = JSON.parse("{\"Acanthisitta chloris\":{\"lineageNames\":[[\
 var rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];
 var colors = [];
 var colorOffset = Math.round(Math.random() * 100); //84, 98, 31, 20, 1, 2
-for (var i = 0; i < 7; i++) {
-    var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
-    var g = Math.sin(0.3 * colorOffset + 2) * 55 + 200;
-    var b = Math.sin(0.3 * colorOffset) * 55 + 200;
-    var newColor = "rgb(".concat(round(r, 0), ", ").concat(round(g, 0), ", ").concat(round(b, 0), ")");
-    colors.push(newColor);
-    colorOffset += 3;
+function createPalette(colorOffset) {
+    var newColors = [];
+    for (var i = 0; i < 7; i++) {
+        var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
+        var g = Math.sin(0.3 * colorOffset + 2) * 55 + 200;
+        var b = Math.sin(0.3 * colorOffset) * 55 + 200;
+        var newColor = "rgb(".concat(round(r, 0), ", ").concat(round(g, 0), ", ").concat(round(b, 0), ")");
+        newColors.push(newColor);
+        colorOffset += 3;
+    }
+    return newColors;
 }
+colors = createPalette(colorOffset);
 /* ===== DEFINING THE REACT COMPONENTS ===== */
 var AncestorSection = /** @class */ (function (_super) {
     __extends(AncestorSection, _super);
@@ -417,7 +422,6 @@ var DescendantSection = /** @class */ (function (_super) {
                 layer = 0;
                 ancestor = "";
                 hovered = false;
-                console.log("Here! 0");
             }
             else {
                 values = el.value.split("*");
@@ -425,7 +429,6 @@ var DescendantSection = /** @class */ (function (_super) {
                 layer = parseInt(values[1]);
                 ancestor = values[2];
                 hovered = true;
-                console.log("Here! MORE");
             }
             if (!(_this.state.self === self)) {
                 _this.calculateParams(self, layer, ancestor, hovered);
@@ -546,6 +549,8 @@ var PlotDrawing = /** @class */ (function (_super) {
             collapsed.checked = false;
             currentAlteration.checked = false;
             allEqual.checked = true;
+            colors = createPalette(colorOffset);
+            console.log(colors);
             _this.cropLineages("root", 0, "allEqual", false, lineagesNames, lineagesRanks);
         });
     };
@@ -1659,6 +1664,7 @@ for (var _i = 0, aTRKeys_1 = aTRKeys; _i < aTRKeys_1.length; _i++) {
             lineagesRanks = response["lineagesRanks"];
             allTaxaReduced = response["allTaxaReduced"];
             rankPatternFull = response["rankPatternFull"];
+            colorOffset = response["offset"];
             var newData = document.getElementById("new-data");
             newData.checked = true;
             document.getElementById("status").innerHTML = "check";

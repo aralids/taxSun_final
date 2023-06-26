@@ -22,14 +22,20 @@ let rankPatternFull:string[] = ["root","superkingdom","kingdom","subkingdom","su
 
 var colors:string[] = [];
 var colorOffset:number = Math.round(Math.random() * 100); //84, 98, 31, 20, 1, 2
-for (let i=0; i<7; i++) {
-    var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
-    var g = Math.sin(0.3 * colorOffset + 2) * 55 + 200;
-    var b = Math.sin(0.3 * colorOffset) * 55 + 200;
-    var newColor = `rgb(${round(r,0)}, ${round(g,0)}, ${round(b,0)})`;
-    colors.push(newColor);
-    colorOffset += 3;
+function createPalette(colorOffset:number):string[] {
+    let newColors:string[] = []
+    for (let i=0; i<7; i++) {
+        var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
+        var g = Math.sin(0.3 * colorOffset + 2) * 55 + 200;
+        var b = Math.sin(0.3 * colorOffset) * 55 + 200;
+        var newColor = `rgb(${round(r,0)}, ${round(g,0)}, ${round(b,0)})`;
+        newColors.push(newColor);
+        colorOffset += 3;
+    }
+    return newColors;
 }
+colors = createPalette(colorOffset);
+
 
 /* ===== DEFINING THE REACT COMPONENTS ===== */
 
@@ -117,7 +123,6 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
                 layer = 0;
                 ancestor = "";
                 hovered = false;
-                console.log("Here! 0")
             }
             else {
                 values = el.value.split("*");
@@ -125,7 +130,6 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
                 layer = parseInt(values[1]);
                 ancestor = values[2];
                 hovered = true;
-                console.log("Here! MORE")
             }
             if (!(this.state.self === self)) {
                 this.calculateParams(self, layer, ancestor, hovered);
@@ -235,6 +239,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             collapsed.checked = false;
             currentAlteration.checked = false;
             allEqual.checked = true;
+            colors = createPalette(colorOffset);
+            console.log(colors);
 
             this.cropLineages("root", 0, "allEqual", false, lineagesNames, lineagesRanks);
         })
@@ -1371,6 +1377,7 @@ document.getElementById("file")?.addEventListener("change", () => {
             lineagesRanks = response["lineagesRanks"];
             allTaxaReduced = response["allTaxaReduced"];
             rankPatternFull = response["rankPatternFull"];
+            colorOffset = response["offset"]
             let newData:any = document.getElementById("new-data")!
             newData.checked = true;
             document.getElementById("status")!.innerHTML = "check";

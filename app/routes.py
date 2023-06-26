@@ -74,10 +74,12 @@ def load_tsv_data():
     del taxIDList[0]
     taxIDListUnique = list(dict.fromkeys(taxIDList))
     taxDict = {}
+    taxID_sum = 0
     for taxID in taxIDListUnique:
         if taxID == "NA" or taxID == '':
             taxDict["root"] = {"taxID": "NA", "lineageNames": [["root", "root"]], "unassignedCount": taxIDList.count("NA"), "rank": "root", "totalCount": taxIDList.count("NA")}
         else:
+            taxID_sum += int(taxID)
             taxon = taxopy.Taxon(int(taxID), taxdb)
             name = taxon.name
             rank = taxon.rank
@@ -92,6 +94,7 @@ def load_tsv_data():
         subtaxa_counts = [taxDict[other_taxon]["unassignedCount"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
         taxDict[taxon]["totalCount"] = sum(subtaxa_counts)
     taxDict["root"]["totalCount"] = taxIDList.count("NA")
+    offset = sum_to_2dig(str(taxID_sum))
 
     rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"]
     
@@ -208,7 +211,7 @@ def load_tsv_data():
 
     
 
-    return jsonify({"lineagesNames": lineagesNames, "lineagesRanks": lineagesRanks, "allTaxaReduced": allTaxaReduced, "rankPatternFull": rankPatternFull, "allTaxa": taxDict})
+    return jsonify({"lineagesNames": lineagesNames, "lineagesRanks": lineagesRanks, "allTaxaReduced": allTaxaReduced, "rankPatternFull": rankPatternFull, "allTaxa": taxDict, "offset": offset})
 
 @app.route('/get_tax_data')
 def get_tax_data():
@@ -229,3 +232,15 @@ def upload_file():
       #f.save(secure_filename(f.filename))
       print("f: ", f)
       return redirect(url_for("load_tsv_data"))
+   
+def sum_to_2dig(sum_str, start=0, end=2):
+    if start == len(sum_str):
+        return 0
+    elif end-1 == len(sum_str):
+        return int(sum_str[start])
+    else:
+        sum = int(sum_str[start:end]) + sum_to_2dig(sum_str, start+2, end+2)
+        if sum > 100:
+            return sum_to_2dig(str(sum))
+        else:
+            return sum 
