@@ -62,7 +62,6 @@ def index():
 @app.route('/load_tsv_data', methods=["POST", "GET"])
 def load_tsv_data():
     if request.method == 'GET':
-        print("Here ", request.args)
         path = request.args["tsv_path"]
         with open(path) as file:
             tsv_file = csv.reader(file, delimiter="\t", quotechar='"')
@@ -123,7 +122,11 @@ def load_tsv_data():
         if (len(lineage) == 0) or rank != lineage[len(lineage)-1][0]:
             reducibleTaxa.append(key)
 
+    if len(allTaxaReduced["root"]["lineageNames"]) == 0:
+        allTaxaReduced["root"]["lineageNames"] = ["root", "root"]
+
     for key,value in allTaxaReduced.items():
+        print("allTaxaReduced: ", allTaxaReduced["root"])
         if (key != "root"):
             value["lineageNames"] = [allTaxaReduced["root"]["lineageNames"][0]] + value["lineageNames"]
  
