@@ -263,12 +263,15 @@ var PlotDrawing = /** @class */ (function (_super) {
     }
     PlotDrawing.prototype.componentDidMount = function () {
         var _this = this;
+        // Once everything is initialized, calculate plot.
         this.cropLineages();
+        // Recalculate plot on window resize.
         addEventListener("resize", function (event) {
             var newViewportDimensions = (0, helperFunctions_js_1.getViewportDimensions)();
             viewportDimensions = newViewportDimensions;
             _this.setState({ horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"], alteration: _this.state.alteration }, function () { return _this.cropLineages(); });
         });
+        // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input").addEventListener("change", function () {
             var alteration = document.querySelector('input[name="radio"]:checked').getAttribute("id");
             _this.cropLineages(_this.state.root, _this.state.layer, alteration, _this.state.collapse);
@@ -288,7 +291,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             currentAlteration.checked = false;
             allEqual.checked = true;
             colors = (0, helperFunctions_js_1.createPalette)(colorOffset);
-            console.log(colors);
             _this.cropLineages("root", 0, "allEqual", false, lineagesNames, lineagesRanks);
         });
     };
@@ -305,41 +307,41 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (collapse === void 0) { collapse = this.state.collapse; }
         if (lineages === void 0) { lineages = lineagesNames; }
         if (ranks === void 0) { ranks = lineagesRanks; }
-        taxonName = root;
+        // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
+        taxonName = root.slice(0, 10);
         layerName = layer;
         modeName = alteration;
         collapseName = "collapse" + collapse;
         // Get only relevant lineages.
-        var croppedLineages = [];
-        var croppedRanks = [];
-        var rootTaxa = root.split(" & ");
-        for (var i = 0; i < lineages.length; i++) {
-            if (rootTaxa.indexOf(lineages[i][layer]) > -1) {
+        var croppedLineages = [], croppedRanks = [];
+        var rootTaxa = root.split(" & "); // In the root taxon is actually multiple taxa married together.
+        for (var i = 0; i < lineages.length; i++) { // Iterate over all lineages.
+            if (rootTaxa.indexOf(lineages[i][layer]) > -1) { // If the current lineage, at the relevant layer, contains the root taxon (or one of them), add it.
                 croppedLineages.push(lineages[i]);
                 croppedRanks.push(ranks[i]);
             }
         }
         // Crop lineages so they start with clicked taxon.
         var ancestors = [""];
-        if (croppedLineages[0]) {
-            ancestors = croppedLineages[0].slice(0, layer);
+        if (croppedLineages[0]) { // If there is anything to show at all, a.k.a if there are lineages that passed the first requirement above...
+            ancestors = croppedLineages[0].slice(0, layer); // ...then, they all have the same ancestors, so we set up a variable that will become a part of the component state later.
         }
-        if (rootTaxa.length > 1) {
+        if (rootTaxa.length > 1) { // If the clicked taxon is a married taxon, then crop the lineages to start with the parent taxon of the clicked (married) taxon.
             croppedLineages = croppedLineages.map(function (item) { return item.slice(layer - 1); });
             croppedRanks = croppedRanks.map(function (item) { return item.slice(layer - 1); });
         }
-        else {
+        else { // Otherwise, crop the lineages to start with the clicked taxon.
             croppedLineages = croppedLineages.map(function (item) { return item.slice(layer); });
             croppedRanks = croppedRanks.map(function (item) { return item.slice(layer); });
         }
         // Get minimal rank pattern for this particular plot to prepare for alignment.
-        var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []);
-        ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; });
-        var rankPattern = rankPatternFull.filter(function (item) { return ranksUnique.indexOf(item) > -1; });
+        var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []); // Create an array of all ranks of all cropped lineages. Not unique yet.
+        ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; }); // Uniquify.
+        var rankPattern = rankPatternFull.filter(function (item) { return ranksUnique.indexOf(item) > -1; }); // Match the uniquified array to the fixed rank pattern to keep hierarchical order.
         // Mary taxa if necessary.
         var changedLineages = [];
         if (alteration.startsWith("marriedTaxa")) {
-            var cropped = this.marryTaxa(croppedLineages, croppedRanks, alteration, root);
+            var cropped = this.marryTaxa(croppedLineages, croppedRanks, alteration);
             croppedLineages = cropped[0];
             croppedRanks = cropped[1];
             changedLineages = cropped[2];
@@ -439,21 +441,23 @@ var PlotDrawing = /** @class */ (function (_super) {
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false });
         }
     };
-    PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration, root) {
+    PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
         if (alteration === void 0) { alteration = "marriedTaxaI"; }
+        // Set threshold for marrying. Currently fixed at 2%.
+        var threshold = 0.02;
         var totalUnassignedCounts = 0;
         for (var _i = 0, croppedLineages_1 = croppedLineages; _i < croppedLineages_1.length; _i++) {
             var lineage = croppedLineages_1[_i];
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
         var reducibleLineages = [];
-        var threshold = 0.02;
-        // Find all lineages that make up <1% of the whole, crop them so that they end in the most specific taxon >=1%, put them in an array called reducibleLineages. 
+        // Find all lineages that make up <2% of the whole, crop them so that they end in the most specific taxon >=1%, put them in an array called reducibleLineages. 
         for (var _a = 0, croppedLineages_2 = croppedLineages; _a < croppedLineages_2.length; _a++) {
             var lineage = croppedLineages_2[_a];
-            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < threshold) {
+            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < threshold) { // So, the wedge is too thin?
                 var lineageNumber = croppedLineages.indexOf(lineage);
                 var lastWayTooThinLayer = lineage.length - 1;
+                // Find the furthest wedge above it that is also too thin.
                 for (var i = lineage.length - 2; i >= 0; i--) {
                     if (allTaxaReduced[lineage[i]]["totalCount"] / totalUnassignedCounts >= threshold) {
                         lastWayTooThinLayer = i + 1;
@@ -918,7 +922,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.getTaxonShapes({ "colors": newPalette });
     };
     PlotDrawing.prototype.handleClick = function (shapeId) {
-        console.log("shapeId: ", shapeId);
         var taxon = shapeId.match(/.+?(?=_)/)[0];
         var currLayer = parseInt(shapeId.match(/-?\d+/)[0]);
         var nextLayer;
@@ -933,7 +936,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
         }
-        console.log("root, nL: ", taxon, nextLayer);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     };
     PlotDrawing.prototype.placeLabels = function (alreadyRepeated) {

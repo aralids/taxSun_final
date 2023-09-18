@@ -213,12 +213,18 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     componentDidMount() {
+
+        // Once everything is initialized, calculate plot.
         this.cropLineages();
+
+        // Recalculate plot on window resize.
         addEventListener("resize", (event) => {
             var newViewportDimensions = getViewportDimensions();
             viewportDimensions = newViewportDimensions;
             this.setState({horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"], alteration:this.state.alteration}, () => this.cropLineages());
         })
+
+        // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input")!.addEventListener("change", () => {
             let alteration:any = document.querySelector('input[name="radio"]:checked')!.getAttribute("id");
             this.cropLineages(this.state.root, this.state.layer, alteration, this.state.collapse);
@@ -252,17 +258,17 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     // Leave only relevant lineages and crop them if necessary.
     cropLineages(root=this.state.root, layer=this.state.layer, alteration=this.state.alteration, collapse=this.state.collapse, lineages=lineagesNames, ranks=lineagesRanks):void {
 
-        taxonName = root;
+        // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
+        taxonName = root.slice(0, 10);
         layerName = layer;
         modeName = alteration;
         collapseName = "collapse" + collapse;
 
         // Get only relevant lineages.
-        var croppedLineages:string[][] = [];
-        var croppedRanks:string[][] = [];
-        let rootTaxa:string[] = root.split(" & ");
-        for (let i=0; i<lineages.length; i++) {
-            if (rootTaxa.indexOf(lineages[i][layer]) > -1) {
+        var croppedLineages:string[][] = [], croppedRanks:string[][] = [];
+        let rootTaxa:string[] = root.split(" & "); // In the root taxon is actually multiple taxa married together.
+        for (let i=0; i<lineages.length; i++) { // Iterate over all lineages.
+            if (rootTaxa.indexOf(lineages[i][layer]) > -1) { // If the current lineage, at the relevant layer, contains the root taxon (or one of them), add it.
                 croppedLineages.push(lineages[i]);
                 croppedRanks.push(ranks[i]);
             }
@@ -270,27 +276,27 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         // Crop lineages so they start with clicked taxon.
         var ancestors:string[] = [""];
-        if (croppedLineages[0]) {     
-            ancestors = croppedLineages[0].slice(0, layer);
+        if (croppedLineages[0]) { // If there is anything to show at all, a.k.a if there are lineages that passed the first requirement above...
+            ancestors = croppedLineages[0].slice(0, layer); // ...then, they all have the same ancestors, so we set up a variable that will become a part of the component state later.
         }
-        if (rootTaxa.length > 1) {
+        if (rootTaxa.length > 1) { // If the clicked taxon is a married taxon, then crop the lineages to start with the parent taxon of the clicked (married) taxon.
             croppedLineages = croppedLineages.map(item => item.slice(layer-1));
             croppedRanks = croppedRanks.map(item => item.slice(layer-1));
         }
-        else {
+        else { // Otherwise, crop the lineages to start with the clicked taxon.
             croppedLineages = croppedLineages.map(item => item.slice(layer));
             croppedRanks = croppedRanks.map(item => item.slice(layer));
         }
 
         // Get minimal rank pattern for this particular plot to prepare for alignment.
-        var ranksUnique = croppedRanks.reduce((accumulator, value) => accumulator.concat(value), []);
-        ranksUnique = ranksUnique.filter((value, index, self) => Boolean(value) && self.indexOf(value) === index);
-        var rankPattern:string[] = rankPatternFull.filter(item => ranksUnique.indexOf(item) > -1);
+        var ranksUnique:string[] = croppedRanks.reduce((accumulator, value) => accumulator.concat(value), []); // Create an array of all ranks of all cropped lineages. Not unique yet.
+        ranksUnique = ranksUnique.filter((value, index, self) => Boolean(value) && self.indexOf(value) === index); // Uniquify.
+        var rankPattern:string[] = rankPatternFull.filter(item => ranksUnique.indexOf(item) > -1); // Match the uniquified array to the fixed rank pattern to keep hierarchical order.
 
         // Mary taxa if necessary.
         let changedLineages:Boolean[] = [];
         if (alteration.startsWith("marriedTaxa")) {
-            let cropped = this.marryTaxa(croppedLineages, croppedRanks, alteration, root);
+            let cropped = this.marryTaxa(croppedLineages, croppedRanks, alteration);
             croppedLineages = cropped[0];
             croppedRanks = cropped[1];
             changedLineages = cropped[2];
@@ -393,19 +399,23 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
     }
 
-    marryTaxa(croppedLineages:string[][], croppedRanks:string[][], alteration="marriedTaxaI", root) {
+    marryTaxa(croppedLineages:string[][], croppedRanks:string[][], alteration="marriedTaxaI") {
+        // Set threshold for marrying. Currently fixed at 2%.
+        var threshold:number = 0.02;
+
         var totalUnassignedCounts:number = 0;
         for (let lineage of croppedLineages) {
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
-        var reducibleLineages:any = [];
-        var threshold:number = 0.02;
 
-        // Find all lineages that make up <1% of the whole, crop them so that they end in the most specific taxon >=1%, put them in an array called reducibleLineages. 
+        var reducibleLineages:any = [];
+
+        // Find all lineages that make up <2% of the whole, crop them so that they end in the most specific taxon >=1%, put them in an array called reducibleLineages. 
         for (let lineage of croppedLineages) {
-            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < threshold) {
+            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < threshold) { // So, the wedge is too thin?
                 let lineageNumber:number = croppedLineages.indexOf(lineage);
                 let lastWayTooThinLayer:number = lineage.length - 1;
+                // Find the furthest wedge above it that is also too thin.
                 for (let i=lineage.length-2; i>=0; i--) {
                     if (allTaxaReduced[lineage[i]]["totalCount"] / totalUnassignedCounts >= threshold) {
                         lastWayTooThinLayer = i+1;
@@ -416,6 +426,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 reducibleLineages.push([lineageNumber, partialLineage])
             }
         }
+
         var reductionGroups:object = {};
         if (alteration === "marriedTaxaI") {
             for (let item of reducibleLineages) {
@@ -867,7 +878,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     handleClick(shapeId):void {
-        console.log("shapeId: ", shapeId);
         var taxon:string = shapeId.match(/.+?(?=_)/)[0];
         var currLayer:number = parseInt(shapeId.match(/-?\d+/)[0]);
         var nextLayer;
@@ -882,7 +892,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
         }
-        console.log("root, nL: ", taxon, nextLayer)
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     }
 
