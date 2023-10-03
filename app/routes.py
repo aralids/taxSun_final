@@ -61,34 +61,23 @@ def index():
 
 @app.route('/load_tsv_data', methods=["POST", "GET"])
 def load_tsv_data():
+    taxDict = {}
+    taxIDList = []
+    taxID_sum = 0
+    tempDict = {}
     if request.method == 'GET':
-        path = request.args["tsv_path"]
+        path = request.args["tsv_path"][1:]
         with open(path) as file:
             tsv_file = csv.reader(file, delimiter="\t", quotechar='"')
-            taxIDList = [line[1] for line in tsv_file]
+            for line in tsv_file:
+                taxDict, taxIDList, tempDict, taxID_sum = read_line(line[1], line[2], taxDict, taxIDList, tempDict, taxID_sum)    
     elif request.method == 'POST':
         f = request.files['file'].read()
-        tsv_file = f.decode("utf-8")[:-1]
-        taxIDList = [line.split("\t")[1] for line in tsv_file.split("\n")]
+        tsv_file = (f.decode("utf-8")[:-1]).split("\n")[1:]
+        for line in tsv_file:
+            taxDict, taxIDList, tempDict, taxID_sum = read_line(line.split("\t")[1], line.split("\t")[2], taxDict, taxIDList, tempDict, taxID_sum) 
     del taxIDList[0]
-    taxIDListUnique = list(dict.fromkeys(taxIDList))
-    taxDict = {}
-    taxID_sum = 0
-    for taxID in taxIDListUnique:
-        if taxID == "NA" or taxID == '':
-            taxDict["root"] = {"taxID": "NA", "lineageNames": [["root", "root"]], "unassignedCount": taxIDList.count("NA"), "rank": "root", "totalCount": taxIDList.count("NA")}
-        else:
-            taxID_sum += int(taxID)
-            taxon = taxopy.Taxon(int(taxID), taxdb)
-            name = taxon.name
-            rank = taxon.rank
-            lineageNamesList = taxon.rank_name_dictionary
-            dictlist = [[k,v] for k,v in lineageNamesList.items()][::-1]
-            if name in taxDict:
-                name += " 1"
-            taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "unassignedCount": taxIDList.count(taxID), "rank": rank, "totalCount": taxIDList.count(taxID)}
-            if not (name in flatten(taxDict[name]["lineageNames"])):
-                taxDict[name]["lineageNames"].append([rank, name])
+
     for taxon in taxDict.keys():
         subtaxa_counts = [taxDict[other_taxon]["unassignedCount"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
         taxDict[taxon]["totalCount"] = sum(subtaxa_counts)
@@ -126,7 +115,6 @@ def load_tsv_data():
         allTaxaReduced["root"]["lineageNames"] = ["root", "root"]
 
     for key,value in allTaxaReduced.items():
-        print("allTaxaReduced: ", allTaxaReduced["root"])
         if (key != "root"):
             value["lineageNames"] = [allTaxaReduced["root"]["lineageNames"][0]] + value["lineageNames"]
  
@@ -247,3 +235,32 @@ def sum_to_2dig(sum_str, start=0, end=2):
             return sum_to_2dig(str(sum))
         else:
             return sum 
+
+def read_line(taxID, e_value, taxDict, taxIDList, tempDict, taxID_sum):
+    if not (taxID in taxIDList):
+        taxIDList.append(taxID)
+        if taxID == "NA" or taxID == '':
+            taxDict["root"] = {"taxID": "NA", "lineageNames": [["root", "root"]], "unassignedCount": 1, "rank": "root", "totalCount": 1, "e_values": []}
+        else:
+            taxID_sum += int(taxID)
+            taxon = taxopy.Taxon(int(taxID), taxdb)
+            name = taxon.name
+            rank = taxon.rank
+            lineageNamesList = taxon.rank_name_dictionary
+            dictlist = [[k,v] for k,v in lineageNamesList.items()][::-1]
+            if name in taxDict:
+                name += " 1"
+            taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "unassignedCount": 1, "rank": rank, "totalCount": 1, "e_values": [float(e_value)]}
+            if not (name in flatten(taxDict[name]["lineageNames"])):
+                taxDict[name]["lineageNames"].append([rank, name])
+            tempDict[taxID] = name
+    else:
+        if taxID == "NA" or taxID == '':
+            taxDict["root"]["unassignedCount"] += 1
+            taxDict["root"]["totalCount"] += 1
+            #taxDict["root"]["e_values"].append(0)
+        else:
+            taxDict[tempDict[taxID]]["unassignedCount"] += 1
+            taxDict[tempDict[taxID]]["totalCount"] += 1
+            taxDict[tempDict[taxID]]["e_values"].append(float(e_value))
+    return taxDict, taxIDList, tempDict, taxID_sum
