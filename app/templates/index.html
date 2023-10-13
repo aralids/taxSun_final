@@ -17,10 +17,10 @@
             <input type="text" id="descendant-section" style="display: flex; position: fixed; top: 0vmin; left: 50%; visibility: hidden">
             <div>
                 <form id="uploadForm" action = "http://127.0.0.1:5000/load_tsv_data" method = "POST" enctype = "multipart/form-data">
-                    <fieldset style="border-color: #800080;">
+                    <fieldset style="border-color: #800080; min-width: 0px; max-width: 100%;">
                         <legend style="color: #800080; font-weight: bold;">Upload your data:</legend>
                         <div style="display: flex; max-width: 100%;">
-                            <input type = "file" name = "file" id="file" style="display: inline;"/><span id="status" class="material-symbols-outlined" style="display: inline; right: 2vmin"></span>
+                            <input type = "file" name = "file" id="file" style="display: inline; max-width: 90%;"/><span id="status" class="material-symbols-outlined" style="display: inline; right: 2vmin"></span>
                         </div>
                     </fieldset>
                 </form>
@@ -30,6 +30,10 @@
                 <div id="input">
                     <input type="checkbox" id="checkbox-input" name="collapse" style="accent-color: #800080;">
                     <label for="collapse">Collapse</label>
+                </div>
+                <div id="input1">
+                    <input type="checkbox" id="e-input" name="e-value" style="accent-color: #800080;">
+                    <label for="e-value">Filter by e-value</label>
                 </div>
                 <fieldset id="radio-input" style="display: flex; flex-direction: column; border: none; margin: 0; padding: 0; margin-top: 1.5vh">
                     <div style="display:flex">
