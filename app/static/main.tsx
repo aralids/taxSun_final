@@ -18,6 +18,7 @@ let taxonName = "Laurasiatheria";
 let layerName = 7;
 let collapseName = "collapseFalse";
 let modeName = "allEqual";
+var eThreshold = null;
 
 /* ===== FETCHING THE DATA ===== */
 
@@ -257,6 +258,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
     // Leave only relevant lineages and crop them if necessary.
     cropLineages(root=this.state.root, layer=this.state.layer, alteration=this.state.alteration, collapse=this.state.collapse, lineages=lineagesNames, ranks=lineagesRanks):void {
+
+        console.log("eThreshold: ", eThreshold);
 
         // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
         taxonName = root.slice(0, 10);
@@ -1265,13 +1268,13 @@ document.getElementById("file")?.addEventListener("change", () => {
             rankPatternFull = response["rankPatternFull"];
             allTaxa = response["allTaxa"];
             colorOffset = response["offset"]
+            eThreshold = response["median"];
+            console.log("median: ", response["median"])
             let newData:any = document.getElementById("new-data")!
             newData.checked = true;
             document.getElementById("status")!.innerHTML = "check";
             var evt = new CustomEvent('change');
             newData.dispatchEvent(evt);
-            console.log("allTaxaReduced postLoad: ", allTaxaReduced)
-            console.log("Pancrustacea: ", allTaxa["Pancrustacea"])
         },
         error: function (response) {
             console.log("ERROR", response);

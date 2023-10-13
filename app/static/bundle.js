@@ -438,6 +438,7 @@ var taxonName = "Laurasiatheria";
 var layerName = 7;
 var collapseName = "collapseFalse";
 var modeName = "allEqual";
+var eThreshold = null;
 /* ===== FETCHING THE DATA ===== */
 var path = "lessSpontaneous2.tsv";
 //loadDataFromTSV(path);
@@ -703,6 +704,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (collapse === void 0) { collapse = this.state.collapse; }
         if (lineages === void 0) { lineages = lineagesNames; }
         if (ranks === void 0) { ranks = lineagesRanks; }
+        console.log("eThreshold: ", eThreshold);
         // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
         taxonName = root.slice(0, 10);
         layerName = layer;
@@ -1689,13 +1691,13 @@ var allTaxa = {};
             rankPatternFull = response["rankPatternFull"];
             allTaxa = response["allTaxa"];
             colorOffset = response["offset"];
+            eThreshold = response["median"];
+            console.log("median: ", response["median"]);
             var newData = document.getElementById("new-data");
             newData.checked = true;
             document.getElementById("status").innerHTML = "check";
             var evt = new CustomEvent('change');
             newData.dispatchEvent(evt);
-            console.log("allTaxaReduced postLoad: ", allTaxaReduced);
-            console.log("Pancrustacea: ", allTaxa["Pancrustacea"]);
         },
         error: function (response) {
             console.log("ERROR", response);
