@@ -678,6 +678,9 @@ var PlotDrawing = /** @class */ (function (_super) {
             var checked = element.checked;
             _this.cropLineages(_this.state.root, _this.state.layer, _this.state.alteration, checked);
         });
+        document.getElementById("e-input").addEventListener("change", function () {
+            console.log("eValue set!");
+        });
         document.getElementById("new-data").addEventListener("change", function () {
             var newData = document.getElementById("new-data");
             var collapsed = document.getElementById("checkbox-input");
@@ -1692,6 +1695,12 @@ var allTaxa = {};
             allTaxa = response["allTaxa"];
             colorOffset = response["offset"];
             eThreshold = response["median"];
+            if (eThreshold) {
+                enableEValue(eThreshold);
+            }
+            else {
+                disableEValue();
+            }
             console.log("median: ", response["median"]);
             var newData = document.getElementById("new-data");
             newData.checked = true;
@@ -1727,6 +1736,18 @@ addEventListener("mousemove", function (e) {
 document.getElementById("upload-button").addEventListener("click", function () {
     $('input[type="file"]').click();
 });
+function enableEValue(median) {
+    document.getElementById("e-input").removeAttribute("disabled");
+    document.getElementById("e-label").style.color = "black";
+    document.getElementById("e-text").removeAttribute("disabled");
+    document.getElementById("e-text").setAttribute("value", median);
+}
+function disableEValue() {
+    document.getElementById("e-input").setAttribute("disabled", "disabled");
+    document.getElementById("e-label").style.color = "grey";
+    document.getElementById("e-text").setAttribute("disabled", "disabled");
+    document.getElementById("e-text").setAttribute("value", "");
+}
 
 },{"./helperFunctions.js":3,"./objects.js":5,"html2canvas":6,"react":13,"react-dom/client":9}],5:[function(require,module,exports){
 "use strict";

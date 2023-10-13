@@ -235,6 +235,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let checked:boolean = element.checked;
             this.cropLineages(this.state.root, this.state.layer, this.state.alteration, checked);
         })
+        document.getElementById("e-input")!.addEventListener("change", () => {
+            console.log("eValue set!")
+        })
         document.getElementById("new-data")!.addEventListener("change", () => {
             let newData:any = document.getElementById("new-data")!
             let collapsed:any = document.getElementById("checkbox-input")!
@@ -1269,6 +1272,12 @@ document.getElementById("file")?.addEventListener("change", () => {
             allTaxa = response["allTaxa"];
             colorOffset = response["offset"]
             eThreshold = response["median"];
+            if (eThreshold) {
+                enableEValue(eThreshold);
+            }
+            else {
+                disableEValue();
+            }
             console.log("median: ", response["median"])
             let newData:any = document.getElementById("new-data")!
             newData.checked = true;
@@ -1309,3 +1318,17 @@ addEventListener("mousemove", (e) => {
 document.getElementById("upload-button")!.addEventListener("click", () => {
     $('input[type="file"]').click();
 })
+
+function enableEValue(median) {
+    document.getElementById("e-input")!.removeAttribute("disabled");
+    document.getElementById("e-label")!.style.color = "black";
+    document.getElementById("e-text")!.removeAttribute("disabled");
+    document.getElementById("e-text")!.setAttribute("value", median);
+}
+
+function disableEValue() {
+    document.getElementById("e-input")!.setAttribute("disabled", "disabled");
+    document.getElementById("e-label")!.style.color = "grey";
+    document.getElementById("e-text")!.setAttribute("disabled", "disabled");
+    document.getElementById("e-text")!.setAttribute("value", "");
+}
