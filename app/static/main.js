@@ -49,6 +49,7 @@ var path = "lessSpontaneous2.tsv";
 var lineagesNames = objects_js_1.ln;
 var lineagesRanks = objects_js_1.lr;
 var allTaxaReduced = objects_js_1.atr;
+var originalAllTaxaReduced = JSON.parse(JSON.stringify(objects_js_1.atr));
 var rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];
 var colors = [];
 var colorOffset = Math.round(Math.random() * 100); //84, 98, 31, 20, 1, 2
@@ -284,7 +285,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             _this.cropLineages(_this.state.root, _this.state.layer, _this.state.alteration, checked);
         });
         document.getElementById("e-input").addEventListener("change", function () {
-            console.log("eValue set!");
             var element = document.getElementById("e-input");
             var checked = element.checked;
             _this.cropLineages(_this.state.root, _this.state.layer, _this.state.alteration, _this.state.collapse, checked);
@@ -318,13 +318,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (plotEValue === void 0) { plotEValue = this.state.plotEValue; }
         if (lineages === void 0) { lineages = lineagesNames; }
         if (ranks === void 0) { ranks = lineagesRanks; }
-        console.log("eThreshold: ", eThreshold);
-        if (plotEValue) {
-            console.log("yes filtering: ", plotEValue);
-        }
-        else {
-            console.log("no filtering");
-        }
         // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
         taxonName = root.slice(0, 10);
         layerName = layer;
@@ -351,6 +344,15 @@ var PlotDrawing = /** @class */ (function (_super) {
         else { // Otherwise, crop the lineages to start with the clicked taxon.
             croppedLineages = croppedLineages.map(function (item) { return item.slice(layer); });
             croppedRanks = croppedRanks.map(function (item) { return item.slice(layer); });
+        }
+        allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
+        if (plotEValue) {
+            console.log("plotEValue: ", plotEValue);
+            //console.log("BEFORE aTR: ", JSON.parse(JSON.stringify(croppedLineages)));
+            var modified = this.filterByEValue(croppedLineages, croppedRanks);
+            croppedLineages = modified[0], croppedRanks = modified[1];
+            //console.log("AFTER aTR: ", JSON.parse(JSON.stringify(croppedLineages)));
+            console.log("===========");
         }
         // Get minimal rank pattern for this particular plot to prepare for alignment.
         var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []); // Create an array of all ranks of all cropped lineages. Not unique yet.
@@ -458,6 +460,26 @@ var PlotDrawing = /** @class */ (function (_super) {
         else if (croppedLineages.length > 1) {
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue });
         }
+    };
+    PlotDrawing.prototype.filterByEValue = function (croppedLineages, croppedRanks) {
+        for (var i = 0; i < croppedLineages.length; i++) {
+            var lineage = croppedLineages[i];
+            var lastTaxon = lineage[lineage.length - 1];
+            var oldUnassignedCount = originalAllTaxaReduced[lastTaxon]["unassignedCount"];
+            var newUnassignedCount = originalAllTaxaReduced[lastTaxon]["e_values"].filter(function (item) { return item <= eThreshold; }).length;
+            var diff = oldUnassignedCount - newUnassignedCount;
+            console.log("old and new in filterByEValue: ", lastTaxon, oldUnassignedCount, newUnassignedCount);
+            allTaxaReduced[lastTaxon]["unassignedCount"] = newUnassignedCount;
+            for (var _i = 0, lineage_2 = lineage; _i < lineage_2.length; _i++) {
+                var taxon = lineage_2[_i];
+                allTaxaReduced[taxon]["totalCount"] -= diff;
+            }
+            if (newUnassignedCount === 0) {
+                croppedLineages.splice(i, 1);
+                croppedRanks.splice(i, 1);
+            }
+        }
+        return [croppedLineages, croppedRanks];
     };
     PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
         if (alteration === void 0) { alteration = "marriedTaxaI"; }
@@ -1307,7 +1329,8 @@ var allTaxa = {};
         success: function (response) {
             lineagesNames = response["lineagesNames"];
             lineagesRanks = response["lineagesRanks"];
-            allTaxaReduced = response["allTaxaReduced"];
+            allTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
+            originalAllTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
             rankPatternFull = response["rankPatternFull"];
             allTaxa = response["allTaxa"];
             colorOffset = response["offset"];
