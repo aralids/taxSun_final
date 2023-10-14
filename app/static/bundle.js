@@ -444,7 +444,7 @@ var path = "lessSpontaneous2.tsv";
 //loadDataFromTSV(path);
 var lineagesNames = objects_js_1.ln;
 var lineagesRanks = objects_js_1.lr;
-var allTaxaReduced = objects_js_1.atr;
+var allTaxaReduced = JSON.parse(JSON.stringify(objects_js_1.atr));
 var originalAllTaxaReduced = JSON.parse(JSON.stringify(objects_js_1.atr));
 var rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];
 var colors = [];
@@ -656,7 +656,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             labelsPlaced: false,
             height: 0,
             alreadyRepeated: false,
-            plotEValue: null
+            plotEValue: false
         };
         return _this;
     }
@@ -697,7 +697,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             allEqual.checked = true;
             eFilter.checked = false;
             colors = (0, helperFunctions_js_1.createPalette)(colorOffset);
-            _this.cropLineages("root", 0, "allEqual", false, null, lineagesNames, lineagesRanks);
+            _this.cropLineages("root", 0, "allEqual", false, false, lineagesNames, lineagesRanks);
         });
     };
     PlotDrawing.prototype.componentDidUpdate = function () {
@@ -749,6 +749,9 @@ var PlotDrawing = /** @class */ (function (_super) {
             croppedLineages = modified[0], croppedRanks = modified[1];
             //console.log("AFTER aTR: ", JSON.parse(JSON.stringify(croppedLineages)));
             console.log("===========");
+        }
+        else {
+            console.log("ignore e-val");
         }
         // Get minimal rank pattern for this particular plot to prepare for alignment.
         var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []); // Create an array of all ranks of all cropped lineages. Not unique yet.
@@ -849,7 +852,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
         var layerWidth = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
         // Continue if more than one lineage fulfilling the criteria was found.
-        var currPlotId = root + layer + collapse + alteration + (0, helperFunctions_js_1.round)(layerWidth);
+        var currPlotId = root + layer + collapse + alteration + plotEValue + (0, helperFunctions_js_1.round)(layerWidth);
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
             this.setState(alreadyVisited[currPlotId]);
         }
@@ -864,7 +867,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             var oldUnassignedCount = originalAllTaxaReduced[lastTaxon]["unassignedCount"];
             var newUnassignedCount = originalAllTaxaReduced[lastTaxon]["e_values"].filter(function (item) { return item <= eThreshold; }).length;
             var diff = oldUnassignedCount - newUnassignedCount;
-            console.log("old and new in filterByEValue: ", lastTaxon, oldUnassignedCount, newUnassignedCount);
             allTaxaReduced[lastTaxon]["unassignedCount"] = newUnassignedCount;
             for (var _i = 0, lineage_2 = lineage; _i < lineage_2.length; _i++) {
                 var taxon = lineage_2[_i];

@@ -26,7 +26,7 @@ var path = "lessSpontaneous2.tsv";
 //loadDataFromTSV(path);
 let lineagesNames:string[][] = ln;
 let lineagesRanks:string[][] = lr;
-let allTaxaReduced:object = atr;
+let allTaxaReduced:object = JSON.parse(JSON.stringify(atr));
 let originalAllTaxaReduced:object = JSON.parse(JSON.stringify(atr));
 let rankPatternFull:string[] = ["root","superkingdom","kingdom","subkingdom","superphylum","phylum","subphylum","superclass","class","subclass","superorder","order","suborder","superfamily","family","subfamily","supergenus","genus","subgenus","superspecies","species"];
 
@@ -178,7 +178,7 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
     }
 }
 
-class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number, numberOfLayers:number, layerWidth:number, count:number, abbreviateLabels:boolean, labelsPlaced:boolean, height:number, alreadyRepeated:boolean, plotEValue:any}> {
+class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number, numberOfLayers:number, layerWidth:number, count:number, abbreviateLabels:boolean, labelsPlaced:boolean, height:number, alreadyRepeated:boolean, plotEValue:boolean}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -211,7 +211,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             labelsPlaced: false,
             height: 0,
             alreadyRepeated: false,
-            plotEValue: null
+            plotEValue: false
         }
     }
 
@@ -255,7 +255,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             eFilter.checked = false;
             colors = createPalette(colorOffset);
 
-            this.cropLineages("root", 0, "allEqual", false, null, lineagesNames, lineagesRanks);
+            this.cropLineages("root", 0, "allEqual", false, false, lineagesNames, lineagesRanks);
         })
     }
 
@@ -306,6 +306,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             croppedLineages = modified[0], croppedRanks = modified[1];
             //console.log("AFTER aTR: ", JSON.parse(JSON.stringify(croppedLineages)));
             console.log("===========");
+        }
+        else {
+            console.log("ignore e-val")
         }
 
         // Get minimal rank pattern for this particular plot to prepare for alignment.
@@ -411,7 +414,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var layerWidth:number = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
 
         // Continue if more than one lineage fulfilling the criteria was found.
-        var currPlotId:string = root + layer + collapse + alteration + round(layerWidth);
+        var currPlotId:string = root + layer + collapse + alteration + plotEValue + round(layerWidth);
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
             this.setState(alreadyVisited[currPlotId]);
         } else if (croppedLineages.length > 1) {
@@ -427,7 +430,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let newUnassignedCount:number = originalAllTaxaReduced[lastTaxon]["e_values"].filter(item => item <= eThreshold!).length;
 
             let diff:number = oldUnassignedCount - newUnassignedCount;
-            console.log("old and new in filterByEValue: ", lastTaxon, oldUnassignedCount, newUnassignedCount);
 
             allTaxaReduced[lastTaxon]["unassignedCount"] = newUnassignedCount;
             for (let taxon of lineage) {
