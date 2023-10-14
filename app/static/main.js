@@ -65,12 +65,13 @@ var AncestorSection = /** @class */ (function (_super) {
             rank: "",
             totalCount: 0,
             unassignedCount: 0,
-            lines: []
+            lines: [],
+            plotEValue: false
         };
         return _this;
     }
     AncestorSection.prototype.componentDidUpdate = function () {
-        if (this.props.root !== this.state.root) {
+        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue)) {
             this.getCounts();
         }
     };
@@ -88,14 +89,16 @@ var AncestorSection = /** @class */ (function (_super) {
             rank = allTaxaReduced[groupedTaxa[0]]["rank"];
         }
         else {
+            console.log("aaa");
             totalCount = allTaxaReduced[this.props.root]["totalCount"];
             unassignedCount = allTaxaReduced[this.props.root]["unassignedCount"];
             rank = allTaxaReduced[this.props.root]["rank"];
         }
         var lines = this.props.ancestors.map(function (item) { return ("".concat((0, helperFunctions_js_1.round)(totalCount * 100 / allTaxaReduced[item]["totalCount"], 2), "%")); });
-        this.setState({ totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank });
+        this.setState({ totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank, plotEValue: this.props.plotEValue });
     };
     AncestorSection.prototype.render = function () {
+        console.log("ancestors!");
         var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "Current layer:");
         var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
             "Taxon: ",
@@ -277,16 +280,31 @@ var PlotDrawing = /** @class */ (function (_super) {
         // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input").addEventListener("change", function () {
             var alteration = document.querySelector('input[name="radio"]:checked').getAttribute("id");
+            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth);
+            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
+                alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
+                alreadyVisited[plotId]["abbreviateLabels"] = false;
+            }
             _this.cropLineages(_this.state.root, _this.state.layer, alteration, _this.state.collapse);
         });
         document.getElementById("checkbox-input").addEventListener("change", function () {
             var element = document.getElementById("checkbox-input");
             var checked = element.checked;
+            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth);
+            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
+                alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
+                alreadyVisited[plotId]["abbreviateLabels"] = false;
+            }
             _this.cropLineages(_this.state.root, _this.state.layer, _this.state.alteration, checked);
         });
         document.getElementById("e-input").addEventListener("change", function () {
             var element = document.getElementById("e-input");
             var checked = element.checked;
+            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth);
+            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
+                alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
+                alreadyVisited[plotId]["abbreviateLabels"] = false;
+            }
             _this.cropLineages(_this.state.root, _this.state.layer, _this.state.alteration, _this.state.collapse, checked);
         });
         document.getElementById("new-data").addEventListener("change", function () {
@@ -347,15 +365,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
         if (plotEValue) {
-            console.log("plotEValue: ", plotEValue);
-            //console.log("BEFORE aTR: ", JSON.parse(JSON.stringify(croppedLineages)));
             var modified = this.filterByEValue(croppedLineages, croppedRanks);
             croppedLineages = modified[0], croppedRanks = modified[1];
-            //console.log("AFTER aTR: ", JSON.parse(JSON.stringify(croppedLineages)));
-            console.log("===========");
-        }
-        else {
-            console.log("ignore e-val");
         }
         // Get minimal rank pattern for this particular plot to prepare for alignment.
         var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []); // Create an array of all ranks of all cropped lineages. Not unique yet.
@@ -457,10 +468,13 @@ var PlotDrawing = /** @class */ (function (_super) {
         var layerWidth = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
         // Continue if more than one lineage fulfilling the criteria was found.
         var currPlotId = root + layer + collapse + alteration + plotEValue + (0, helperFunctions_js_1.round)(layerWidth);
+        console.log("currPlotId: ", currPlotId);
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
+            console.log("already-visited");
             this.setState(alreadyVisited[currPlotId]);
         }
         else if (croppedLineages.length > 1) {
+            console.log("not yet visited");
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue });
         }
     };
@@ -976,7 +990,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         else {
             nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : currLayer + this.state.layer;
         }
-        var plotId = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + (0, helperFunctions_js_1.round)(this.state.layerWidth);
+        var plotId = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + (0, helperFunctions_js_1.round)(this.state.layerWidth);
+        console.log("plotId: ", plotId);
         if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
@@ -1184,7 +1199,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 " ",
                 labels,
                 React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "ancestors" }, ancestors), React.createElement("div", { style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "width": "20%", "padding": 0, "margin": 0 } },
-                React.createElement(AncestorSection, { ancestors: anc, root: this.state.root, layer: this.state.layer, onClickArray: anc.map(function (self, index) { return function () { _this.handleClick("".concat(self, "_-_").concat(-index)); }; }) }),
+                React.createElement(AncestorSection, { ancestors: anc, root: this.state.root, layer: this.state.layer, plotEValue: this.state.plotEValue, onClickArray: anc.map(function (self, index) { return function () { _this.handleClick("".concat(self, "_-_").concat(-index)); }; }) }),
                 React.createElement(DescendantSection, { self: "Felinae", layer: 0, ancestor: "Felidae", hovered: true }))];
     };
     return PlotDrawing;

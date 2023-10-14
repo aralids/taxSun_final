@@ -37,7 +37,7 @@ colors = createPalette(colorOffset);
 
 /* ===== DEFINING THE REACT COMPONENTS ===== */
 
-class AncestorSection extends React.Component<{ancestors:string[], root:string, layer:number, onClickArray:any}, {root:string, layer:number, rank:string, totalCount:number, unassignedCount:number, lines:string[]}> {
+class AncestorSection extends React.Component<{ancestors:string[], root:string, layer:number, onClickArray:any, plotEValue:boolean}, {root:string, layer:number, rank:string, totalCount:number, unassignedCount:number, lines:string[], plotEValue:boolean}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -46,12 +46,13 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
             rank: "",
             totalCount: 0,
             unassignedCount: 0,
-            lines: []
+            lines: [],
+            plotEValue: false
         }
     }
 
     componentDidUpdate() {
-        if (this.props.root !== this.state.root) {
+        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue)) {
             this.getCounts();
         }
     }
@@ -69,6 +70,7 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
             rank = allTaxaReduced[groupedTaxa[0]]["rank"];
         }
         else {
+            console.log("aaa");
             totalCount = allTaxaReduced[this.props.root]["totalCount"];
             unassignedCount = allTaxaReduced[this.props.root]["unassignedCount"];
             rank = allTaxaReduced[this.props.root]["rank"];
@@ -76,10 +78,11 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
 
         let lines:string[] = this.props.ancestors.map(item => (`${round(totalCount * 100 / allTaxaReduced[item]["totalCount"], 2)}%`));
 
-        this.setState({totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank});
+        this.setState({totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank, plotEValue: this.props.plotEValue});
     }
 
     render() {
+        console.log("ancestors!")
         let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>Current layer:</legend>;
         let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Taxon: <b>{this.state.root}</b>, #{this.state.layer}</p>
         let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: {this.state.rank}</p>;
@@ -230,16 +233,31 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input")!.addEventListener("change", () => {
             let alteration:any = document.querySelector('input[name="radio"]:checked')!.getAttribute("id");
+            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth);
+            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
+                alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
+                alreadyVisited[plotId]["abbreviateLabels"] = false;
+            }
             this.cropLineages(this.state.root, this.state.layer, alteration, this.state.collapse);
         })
         document.getElementById("checkbox-input")!.addEventListener("change", () => {
             let element:any =  document.getElementById("checkbox-input")!;
             let checked:boolean = element.checked;
+            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth);
+            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
+                alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
+                alreadyVisited[plotId]["abbreviateLabels"] = false;
+            }
             this.cropLineages(this.state.root, this.state.layer, this.state.alteration, checked);
         })
         document.getElementById("e-input")!.addEventListener("change", () => {
             let element:any =  document.getElementById("e-input")!;
             let checked:boolean = element.checked;
+            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth);
+            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
+                alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
+                alreadyVisited[plotId]["abbreviateLabels"] = false;
+            }
             this.cropLineages(this.state.root, this.state.layer, this.state.alteration, this.state.collapse, checked);
         })
         document.getElementById("new-data")!.addEventListener("change", () => {
@@ -300,15 +318,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
         if (plotEValue) {
-            console.log("plotEValue: ", plotEValue);
-            //console.log("BEFORE aTR: ", JSON.parse(JSON.stringify(croppedLineages)));
             let modified = this.filterByEValue(croppedLineages, croppedRanks);
             croppedLineages = modified[0], croppedRanks = modified[1];
-            //console.log("AFTER aTR: ", JSON.parse(JSON.stringify(croppedLineages)));
-            console.log("===========");
-        }
-        else {
-            console.log("ignore e-val")
         }
 
         // Get minimal rank pattern for this particular plot to prepare for alignment.
@@ -415,9 +426,12 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         // Continue if more than one lineage fulfilling the criteria was found.
         var currPlotId:string = root + layer + collapse + alteration + plotEValue + round(layerWidth);
+        console.log("currPlotId: ", currPlotId);
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
+            console.log("already-visited")
             this.setState(alreadyVisited[currPlotId]);
         } else if (croppedLineages.length > 1) {
+            console.log("not yet visited")
             this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue});
         }
     }
@@ -935,7 +949,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         else {
             nextLayer = currLayer <= 0 ? this.state.layer + (currLayer-1) : currLayer + this.state.layer;
         }
-        let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + round(this.state.layerWidth);
+        let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth);
+        console.log("plotId: ", plotId);
         if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
@@ -1153,7 +1168,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         let anc:any[] = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
 
-        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "width": "20%", "padding": 0, "margin": 0}}><AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
+        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "width": "20%", "padding": 0, "margin": 0}}><AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} plotEValue={this.state.plotEValue} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
     }
     //<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>
 }
