@@ -177,7 +177,7 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
     }
 }
 
-class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number, numberOfLayers:number, layerWidth:number, count:number, abbreviateLabels:boolean, labelsPlaced:boolean, height:number, alreadyRepeated:boolean}> {
+class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number, numberOfLayers:number, layerWidth:number, count:number, abbreviateLabels:boolean, labelsPlaced:boolean, height:number, alreadyRepeated:boolean, plotEValue:any}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -209,7 +209,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             abbreviateLabels: true,
             labelsPlaced: false,
             height: 0,
-            alreadyRepeated: false
+            alreadyRepeated: false,
+            plotEValue: null
         }
     }
 
@@ -237,19 +238,24 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         })
         document.getElementById("e-input")!.addEventListener("change", () => {
             console.log("eValue set!")
+            let element:any =  document.getElementById("e-input")!;
+            let checked:boolean = element.checked;
+            this.cropLineages(this.state.root, this.state.layer, this.state.alteration, this.state.collapse, checked);
         })
         document.getElementById("new-data")!.addEventListener("change", () => {
             let newData:any = document.getElementById("new-data")!
             let collapsed:any = document.getElementById("checkbox-input")!
             let currentAlteration:any = document.querySelector('input[name="radio"]:checked')!
             let allEqual:any = document.getElementById("allEqual")!
+            let eFilter:any = document.getElementById("e-input")!
             newData.checked = false;
             collapsed.checked = false;
             currentAlteration.checked = false;
             allEqual.checked = true;
+            eFilter.checked = false;
             colors = createPalette(colorOffset);
 
-            this.cropLineages("root", 0, "allEqual", false, lineagesNames, lineagesRanks);
+            this.cropLineages("root", 0, "allEqual", false, null, lineagesNames, lineagesRanks);
         })
     }
 
@@ -260,9 +266,15 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     // Leave only relevant lineages and crop them if necessary.
-    cropLineages(root=this.state.root, layer=this.state.layer, alteration=this.state.alteration, collapse=this.state.collapse, lineages=lineagesNames, ranks=lineagesRanks):void {
+    cropLineages(root=this.state.root, layer=this.state.layer, alteration=this.state.alteration, collapse=this.state.collapse, plotEValue=this.state.plotEValue, lineages=lineagesNames, ranks=lineagesRanks):void {
 
         console.log("eThreshold: ", eThreshold);
+        if (plotEValue) {
+            console.log("yes filtering: ", plotEValue);
+        }
+        else {
+            console.log("no filtering");
+        }
 
         // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
         taxonName = root.slice(0, 10);
@@ -401,7 +413,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
             this.setState(alreadyVisited[currPlotId]);
         } else if (croppedLineages.length > 1) {
-            this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false});
+            this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue});
         }
     }
 
@@ -1074,8 +1086,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
 
     render() {
-        console.log("layerWidth: ", this.state.layerWidth);
-        console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
+        //console.log("layerWidth: ", this.state.layerWidth);
+        //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
 
         currentState = this.state;
         var shapes:any = [];
@@ -1278,7 +1290,6 @@ document.getElementById("file")?.addEventListener("change", () => {
             else {
                 disableEValue();
             }
-            console.log("median: ", response["median"])
             let newData:any = document.getElementById("new-data")!
             newData.checked = true;
             document.getElementById("status")!.innerHTML = "check";

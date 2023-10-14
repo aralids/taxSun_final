@@ -258,7 +258,8 @@ var PlotDrawing = /** @class */ (function (_super) {
             abbreviateLabels: true,
             labelsPlaced: false,
             height: 0,
-            alreadyRepeated: false
+            alreadyRepeated: false,
+            plotEValue: null
         };
         return _this;
     }
@@ -284,18 +285,23 @@ var PlotDrawing = /** @class */ (function (_super) {
         });
         document.getElementById("e-input").addEventListener("change", function () {
             console.log("eValue set!");
+            var element = document.getElementById("e-input");
+            var checked = element.checked;
+            _this.cropLineages(_this.state.root, _this.state.layer, _this.state.alteration, _this.state.collapse, checked);
         });
         document.getElementById("new-data").addEventListener("change", function () {
             var newData = document.getElementById("new-data");
             var collapsed = document.getElementById("checkbox-input");
             var currentAlteration = document.querySelector('input[name="radio"]:checked');
             var allEqual = document.getElementById("allEqual");
+            var eFilter = document.getElementById("e-input");
             newData.checked = false;
             collapsed.checked = false;
             currentAlteration.checked = false;
             allEqual.checked = true;
+            eFilter.checked = false;
             colors = (0, helperFunctions_js_1.createPalette)(colorOffset);
-            _this.cropLineages("root", 0, "allEqual", false, lineagesNames, lineagesRanks);
+            _this.cropLineages("root", 0, "allEqual", false, null, lineagesNames, lineagesRanks);
         });
     };
     PlotDrawing.prototype.componentDidUpdate = function () {
@@ -304,14 +310,21 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
     };
     // Leave only relevant lineages and crop them if necessary.
-    PlotDrawing.prototype.cropLineages = function (root, layer, alteration, collapse, lineages, ranks) {
+    PlotDrawing.prototype.cropLineages = function (root, layer, alteration, collapse, plotEValue, lineages, ranks) {
         if (root === void 0) { root = this.state.root; }
         if (layer === void 0) { layer = this.state.layer; }
         if (alteration === void 0) { alteration = this.state.alteration; }
         if (collapse === void 0) { collapse = this.state.collapse; }
+        if (plotEValue === void 0) { plotEValue = this.state.plotEValue; }
         if (lineages === void 0) { lineages = lineagesNames; }
         if (ranks === void 0) { ranks = lineagesRanks; }
         console.log("eThreshold: ", eThreshold);
+        if (plotEValue) {
+            console.log("yes filtering: ", plotEValue);
+        }
+        else {
+            console.log("no filtering");
+        }
         // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
         taxonName = root.slice(0, 10);
         layerName = layer;
@@ -443,7 +456,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             this.setState(alreadyVisited[currPlotId]);
         }
         else if (croppedLineages.length > 1) {
-            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false });
+            this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue });
         }
     };
     PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
@@ -1094,9 +1107,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
     };
     PlotDrawing.prototype.render = function () {
+        //console.log("layerWidth: ", this.state.layerWidth);
+        //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
         var _this = this;
-        console.log("layerWidth: ", this.state.layerWidth);
-        console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
         currentState = this.state;
         var shapes = [];
         var labels = [];
@@ -1305,7 +1318,6 @@ var allTaxa = {};
             else {
                 disableEValue();
             }
-            console.log("median: ", response["median"]);
             var newData = document.getElementById("new-data");
             newData.checked = true;
             document.getElementById("status").innerHTML = "check";
