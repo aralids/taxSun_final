@@ -462,12 +462,13 @@ var AncestorSection = /** @class */ (function (_super) {
             totalCount: 0,
             unassignedCount: 0,
             lines: [],
-            plotEValue: false
+            plotEValue: false,
+            eThresholdHere: eThreshold
         };
         return _this;
     }
     AncestorSection.prototype.componentDidUpdate = function () {
-        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue)) {
+        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue) || (eThreshold !== this.state.eThresholdHere)) {
             this.getCounts();
         }
     };
@@ -485,16 +486,14 @@ var AncestorSection = /** @class */ (function (_super) {
             rank = allTaxaReduced[groupedTaxa[0]]["rank"];
         }
         else {
-            console.log("aaa");
             totalCount = allTaxaReduced[this.props.root]["totalCount"];
             unassignedCount = allTaxaReduced[this.props.root]["unassignedCount"];
             rank = allTaxaReduced[this.props.root]["rank"];
         }
         var lines = this.props.ancestors.map(function (item) { return ("".concat((0, helperFunctions_js_1.round)(totalCount * 100 / allTaxaReduced[item]["totalCount"], 2), "%")); });
-        this.setState({ totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank, plotEValue: this.props.plotEValue });
+        this.setState({ totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank, plotEValue: this.props.plotEValue, eThresholdHere: eThreshold });
     };
     AncestorSection.prototype.render = function () {
-        console.log("ancestors!");
         var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "Current layer:");
         var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
             "Taxon: ",
@@ -676,7 +675,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input").addEventListener("change", function () {
             var alteration = document.querySelector('input[name="radio"]:checked').getAttribute("id");
-            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth);
+            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth) + eThreshold;
             if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
                 alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
                 alreadyVisited[plotId]["abbreviateLabels"] = false;
@@ -686,7 +685,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         document.getElementById("checkbox-input").addEventListener("change", function () {
             var element = document.getElementById("checkbox-input");
             var checked = element.checked;
-            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth);
+            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth) + eThreshold;
             if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
                 alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
                 alreadyVisited[plotId]["abbreviateLabels"] = false;
@@ -696,7 +695,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         document.getElementById("e-input").addEventListener("change", function () {
             var element = document.getElementById("e-input");
             var checked = element.checked;
-            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth);
+            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth) + eThreshold;
             if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
                 alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
                 alreadyVisited[plotId]["abbreviateLabels"] = false;
@@ -716,6 +715,27 @@ var PlotDrawing = /** @class */ (function (_super) {
             eFilter.checked = false;
             colors = (0, helperFunctions_js_1.createPalette)(colorOffset);
             _this.cropLineages("root", 0, "allEqual", false, false, lineagesNames, lineagesRanks);
+        });
+        document.getElementById("e-text").addEventListener("keyup", function (_a) {
+            var key = _a.key;
+            var eInput = document.getElementById("e-input");
+            if (key === "Enter") {
+                var el = document.getElementById("e-text");
+                var value = parseFloat(el.value);
+                if (eInput.checked) {
+                    console.log("checked");
+                    var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth) + eThreshold;
+                    if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
+                        alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
+                        alreadyVisited[plotId]["abbreviateLabels"] = false;
+                    }
+                    eThreshold = value;
+                    _this.cropLineages();
+                }
+                else {
+                    eThreshold = value;
+                }
+            }
         });
     };
     PlotDrawing.prototype.componentDidUpdate = function () {
@@ -862,15 +882,15 @@ var PlotDrawing = /** @class */ (function (_super) {
         var numberOfLayers = alignedCropppedLineages[0].length;
         var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
         var layerWidth = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
+        console.log("eThreshold: ", eThreshold);
         // Continue if more than one lineage fulfilling the criteria was found.
-        var currPlotId = root + layer + collapse + alteration + plotEValue + (0, helperFunctions_js_1.round)(layerWidth);
-        console.log("currPlotId: ", currPlotId);
+        var currPlotId = root + layer + collapse + alteration + plotEValue + (0, helperFunctions_js_1.round)(layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
             console.log("already-visited");
             this.setState(alreadyVisited[currPlotId]);
         }
         else if (croppedLineages.length > 1) {
-            console.log("not yet visited");
+            console.log("unvisited");
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue });
         }
     };
@@ -1386,8 +1406,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         else {
             nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : currLayer + this.state.layer;
         }
-        var plotId = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + (0, helperFunctions_js_1.round)(this.state.layerWidth);
-        console.log("plotId: ", plotId);
+        var plotId = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + (0, helperFunctions_js_1.round)(this.state.layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
@@ -1542,9 +1561,10 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
     };
     PlotDrawing.prototype.render = function () {
+        var _this = this;
+        console.log("render original aTR:", originalAllTaxaReduced["Gulo gulo"]);
         //console.log("layerWidth: ", this.state.layerWidth);
         //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
-        var _this = this;
         currentState = this.state;
         var shapes = [];
         var labels = [];

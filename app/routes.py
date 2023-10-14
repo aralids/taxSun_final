@@ -90,7 +90,8 @@ def load_tsv_data():
     for taxon in taxDict.keys():
         subtaxa_counts = [taxDict[other_taxon]["unassignedCount"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
         taxDict[taxon]["totalCount"] = sum(subtaxa_counts)
-    taxDict["root"]["totalCount"] = taxIDList.count("NA")
+    #taxDict["root"]["totalCount"] = taxIDList.count("NA")
+    print('taxDict["root"]: ', taxDict["root"])
     offset = sum_to_2dig(str(taxID_sum))
 
     rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"]
@@ -130,6 +131,8 @@ def load_tsv_data():
     for key,value in allTaxaReduced.items():
         if (key != "root"):
             value["lineageNames"] = [allTaxaReduced["root"]["lineageNames"][0]] + value["lineageNames"]
+
+    print('allTaxaReduced["root"]: ', allTaxaReduced["root"])
  
     # Delete reducible taxa from allTaxaReduced and add new ones, their lastPredecessor, if necessary.
     # (else) If the last predecessor is not in allTaxaReduced (doesn't have its own counts in the raw file), add it to newlyAdded and allTaxaReduced.
@@ -269,11 +272,11 @@ def sum_to_2dig(sum_str, start=0, end=2):
 def read_line(taxID, e_value, taxDict, taxIDList, tempDict, taxID_sum, includeEvals, allEvals):
     if not (taxID in taxIDList):
         taxIDList.append(taxID)
-        if (taxID == "NA" or taxID == '') and (not "root" in taxDict):
+        if (taxID == "NA" or taxID == '' or taxID == '1') and (not "root" in taxDict):
             if includeEvals:
-                taxDict["root"] = {"taxID": "NA", "lineageNames": [["root", "root"]], "unassignedCount": 1, "rank": "root", "totalCount": 1, "e_values": []}
+                taxDict["root"] = {"taxID": "1", "lineageNames": [["root", "root"]], "unassignedCount": 1, "rank": "root", "totalCount": 1, "e_values": []}
             else:
-                taxDict["root"] = {"taxID": "NA", "lineageNames": [["root", "root"]], "unassignedCount": 1, "rank": "root", "totalCount": 1}
+                taxDict["root"] = {"taxID": "1", "lineageNames": [["root", "root"]], "unassignedCount": 1, "rank": "root", "totalCount": 1}
         elif (taxID == "NA" or taxID == '') and ("root" in taxDict):
             taxDict["root"]["unassignedCount"] += 1
             taxDict["root"]["totalCount"] += 1
@@ -297,7 +300,7 @@ def read_line(taxID, e_value, taxDict, taxIDList, tempDict, taxID_sum, includeEv
                 taxDict[name]["lineageNames"].append([rank, name])
             tempDict[taxID] = name
     else:
-        if taxID == "NA" or taxID == '':
+        if taxID == "NA" or taxID == '' or taxID == '1':
             taxDict["root"]["unassignedCount"] += 1
             taxDict["root"]["totalCount"] += 1
         else:

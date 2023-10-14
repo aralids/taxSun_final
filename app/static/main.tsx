@@ -18,7 +18,7 @@ let taxonName = "Laurasiatheria";
 let layerName = 7;
 let collapseName = "collapseFalse";
 let modeName = "allEqual";
-var eThreshold = null;
+var eThreshold:any = null;
 
 /* ===== FETCHING THE DATA ===== */
 
@@ -37,7 +37,7 @@ colors = createPalette(colorOffset);
 
 /* ===== DEFINING THE REACT COMPONENTS ===== */
 
-class AncestorSection extends React.Component<{ancestors:string[], root:string, layer:number, onClickArray:any, plotEValue:boolean}, {root:string, layer:number, rank:string, totalCount:number, unassignedCount:number, lines:string[], plotEValue:boolean}> {
+class AncestorSection extends React.Component<{ancestors:string[], root:string, layer:number, onClickArray:any, plotEValue:boolean}, {root:string, layer:number, rank:string, totalCount:number, unassignedCount:number, lines:string[], plotEValue:boolean, eThresholdHere:any}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -47,12 +47,13 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
             totalCount: 0,
             unassignedCount: 0,
             lines: [],
-            plotEValue: false
+            plotEValue: false,
+            eThresholdHere: eThreshold
         }
     }
 
     componentDidUpdate() {
-        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue)) {
+        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue) || (eThreshold !== this.state.eThresholdHere)) {
             this.getCounts();
         }
     }
@@ -70,7 +71,6 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
             rank = allTaxaReduced[groupedTaxa[0]]["rank"];
         }
         else {
-            console.log("aaa");
             totalCount = allTaxaReduced[this.props.root]["totalCount"];
             unassignedCount = allTaxaReduced[this.props.root]["unassignedCount"];
             rank = allTaxaReduced[this.props.root]["rank"];
@@ -78,11 +78,10 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
 
         let lines:string[] = this.props.ancestors.map(item => (`${round(totalCount * 100 / allTaxaReduced[item]["totalCount"], 2)}%`));
 
-        this.setState({totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank, plotEValue: this.props.plotEValue});
+        this.setState({totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank, plotEValue: this.props.plotEValue, eThresholdHere: eThreshold});
     }
 
     render() {
-        console.log("ancestors!")
         let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>Current layer:</legend>;
         let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Taxon: <b>{this.state.root}</b>, #{this.state.layer}</p>
         let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: {this.state.rank}</p>;
@@ -233,7 +232,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input")!.addEventListener("change", () => {
             let alteration:any = document.querySelector('input[name="radio"]:checked')!.getAttribute("id");
-            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth);
+            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
             if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
                 alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
                 alreadyVisited[plotId]["abbreviateLabels"] = false;
@@ -243,7 +242,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         document.getElementById("checkbox-input")!.addEventListener("change", () => {
             let element:any =  document.getElementById("checkbox-input")!;
             let checked:boolean = element.checked;
-            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth);
+            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
             if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
                 alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
                 alreadyVisited[plotId]["abbreviateLabels"] = false;
@@ -253,7 +252,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         document.getElementById("e-input")!.addEventListener("change", () => {
             let element:any =  document.getElementById("e-input")!;
             let checked:boolean = element.checked;
-            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth);
+            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
             if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
                 alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
                 alreadyVisited[plotId]["abbreviateLabels"] = false;
@@ -274,6 +273,26 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             colors = createPalette(colorOffset);
 
             this.cropLineages("root", 0, "allEqual", false, false, lineagesNames, lineagesRanks);
+        })
+        document.getElementById("e-text")!.addEventListener("keyup", ({key}) => {
+            let eInput:any = document.getElementById("e-input")!
+            if (key === "Enter") {
+                let el:any = document.getElementById("e-text")!
+                let value:number = parseFloat(el.value);
+                if (eInput.checked) {
+                    console.log("checked")
+                    let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
+                    if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
+                        alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
+                        alreadyVisited[plotId]["abbreviateLabels"] = false;
+                    }
+                    eThreshold = value;
+                    this.cropLineages();
+                }
+                else {
+                    eThreshold = value;
+                }
+            }
         })
     }
 
@@ -424,14 +443,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
         var layerWidth:number = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
 
+        console.log("eThreshold: ", eThreshold);
         // Continue if more than one lineage fulfilling the criteria was found.
-        var currPlotId:string = root + layer + collapse + alteration + plotEValue + round(layerWidth);
-        console.log("currPlotId: ", currPlotId);
+        var currPlotId:string = root + layer + collapse + alteration + plotEValue + round(layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
             console.log("already-visited")
             this.setState(alreadyVisited[currPlotId]);
         } else if (croppedLineages.length > 1) {
-            console.log("not yet visited")
+            console.log("unvisited")
             this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue});
         }
     }
@@ -949,8 +968,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         else {
             nextLayer = currLayer <= 0 ? this.state.layer + (currLayer-1) : currLayer + this.state.layer;
         }
-        let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth);
-        console.log("plotId: ", plotId);
+        let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
@@ -1128,6 +1146,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
 
     render() {
+        console.log("render original aTR:", originalAllTaxaReduced["Gulo gulo"])
         //console.log("layerWidth: ", this.state.layerWidth);
         //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
 
