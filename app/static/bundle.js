@@ -785,16 +785,14 @@ var PlotDrawing = /** @class */ (function (_super) {
             var minEValue = modified[2];
             if (eThreshold < minEValue) {
                 allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
-                console.log("yes, eThreshold < minEValue");
                 eThreshold = minEValue;
-                console.log("new eThreshold: ", eThreshold);
                 var eText = document.getElementById("e-text");
                 eText.value = minEValue;
                 modified = this.filterByEValue(croppedLineages, croppedRanks);
             }
             croppedLineages = modified[0], croppedRanks = modified[1];
+            console.log("aTR[root]: ", allTaxaReduced["root"]);
         }
-        console.log("AFTER croppedLineages: ", JSON.parse(JSON.stringify(croppedLineages)));
         // Get minimal rank pattern for this particular plot to prepare for alignment.
         var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []); // Create an array of all ranks of all cropped lineages. Not unique yet.
         ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; }); // Uniquify.
@@ -897,17 +895,14 @@ var PlotDrawing = /** @class */ (function (_super) {
         // Continue if more than one lineage fulfilling the criteria was found.
         var currPlotId = root + layer + collapse + alteration + plotEValue + (0, helperFunctions_js_1.round)(layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
-            console.log("already-visited");
             this.setState(alreadyVisited[currPlotId]);
         }
         else if (croppedLineages.length >= 1) {
-            console.log("unvisited");
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue });
         }
     };
     PlotDrawing.prototype.filterByEValue = function (croppedLineages, croppedRanks) {
         var allEValues = [];
-        console.log("filter croppedLineages: ", JSON.parse(JSON.stringify(croppedLineages)));
         var newCroppedLineages = JSON.parse(JSON.stringify(croppedLineages));
         var newCroppedRanks = JSON.parse(JSON.stringify(croppedRanks));
         for (var i = croppedLineages.length - 1; i >= 0; i--) {
@@ -916,21 +911,23 @@ var PlotDrawing = /** @class */ (function (_super) {
             var oldUnassignedCount = originalAllTaxaReduced[lastTaxon]["unassignedCount"];
             var eValues = JSON.parse(JSON.stringify(originalAllTaxaReduced[lastTaxon]["e_values"])).filter(function (item) { return item <= eThreshold; });
             var newUnassignedCount = eValues.length;
-            console.log("lastTaxon: ", lastTaxon, eValues);
             allEValues = allEValues.concat(originalAllTaxaReduced[lastTaxon]["e_values"]);
             var diff = oldUnassignedCount - newUnassignedCount;
-            allTaxaReduced[lastTaxon]["unassignedCount"] = newUnassignedCount;
+            if (lastTaxon !== "root") {
+                allTaxaReduced[lastTaxon]["unassignedCount"] = newUnassignedCount;
+            }
             for (var _i = 0, lineage_2 = lineage; _i < lineage_2.length; _i++) {
                 var taxon = lineage_2[_i];
-                allTaxaReduced[taxon]["totalCount"] -= diff;
+                if (!(taxon === lastTaxon && lastTaxon === "root")) {
+                    allTaxaReduced[taxon]["totalCount"] -= diff;
+                }
             }
             if (newUnassignedCount === 0) {
                 newCroppedLineages.splice(i, 1);
                 newCroppedRanks.splice(i, 1);
             }
         }
-        console.log("allEValues: ", allEValues);
-        var minEValue = Math.min.apply(null, allEValues);
+        var minEValue = allEValues.sort(function (a, b) { return a - b; })[0];
         console.log("minEValue: ", minEValue);
         return [newCroppedLineages, newCroppedRanks, minEValue];
     };
