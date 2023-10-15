@@ -449,8 +449,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         var dpmm:number = viewportDimensions["dpmm"];
         var numberOfLayers:number = alignedCropppedLineages[0].length;
-        var smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth:number = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
+        var smallerDimension:number = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
+        var layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
 
         // Continue if more than one lineage fulfilling the criteria was found.
         var currPlotId:string = root + layer + collapse + alteration + plotEValue + round(layerWidth) + eThreshold;
@@ -761,8 +761,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var dpmm:number = viewportDimensions["dpmm"];
         // Redundancy v
         var numberOfLayers:number = alignedCroppedLineages[0].length;
-        var smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth:number = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
+        var smallerDimension:number = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
+        var layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
 
         var firstLayer = (key) => {return taxonSpecifics[key]["layers"][0]};
         var secondLayer = (key) => {return taxonSpecifics[key]["layers"][1]};
@@ -845,7 +845,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var numberOfLayers:number = alignedCroppedLineages[0].length;
         var cx:number = this.state.horizontalShift;
         var cy:number = this.state.verticalShift;
-        var layerWidthInPx:number = Math.max((Math.min(cx, cy) - viewportDimensions["dpmm"] * 10) / numberOfLayers , viewportDimensions["dpmm"] * 4);
+        var layerWidthInPx:number = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers , viewportDimensions["dpmm"] * 1);
         var startDeg = (key) => {return taxonSpecifics[key]["degrees"][0]};
         var endDeg = (key) => {return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1]};
 
@@ -1020,7 +1020,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     angle = 270 - angle;
                 }
                 abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"];
-                let sliceHere:number = round((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3)
+                let sliceHere:number = round(((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) + 1) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3)
                 if (newTaxonSpecifics[key]["label"]["abbreviation"].length > sliceHere) {
                     abbreviation = abbreviation.slice(0, sliceHere) + "...";
                 }

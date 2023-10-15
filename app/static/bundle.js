@@ -888,8 +888,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         var dpmm = viewportDimensions["dpmm"];
         var numberOfLayers = alignedCropppedLineages[0].length;
-        var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
+        var smallerDimension = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
+        var layerWidth = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
         // Continue if more than one lineage fulfilling the criteria was found.
         var currPlotId = root + layer + collapse + alteration + plotEValue + (0, helperFunctions_js_1.round)(layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
@@ -1204,8 +1204,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         var dpmm = viewportDimensions["dpmm"];
         // Redundancy v
         var numberOfLayers = alignedCroppedLineages[0].length;
-        var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
+        var smallerDimension = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
+        var layerWidth = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
         var firstLayer = function (key) { return taxonSpecifics[key]["layers"][0]; };
         var secondLayer = function (key) { return taxonSpecifics[key]["layers"][1]; };
         var startDeg = function (key) { return taxonSpecifics[key]["degrees"][0]; };
@@ -1286,7 +1286,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var numberOfLayers = alignedCroppedLineages[0].length;
         var cx = this.state.horizontalShift;
         var cy = this.state.verticalShift;
-        var layerWidthInPx = Math.max((Math.min(cx, cy) - viewportDimensions["dpmm"] * 10) / numberOfLayers, viewportDimensions["dpmm"] * 4);
+        var layerWidthInPx = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers, viewportDimensions["dpmm"] * 1);
         var startDeg = function (key) { return taxonSpecifics[key]["degrees"][0]; };
         var endDeg = function (key) { return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1]; };
         for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
@@ -1457,7 +1457,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     angle = 270 - angle;
                 }
                 abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"];
-                var sliceHere = (0, helperFunctions_js_1.round)((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3);
+                var sliceHere = (0, helperFunctions_js_1.round)(((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) + 1) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3);
                 if (newTaxonSpecifics[key]["label"]["abbreviation"].length > sliceHere) {
                     abbreviation = abbreviation.slice(0, sliceHere) + "...";
                 }
