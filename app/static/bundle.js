@@ -782,8 +782,19 @@ var PlotDrawing = /** @class */ (function (_super) {
         allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
         if (plotEValue) {
             var modified = this.filterByEValue(croppedLineages, croppedRanks);
+            var minEValue = modified[2];
+            if (eThreshold < minEValue) {
+                allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
+                console.log("yes, eThreshold < minEValue");
+                eThreshold = minEValue;
+                console.log("new eThreshold: ", eThreshold);
+                var eText = document.getElementById("e-text");
+                eText.value = minEValue;
+                modified = this.filterByEValue(croppedLineages, croppedRanks);
+            }
             croppedLineages = modified[0], croppedRanks = modified[1];
         }
+        console.log("AFTER croppedLineages: ", JSON.parse(JSON.stringify(croppedLineages)));
         // Get minimal rank pattern for this particular plot to prepare for alignment.
         var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []); // Create an array of all ranks of all cropped lineages. Not unique yet.
         ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; }); // Uniquify.
@@ -889,17 +900,24 @@ var PlotDrawing = /** @class */ (function (_super) {
             console.log("already-visited");
             this.setState(alreadyVisited[currPlotId]);
         }
-        else if (croppedLineages.length > 1) {
+        else if (croppedLineages.length >= 1) {
             console.log("unvisited");
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue });
         }
     };
     PlotDrawing.prototype.filterByEValue = function (croppedLineages, croppedRanks) {
-        for (var i = 0; i < croppedLineages.length; i++) {
+        var allEValues = [];
+        console.log("filter croppedLineages: ", JSON.parse(JSON.stringify(croppedLineages)));
+        var newCroppedLineages = JSON.parse(JSON.stringify(croppedLineages));
+        var newCroppedRanks = JSON.parse(JSON.stringify(croppedRanks));
+        for (var i = croppedLineages.length - 1; i >= 0; i--) {
             var lineage = croppedLineages[i];
             var lastTaxon = lineage[lineage.length - 1];
             var oldUnassignedCount = originalAllTaxaReduced[lastTaxon]["unassignedCount"];
-            var newUnassignedCount = originalAllTaxaReduced[lastTaxon]["e_values"].filter(function (item) { return item <= eThreshold; }).length;
+            var eValues = JSON.parse(JSON.stringify(originalAllTaxaReduced[lastTaxon]["e_values"])).filter(function (item) { return item <= eThreshold; });
+            var newUnassignedCount = eValues.length;
+            console.log("lastTaxon: ", lastTaxon, eValues);
+            allEValues = allEValues.concat(originalAllTaxaReduced[lastTaxon]["e_values"]);
             var diff = oldUnassignedCount - newUnassignedCount;
             allTaxaReduced[lastTaxon]["unassignedCount"] = newUnassignedCount;
             for (var _i = 0, lineage_2 = lineage; _i < lineage_2.length; _i++) {
@@ -907,11 +925,14 @@ var PlotDrawing = /** @class */ (function (_super) {
                 allTaxaReduced[taxon]["totalCount"] -= diff;
             }
             if (newUnassignedCount === 0) {
-                croppedLineages.splice(i, 1);
-                croppedRanks.splice(i, 1);
+                newCroppedLineages.splice(i, 1);
+                newCroppedRanks.splice(i, 1);
             }
         }
-        return [croppedLineages, croppedRanks];
+        console.log("allEValues: ", allEValues);
+        var minEValue = Math.min.apply(null, allEValues);
+        console.log("minEValue: ", minEValue);
+        return [newCroppedLineages, newCroppedRanks, minEValue];
     };
     PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
         if (alteration === void 0) { alteration = "marriedTaxaI"; }
@@ -1562,7 +1583,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     PlotDrawing.prototype.render = function () {
         var _this = this;
-        console.log("render original aTR:", originalAllTaxaReduced["Gulo gulo"]);
+        console.log("render original aTR:", originalAllTaxaReduced["Aphis glycines"]);
         //console.log("layerWidth: ", this.state.layerWidth);
         //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
         currentState = this.state;

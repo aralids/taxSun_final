@@ -338,8 +338,20 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
         if (plotEValue) {
             let modified = this.filterByEValue(croppedLineages, croppedRanks);
+            
+            let minEValue = modified[2];
+            if (eThreshold < minEValue) {
+                allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
+                console.log("yes, eThreshold < minEValue")
+                eThreshold = minEValue;
+                console.log("new eThreshold: ", eThreshold);
+                let eText:any = document.getElementById("e-text")!
+                eText.value = minEValue;
+                modified = this.filterByEValue(croppedLineages, croppedRanks);
+            }
             croppedLineages = modified[0], croppedRanks = modified[1];
         }
+        console.log("AFTER croppedLineages: ", JSON.parse(JSON.stringify(croppedLineages)));
 
         // Get minimal rank pattern for this particular plot to prepare for alignment.
         var ranksUnique:string[] = croppedRanks.reduce((accumulator, value) => accumulator.concat(value), []); // Create an array of all ranks of all cropped lineages. Not unique yet.
@@ -449,18 +461,25 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
             console.log("already-visited")
             this.setState(alreadyVisited[currPlotId]);
-        } else if (croppedLineages.length > 1) {
+        } else if (croppedLineages.length >= 1) {
             console.log("unvisited")
             this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue});
         }
     }
 
-    filterByEValue(croppedLineages:string[][], croppedRanks:string[][]) {
-        for (let i=0; i<croppedLineages.length; i++) {
+    filterByEValue(croppedLineages:string[][], croppedRanks:string[][]):any {
+        let allEValues:any = [];
+        console.log("filter croppedLineages: ", JSON.parse(JSON.stringify(croppedLineages)));
+        let newCroppedLineages = JSON.parse(JSON.stringify(croppedLineages));
+        let newCroppedRanks = JSON.parse(JSON.stringify(croppedRanks));
+        for (let i=croppedLineages.length-1; i>=0; i--) {
             let lineage:string[] = croppedLineages[i];
             let lastTaxon:string = lineage[lineage.length-1];
             let oldUnassignedCount:number = originalAllTaxaReduced[lastTaxon]["unassignedCount"];
-            let newUnassignedCount:number = originalAllTaxaReduced[lastTaxon]["e_values"].filter(item => item <= eThreshold!).length;
+            let eValues = JSON.parse(JSON.stringify(originalAllTaxaReduced[lastTaxon]["e_values"])).filter(item => item <= eThreshold!);
+            let newUnassignedCount:number = eValues.length;
+            console.log("lastTaxon: ", lastTaxon, eValues)
+            allEValues = allEValues.concat(originalAllTaxaReduced[lastTaxon]["e_values"]);
 
             let diff:number = oldUnassignedCount - newUnassignedCount;
 
@@ -470,11 +489,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             }
 
             if (newUnassignedCount === 0) {
-                croppedLineages.splice(i, 1);
-                croppedRanks.splice(i, 1);
+                newCroppedLineages.splice(i, 1);
+                newCroppedRanks.splice(i, 1);
             }
         }
-        return [croppedLineages, croppedRanks];
+        console.log("allEValues: ", allEValues);
+        let minEValue:number = Math.min.apply(null, allEValues);
+        console.log("minEValue: ", minEValue);
+        return [newCroppedLineages, newCroppedRanks, minEValue];
     }
 
     marryTaxa(croppedLineages:string[][], croppedRanks:string[][], alteration="marriedTaxaI") {
@@ -1146,7 +1168,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
 
     render() {
-        console.log("render original aTR:", originalAllTaxaReduced["Gulo gulo"])
+        console.log("render original aTR:", originalAllTaxaReduced["Aphis glycines"])
         //console.log("layerWidth: ", this.state.layerWidth);
         //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
 
