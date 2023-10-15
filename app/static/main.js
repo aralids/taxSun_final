@@ -126,7 +126,7 @@ var AncestorSection = /** @class */ (function (_super) {
             ps.push(React.createElement("p", { style: { "padding": 0, "margin": 0 }, onClick: this.props.onClickArray[i] },
                 this.state.lines[i],
                 " of ",
-                React.createElement("b", null, this.props.ancestors[i])));
+                React.createElement("b", null, this.props.ancestors[i].replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""))));
         }
         return React.createElement("fieldset", { style: { "borderColor": "#800080" } }, ps);
     };
@@ -205,9 +205,10 @@ var DescendantSection = /** @class */ (function (_super) {
         var ps = [];
         if (this.state.hovered) {
             var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "Hovering over:");
+            var noRanksName = this.state.self.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "");
             var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
                 "Taxon: ",
-                React.createElement("b", null, this.state.self),
+                React.createElement("b", null, noRanksName),
                 ", #",
                 this.state.layer);
             var rankLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
@@ -218,7 +219,7 @@ var DescendantSection = /** @class */ (function (_super) {
                 this.state.totalCount);
             var unassignedCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
                 "Unassigned ",
-                this.state.self,
+                this.state.self.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""),
                 ": ",
                 this.state.unassignedCount);
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine];
@@ -327,7 +328,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var el = document.getElementById("e-text");
                 var value = parseFloat(el.value);
                 if (eInput.checked) {
-                    console.log("checked");
                     var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth) + eThreshold;
                     if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
                         alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
@@ -395,7 +395,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 modified = this.filterByEValue(croppedLineages, croppedRanks);
             }
             croppedLineages = modified[0], croppedRanks = modified[1];
-            console.log("aTR[root]: ", allTaxaReduced["root"]);
         }
         // Get minimal rank pattern for this particular plot to prepare for alignment.
         var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []); // Create an array of all ranks of all cropped lineages. Not unique yet.
@@ -495,7 +494,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         var numberOfLayers = alignedCropppedLineages[0].length;
         var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
         var layerWidth = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
-        console.log("eThreshold: ", eThreshold);
         // Continue if more than one lineage fulfilling the criteria was found.
         var currPlotId = root + layer + collapse + alteration + plotEValue + (0, helperFunctions_js_1.round)(layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
@@ -532,7 +530,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
         }
         var minEValue = allEValues.sort(function (a, b) { return a - b; })[0];
-        console.log("minEValue: ", minEValue);
         return [newCroppedLineages, newCroppedRanks, minEValue];
     };
     PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
@@ -679,7 +676,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     newReductionGroups["".concat(group, "-").concat(i)]["spliceAt"] = reductionGroups[group]["spliceAt"];
                     newReductionGroups["".concat(group, "-").concat(i)]["index"] = reductionGroups[group]["newGroups"][i];
                     names = reductionGroups[group]["newGroups"][i].map(function (item) { return croppedLineages[item][reductionGroups[group]["spliceAt"]]; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
-                    //let names1 = names.map(item => item.replace(RegExp(rankPatternFull.map(item => " " + item).join("|")),""));
+                    //let names1 = names.map(item => item.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),""));
                     newReductionGroups["".concat(group, "-").concat(i)]["commonName"] = names.join(" & ");
                 }
             };
@@ -700,7 +697,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 changedLineages.splice(index, 1, true);
             }
             //console.log("group cm: ", group["commonName"])
-            //group["commonName"] = group.replace(RegExp(rankPatternFull.map(item => " " + item).join("|")),"");
+            //group["commonName"] = group.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
         }
         for (var i = croppedLineages.length - 1; i >= 0; i--) {
             var croppedLineageCopy = croppedLineages.map(function (item) { return JSON.stringify(item); });
@@ -928,9 +925,9 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "hoverWidth": 0,
                     "hoverDisplay": "unset",
                     "angle": 0,
-                    "abbreviation": root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|")), ""),
+                    "abbreviation": root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""),
                     "display": "unset",
-                    "fullLabel": root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|")), "")
+                    "fullLabel": root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "")
                 };
             }
             else {
@@ -954,9 +951,9 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "hoverWidth": 0,
                     "top": 0,
                     "angle": angle,
-                    "abbreviation": key.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|")), ""),
+                    "abbreviation": key.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""),
                     "display": "unset",
-                    "fullLabel": key.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|")), "") + " ".concat(percentage, "%"),
+                    "fullLabel": key.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "") + " ".concat(percentage, "%"),
                     "radialAngle": radialAngle
                 };
                 if (taxonSpecifics[key]["rank"] === "species") {
@@ -1063,6 +1060,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     angle = 270 - angle;
                 }
                 abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"];
+                abbreviation = abbreviation.indexOf("...") > -1 ? abbreviation : abbreviation.slice(0, 15) + "...";
             }
             // For internal wedges, calculate: 
             else if (newTaxonSpecifics[key]["label"]["direction"] === "verse") {
@@ -1116,6 +1114,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     var lengthPerLetter = width / newTaxonSpecifics[key]["label"]["abbreviation"].length;
                     howManyLettersFit = Math.floor(verticalSpace / lengthPerLetter) - 2;
                     abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
+                    //abbreviation = abbreviation.slice(0, 15) + "...";
                 }
                 else {
                     var lengthPerLetter = width / newTaxonSpecifics[key]["label"]["abbreviation"].length;
@@ -1183,10 +1182,10 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
     };
     PlotDrawing.prototype.render = function () {
-        var _this = this;
-        console.log("render original aTR:", originalAllTaxaReduced["Aphis glycines"]);
+        //console.log("render original aTR:", originalAllTaxaReduced["Aphis glycines"])
         //console.log("layerWidth: ", this.state.layerWidth);
         //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
+        var _this = this;
         currentState = this.state;
         var shapes = [];
         var labels = [];
@@ -1433,12 +1432,14 @@ document.getElementById("upload-button").addEventListener("click", function () {
 function enableEValue(median) {
     document.getElementById("e-input").removeAttribute("disabled");
     document.getElementById("e-label").style.color = "black";
-    document.getElementById("e-text").removeAttribute("disabled");
-    document.getElementById("e-text").setAttribute("value", median);
+    var eText = document.getElementById("e-text");
+    eText.removeAttribute("disabled");
+    eText.value = median;
 }
 function disableEValue() {
     document.getElementById("e-input").setAttribute("disabled", "disabled");
     document.getElementById("e-label").style.color = "grey";
-    document.getElementById("e-text").setAttribute("disabled", "disabled");
-    document.getElementById("e-text").setAttribute("value", "");
+    var eText = document.getElementById("e-text");
+    eText.setAttribute("disabled", "disabled");
+    eText.value = "";
 }

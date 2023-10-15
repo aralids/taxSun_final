@@ -92,7 +92,7 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
         let bPLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>(before preprocessing: {beforePreprocessing})</p>;
         let ps:any = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine]
         for (let i=0; i<this.props.ancestors.length; i++) {
-            ps.push(<p style={{"padding": 0, "margin": 0}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i]}</b></p>)
+            ps.push(<p style={{"padding": 0, "margin": 0}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>)
         }
         return <fieldset style={{"borderColor": "#800080"}}>{ps}</fieldset>
     }
@@ -169,10 +169,11 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
         let ps:any[] = [];
         if (this.state.hovered) {
             let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>Hovering over:</legend>;
-            let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Taxon: <b>{this.state.self}</b>, #{this.state.layer}</p>
+            let noRanksName:string = this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
+            let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Taxon: <b>{noRanksName}</b>, #{this.state.layer}</p>
             let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: {this.state.rank}</p>;
             let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: {this.state.totalCount}</p>;
-            let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned {this.state.self}: {this.state.unassignedCount}</p>
+            let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned {this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: {this.state.unassignedCount}</p>
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine]
             return <fieldset style={{"borderColor": "#800080"}}>{ps}</fieldset>
         }
@@ -280,7 +281,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 let el:any = document.getElementById("e-text")!
                 let value:number = parseFloat(el.value);
                 if (eInput.checked) {
-                    console.log("checked")
                     let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
                     if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
                         alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
@@ -348,7 +348,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 modified = this.filterByEValue(croppedLineages, croppedRanks);
             }
             croppedLineages = modified[0], croppedRanks = modified[1];
-            console.log("aTR[root]: ", allTaxaReduced["root"])
         }
 
         // Get minimal rank pattern for this particular plot to prepare for alignment.
@@ -453,7 +452,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
         var layerWidth:number = Math.max((smallerDimension - dpmm * 10) / numberOfLayers, dpmm * 4);
 
-        console.log("eThreshold: ", eThreshold);
         // Continue if more than one lineage fulfilling the criteria was found.
         var currPlotId:string = root + layer + collapse + alteration + plotEValue + round(layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
@@ -492,7 +490,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             }
         }
         let minEValue:number = allEValues.sort(function(a, b){return a-b})[0];
-        console.log("minEValue: ", minEValue);
         return [newCroppedLineages, newCroppedRanks, minEValue];
     }
 
@@ -633,7 +630,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     newReductionGroups[`${group}-${i}`]["spliceAt"] = reductionGroups[group]["spliceAt"];
                     newReductionGroups[`${group}-${i}`]["index"] = reductionGroups[group]["newGroups"][i];
                     var names:string[] = reductionGroups[group]["newGroups"][i].map(item => croppedLineages[item][reductionGroups[group]["spliceAt"]]).filter((v, i, a) => a.indexOf(v) === i);
-                    //let names1 = names.map(item => item.replace(RegExp(rankPatternFull.map(item => " " + item).join("|")),""));
+                    //let names1 = names.map(item => item.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),""));
                     newReductionGroups[`${group}-${i}`]["commonName"] = names.join(" & ");
                 }
             }
@@ -649,7 +646,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 changedLineages.splice(index, 1, true);
             }
             //console.log("group cm: ", group["commonName"])
-            //group["commonName"] = group.replace(RegExp(rankPatternFull.map(item => " " + item).join("|")),"");
+            //group["commonName"] = group.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
         }
         
         for (let i=croppedLineages.length-1; i>=0; i--) {
@@ -884,9 +881,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "hoverWidth": 0,
                     "hoverDisplay": "unset",
                     "angle": 0,
-                    "abbreviation": root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|")),""),
+                    "abbreviation": root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),""),
                     "display": "unset",
-                    "fullLabel": root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|")),""),
+                    "fullLabel": root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),""),
                 }
             } else {
                 let direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "verse";
@@ -908,9 +905,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "hoverWidth": 0,
                     "top": 0,
                     "angle": angle,
-                    "abbreviation": key.replace(RegExp(rankPatternFull.map(item => " " + item).join("|")),""),
+                    "abbreviation": key.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),""),
                     "display": "unset",
-                    "fullLabel": key.replace(RegExp(rankPatternFull.map(item => " " + item).join("|")),"") + ` ${percentage}%`,
+                    "fullLabel": key.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"") + ` ${percentage}%`,
                     "radialAngle": radialAngle,
                 }
 
@@ -1022,6 +1019,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     angle = 270 - angle;
                 }
                 abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"];
+                abbreviation = abbreviation.indexOf("...") > -1 ? abbreviation : abbreviation.slice(0, 15) + "...";
             }
 
             // For internal wedges, calculate: 
@@ -1084,6 +1082,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
                     howManyLettersFit = Math.floor(verticalSpace/lengthPerLetter) - 2;
                     abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
+                    //abbreviation = abbreviation.slice(0, 15) + "...";
                 }
                 else {
                     let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
@@ -1165,7 +1164,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
 
     render() {
-        console.log("render original aTR:", originalAllTaxaReduced["Aphis glycines"])
+        //console.log("render original aTR:", originalAllTaxaReduced["Aphis glycines"])
         //console.log("layerWidth: ", this.state.layerWidth);
         //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
 
@@ -1414,13 +1413,15 @@ document.getElementById("upload-button")!.addEventListener("click", () => {
 function enableEValue(median) {
     document.getElementById("e-input")!.removeAttribute("disabled");
     document.getElementById("e-label")!.style.color = "black";
-    document.getElementById("e-text")!.removeAttribute("disabled");
-    document.getElementById("e-text")!.setAttribute("value", median);
+    let eText:any = document.getElementById("e-text")!;
+    eText.removeAttribute("disabled");
+    eText.value = median;
 }
 
 function disableEValue() {
     document.getElementById("e-input")!.setAttribute("disabled", "disabled");
     document.getElementById("e-label")!.style.color = "grey";
-    document.getElementById("e-text")!.setAttribute("disabled", "disabled");
-    document.getElementById("e-text")!.setAttribute("value", "");
+    let eText:any = document.getElementById("e-text")!;
+    eText.setAttribute("disabled", "disabled");
+    eText.value = "";
 }
