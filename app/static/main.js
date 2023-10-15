@@ -1048,6 +1048,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             var transformOrigin = "".concat(newTaxonSpecifics[key]["center"][0], " ").concat(newTaxonSpecifics[key]["center"][1]);
             var top_1 = newTaxonSpecifics[key]["center"][1] + height / 2;
             var left = void 0, radialLeft = void 0, horizontalSpace = void 0, abbreviation = void 0, howManyLettersFit = void 0, hoverLeft = void 0, hoverRadialLeft = void 0;
+            console.log("tS key: ", key);
             // Calculate left and angle for all labels of the last layer, which are always radial.
             if (newTaxonSpecifics[key]["label"]["direction"] === "radial") {
                 if (centerDegree >= 180 && centerDegree < 360) {
@@ -1060,7 +1061,10 @@ var PlotDrawing = /** @class */ (function (_super) {
                     angle = 270 - angle;
                 }
                 abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"];
-                abbreviation = abbreviation.indexOf("...") > -1 ? abbreviation : abbreviation.slice(0, 15) + "...";
+                var sliceHere = (0, helperFunctions_js_1.round)((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3);
+                if (newTaxonSpecifics[key]["label"]["abbreviation"].length > sliceHere) {
+                    abbreviation = abbreviation.slice(0, sliceHere) + "...";
+                }
             }
             // For internal wedges, calculate: 
             else if (newTaxonSpecifics[key]["label"]["direction"] === "verse") {
@@ -1114,7 +1118,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                     var lengthPerLetter = width / newTaxonSpecifics[key]["label"]["abbreviation"].length;
                     howManyLettersFit = Math.floor(verticalSpace / lengthPerLetter) - 2;
                     abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
-                    //abbreviation = abbreviation.slice(0, 15) + "...";
                 }
                 else {
                     var lengthPerLetter = width / newTaxonSpecifics[key]["label"]["abbreviation"].length;

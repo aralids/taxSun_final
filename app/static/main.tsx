@@ -1006,6 +1006,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let transformOrigin = `${newTaxonSpecifics[key]["center"][0]} ${newTaxonSpecifics[key]["center"][1]}`;
             let top = newTaxonSpecifics[key]["center"][1] + height/2;
             let left, radialLeft, horizontalSpace, abbreviation, howManyLettersFit, hoverLeft, hoverRadialLeft;
+            console.log("tS key: ", key);
 
             // Calculate left and angle for all labels of the last layer, which are always radial.
             if (newTaxonSpecifics[key]["label"]["direction"] === "radial") {
@@ -1019,7 +1020,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     angle = 270 - angle;
                 }
                 abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"];
-                abbreviation = abbreviation.indexOf("...") > -1 ? abbreviation : abbreviation.slice(0, 15) + "...";
+                let sliceHere:number = round((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3)
+                if (newTaxonSpecifics[key]["label"]["abbreviation"].length > sliceHere) {
+                    abbreviation = abbreviation.slice(0, sliceHere) + "...";
+                }
             }
 
             // For internal wedges, calculate: 
@@ -1082,7 +1086,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
                     howManyLettersFit = Math.floor(verticalSpace/lengthPerLetter) - 2;
                     abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
-                    //abbreviation = abbreviation.slice(0, 15) + "...";
                 }
                 else {
                     let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
