@@ -128,7 +128,7 @@ var AncestorSection = /** @class */ (function (_super) {
                 " of ",
                 React.createElement("b", null, this.props.ancestors[i].replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""))));
         }
-        return React.createElement("fieldset", { style: { "borderColor": "#800080" } }, ps);
+        return React.createElement("fieldset", { style: { "borderColor": "#800080", "margin": 0 } }, ps);
     };
     return AncestorSection;
 }(React.Component));
@@ -223,7 +223,7 @@ var DescendantSection = /** @class */ (function (_super) {
                 ": ",
                 this.state.unassignedCount);
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine];
-            return React.createElement("fieldset", { style: { "borderColor": "#800080" } }, ps);
+            return React.createElement("fieldset", { style: { "borderColor": "#800080", "margin": 0 } }, ps);
         }
         return React.createElement("div", null);
     };

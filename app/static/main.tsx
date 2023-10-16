@@ -94,7 +94,7 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
         for (let i=0; i<this.props.ancestors.length; i++) {
             ps.push(<p style={{"padding": 0, "margin": 0}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>)
         }
-        return <fieldset style={{"borderColor": "#800080"}}>{ps}</fieldset>
+        return <fieldset style={{"borderColor": "#800080", "margin": 0}}>{ps}</fieldset>
     }
 }
 
@@ -175,7 +175,7 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
             let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: {this.state.totalCount}</p>;
             let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned {this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: {this.state.unassignedCount}</p>
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine]
-            return <fieldset style={{"borderColor": "#800080"}}>{ps}</fieldset>
+            return <fieldset style={{"borderColor": "#800080", "margin": 0}}>{ps}</fieldset>
         }
         return <div></div>
     }
