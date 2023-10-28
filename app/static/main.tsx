@@ -3,7 +3,7 @@ import * as ReactDOM from "react-dom/client";
 import * as _html2canvas from "html2canvas";
 import { unmountComponentAtNode } from "react-dom";
 import { json } from "stream/consumers";
-import { ln, lr, atr } from "./objects.js";
+import { ln, lr, atr } from "./predefinedObjects.js";
 import { createPalette, radians, round, sin, cos, handleMouseMove, hexToRGB, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions} from "./helperFunctions.js";
 
 var currentState;
@@ -82,19 +82,19 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
     }
 
     render() {
-        let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>Current layer:</legend>;
-        let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Taxon: <b>{this.state.root}</b>, #{this.state.layer}</p>
+        let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>CURRENT LAYER</legend>;
+        let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Taxon: <b>{this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b>, #{this.state.layer}</p>
         let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: {this.state.rank}</p>;
         let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: {this.state.totalCount}</p>;
         let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unspecified {this.state.root}: {this.state.unassignedCount}</p>
         //!!! rewrite v
         let beforePreprocessing:number = allTaxa[this.state.root] ? allTaxa[this.state.root]["unassignedCount"] : 0;
-        let bPLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>(before preprocessing: {beforePreprocessing})</p>;
+        let bPLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>(raw file: {beforePreprocessing})</p>;
         let ps:any = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine]
         for (let i=0; i<this.props.ancestors.length; i++) {
             ps.push(<p style={{"padding": 0, "margin": 0}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>)
         }
-        return <fieldset style={{"borderColor": "#800080", "margin": 0}}>{ps}</fieldset>
+        return <fieldset style={{"borderColor": "#800080", "margin": 0, "marginTop": "3vmin", "minWidth": "20%", "borderRadius": "5px"}}>{ps}</fieldset>
     }
 }
 
@@ -168,14 +168,14 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
     render() {
         let ps:any[] = [];
         if (this.state.hovered) {
-            let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>Hovering over:</legend>;
+            let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>HOVERING OVER</legend>;
             let noRanksName:string = this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
             let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Taxon: <b>{noRanksName}</b>, #{this.state.layer}</p>
             let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: {this.state.rank}</p>;
             let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: {this.state.totalCount}</p>;
             let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned {this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: {this.state.unassignedCount}</p>
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine]
-            return <fieldset style={{"borderColor": "#800080", "margin": 0}}>{ps}</fieldset>
+            return <fieldset style={{"borderColor": "#800080", "margin": 0, "marginTop": "3vmin", "minWidth": "20%", "borderRadius": "5px"}}>{ps}</fieldset>
         }
         return <div></div>
     }

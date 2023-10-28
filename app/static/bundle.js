@@ -424,7 +424,7 @@ exports.__esModule = true;
 var React = require("react");
 var ReactDOM = require("react-dom/client");
 var _html2canvas = require("html2canvas");
-var objects_js_1 = require("./objects.js");
+var predefinedObjects_js_1 = require("./predefinedObjects.js");
 var helperFunctions_js_1 = require("./helperFunctions.js");
 var currentState;
 var skeletonColor = "#800080";
@@ -442,10 +442,10 @@ var eThreshold = null;
 /* ===== FETCHING THE DATA ===== */
 var path = "lessSpontaneous2.tsv";
 //loadDataFromTSV(path);
-var lineagesNames = objects_js_1.ln;
-var lineagesRanks = objects_js_1.lr;
-var allTaxaReduced = JSON.parse(JSON.stringify(objects_js_1.atr));
-var originalAllTaxaReduced = JSON.parse(JSON.stringify(objects_js_1.atr));
+var lineagesNames = predefinedObjects_js_1.ln;
+var lineagesRanks = predefinedObjects_js_1.lr;
+var allTaxaReduced = JSON.parse(JSON.stringify(predefinedObjects_js_1.atr));
+var originalAllTaxaReduced = JSON.parse(JSON.stringify(predefinedObjects_js_1.atr));
 var rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];
 var colors = [];
 var colorOffset = Math.round(Math.random() * 100); //84, 98, 31, 20, 1, 2
@@ -494,10 +494,10 @@ var AncestorSection = /** @class */ (function (_super) {
         this.setState({ totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank, plotEValue: this.props.plotEValue, eThresholdHere: eThreshold });
     };
     AncestorSection.prototype.render = function () {
-        var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "Current layer:");
+        var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "CURRENT LAYER");
         var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
             "Taxon: ",
-            React.createElement("b", null, this.state.root),
+            React.createElement("b", null, this.state.root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "")),
             ", #",
             this.state.layer);
         var rankLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
@@ -514,7 +514,7 @@ var AncestorSection = /** @class */ (function (_super) {
         //!!! rewrite v
         var beforePreprocessing = allTaxa[this.state.root] ? allTaxa[this.state.root]["unassignedCount"] : 0;
         var bPLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
-            "(before preprocessing: ",
+            "(raw file: ",
             beforePreprocessing,
             ")");
         var ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine];
@@ -524,7 +524,7 @@ var AncestorSection = /** @class */ (function (_super) {
                 " of ",
                 React.createElement("b", null, this.props.ancestors[i].replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""))));
         }
-        return React.createElement("fieldset", { style: { "borderColor": "#800080", "margin": 0 } }, ps);
+        return React.createElement("fieldset", { style: { "borderColor": "#800080", "margin": 0, "marginTop": "3vmin", "minWidth": "20%", "borderRadius": "5px" } }, ps);
     };
     return AncestorSection;
 }(React.Component));
@@ -600,7 +600,7 @@ var DescendantSection = /** @class */ (function (_super) {
     DescendantSection.prototype.render = function () {
         var ps = [];
         if (this.state.hovered) {
-            var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "Hovering over:");
+            var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "HOVERING OVER");
             var noRanksName = this.state.self.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "");
             var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
                 "Taxon: ",
@@ -619,7 +619,7 @@ var DescendantSection = /** @class */ (function (_super) {
                 ": ",
                 this.state.unassignedCount);
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine];
-            return React.createElement("fieldset", { style: { "borderColor": "#800080", "margin": 0 } }, ps);
+            return React.createElement("fieldset", { style: { "borderColor": "#800080", "margin": 0, "marginTop": "3vmin", "minWidth": "20%", "borderRadius": "5px" } }, ps);
         }
         return React.createElement("div", null);
     };
@@ -1843,7 +1843,7 @@ function disableEValue() {
     eText.value = "";
 }
 
-},{"./helperFunctions.js":3,"./objects.js":5,"html2canvas":6,"react":13,"react-dom/client":9}],5:[function(require,module,exports){
+},{"./helperFunctions.js":3,"./predefinedObjects.js":5,"html2canvas":6,"react":13,"react-dom/client":9}],5:[function(require,module,exports){
 "use strict";
 exports.__esModule = true;
 exports.atr = exports.lr = exports.ln = void 0;

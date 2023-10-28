@@ -8,25 +8,26 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin></script>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0" />
+        <link rel="stylesheet" href={{ url_for('static', filename='style.css') }}>
         
         <script>var exports = {};</script>
     </head>
     <body id="body-1" style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; ">
         <div id="married-pattern" style="position:absolute; height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; background-image: radial-gradient(circle at 1px 1px, #800080 1px, transparent 0); background-size: 5px 5px; z-index: 100; pointer-events:none; clip-path: url(#mask); opacity: 0.5;"></div>
-        <div id="interaction" style="display: flex; flex-direction: column; position: fixed; top: 0vmin; right: 0; width: 20%">
+        <div id="interaction" style="display: flex; flex-direction: column; position: fixed; top: 0vmin; right: 2vmin; width: 20%">
             <input type="text" id="descendant-section" style="display: flex; position: fixed; top: 0vmin; left: 50%; visibility: hidden">
             <div>
                 <form id="uploadForm" action = "http://127.0.0.1:5000/load_tsv_data" method = "POST" enctype = "multipart/form-data">
-                    <fieldset style="border-color: #800080; min-width: 0px; max-width: 100%;">
-                        <legend style="color: #800080; font-weight: bold;">Upload your data:</legend>
+                    <fieldset style="border-color: #800080; min-width: 0px; max-width: 100%; margin: 0; margin-top: 3vmin; border-radius: 5px;">
+                        <legend style="color: #800080; font-weight: bold;">UPLOAD YOUR DATA</legend>
                         <div style="display: flex; max-width: 100%;">
                             <input type = "file" name = "file" id="file" style="display: inline; max-width: 90%;"/><span id="status" class="material-symbols-outlined" style="display: inline; right: 2vmin"></span>
                         </div>
                     </fieldset>
                 </form>
             </div>
-            <fieldset style="border-color: #800080; padding-bottom: 0; min-width: 0px; max-width: 100%;">
-                <legend style="color: #800080; font-weight: bold;">Viewing modes:</legend>
+            <fieldset style="border-color: #800080; padding-bottom: 0; min-width: 0px; max-width: 100%; margin: 0; margin-top: 3vmin; border-radius: 5px;">
+                <legend style="color: #800080; font-weight: bold;">VIEWING MODES</legend>
                 <div id="input">
                     <input type="checkbox" id="checkbox-input" name="collapse" style="accent-color: #800080;">
                     <label for="collapse">Collapse</label>
@@ -59,8 +60,8 @@
                     <label for="new-data">New Data: Yes or No</label>
                 </div>
             </fieldset>
-            <fieldset style="border-color: #800080;">
-                <legend style="color: #800080; font-weight: bold;">Download:</legend>
+            <fieldset style="border-color: #800080; min-width: 0px; max-width: 100%; margin: 0; margin-top: 3vmin; border-radius: 5px;">
+                <legend style="color: #800080; font-weight: bold;">DOWNLOAD</legend>
                 <button id="download">Download SVG</button>
             </fieldset>
         </div>
