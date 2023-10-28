@@ -83,18 +83,24 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
 
     render() {
         let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>CURRENT LAYER</legend>;
-        let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Taxon: <b>{this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b>, #{this.state.layer}</p>
-        let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: {this.state.rank}</p>;
-        let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: {this.state.totalCount}</p>;
-        let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unspecified {this.state.root}: {this.state.unassignedCount}</p>
+        let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "0vmin"}}>Taxon: <b>{this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>
+        let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: <b>{this.state.rank}</b></p>;
+        let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
+        let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unspecified {this.state.root}: <b>{this.state.unassignedCount}</b></p>
         //!!! rewrite v
         let beforePreprocessing:number = allTaxa[this.state.root] ? allTaxa[this.state.root]["unassignedCount"] : 0;
-        let bPLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>(raw file: {beforePreprocessing})</p>;
+        let bPLine:any;
+        if (this.state.root === "root") {
+            bPLine = <p style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
+        }
+        else {
+            bPLine = <p style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
+        }
         let ps:any = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine]
         for (let i=0; i<this.props.ancestors.length; i++) {
-            ps.push(<p style={{"padding": 0, "margin": 0}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>)
+            ps.push(<p style={{"padding": 0, "margin": 0, "cursor": "pointer"}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>)
         }
-        return <fieldset style={{"borderColor": "#800080", "margin": 0, "marginTop": "3vmin", "minWidth": "20%", "borderRadius": "5px"}}>{ps}</fieldset>
+        return <fieldset>{ps}</fieldset>
     }
 }
 
@@ -170,10 +176,10 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
         if (this.state.hovered) {
             let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>HOVERING OVER</legend>;
             let noRanksName:string = this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
-            let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "1vmin"}}>Taxon: <b>{noRanksName}</b>, #{this.state.layer}</p>
-            let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: {this.state.rank}</p>;
-            let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: {this.state.totalCount}</p>;
-            let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned {this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: {this.state.unassignedCount}</p>
+            let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "0vmin"}}>Taxon: <b>{noRanksName}</b></p>
+            let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: <b>{this.state.rank}</b></p>;
+            let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
+            let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned {this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: <b>{this.state.unassignedCount}</b></p>
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine]
             return <fieldset style={{"borderColor": "#800080", "margin": 0, "marginTop": "3vmin", "minWidth": "20%", "borderRadius": "5px"}}>{ps}</fieldset>
         }
@@ -1208,7 +1214,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         let anc:any[] = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
 
-        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<div style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "width": "20%", "padding": 0, "margin": 0}}><AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} plotEValue={this.state.plotEValue} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
+        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<div id="left-column" style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "width": "20%", "padding": 0, "margin": 0}}><AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} plotEValue={this.state.plotEValue} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
     }
     //<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>
 }

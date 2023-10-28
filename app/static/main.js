@@ -99,36 +99,43 @@ var AncestorSection = /** @class */ (function (_super) {
     };
     AncestorSection.prototype.render = function () {
         var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "CURRENT LAYER");
-        var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
+        var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "0vmin" } },
             "Taxon: ",
-            React.createElement("b", null, this.state.root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "")),
-            ", #",
-            this.state.layer);
+            React.createElement("b", null, this.state.root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "")));
         var rankLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
             "Rank: ",
-            this.state.rank);
+            React.createElement("b", null, this.state.rank));
         var totalCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
             "Total count: ",
-            this.state.totalCount);
+            React.createElement("b", null, this.state.totalCount));
         var unassignedCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
             "Unspecified ",
             this.state.root,
             ": ",
-            this.state.unassignedCount);
+            React.createElement("b", null, this.state.unassignedCount));
         //!!! rewrite v
         var beforePreprocessing = allTaxa[this.state.root] ? allTaxa[this.state.root]["unassignedCount"] : 0;
-        var bPLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
-            "(raw file: ",
-            beforePreprocessing,
-            ")");
+        var bPLine;
+        if (this.state.root === "root") {
+            bPLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+                "(raw file: ",
+                React.createElement("b", null, beforePreprocessing),
+                ")");
+        }
+        else {
+            bPLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "2.5vh" } },
+                "(raw file: ",
+                React.createElement("b", null, beforePreprocessing),
+                ")");
+        }
         var ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine];
         for (var i = 0; i < this.props.ancestors.length; i++) {
-            ps.push(React.createElement("p", { style: { "padding": 0, "margin": 0 }, onClick: this.props.onClickArray[i] },
+            ps.push(React.createElement("p", { style: { "padding": 0, "margin": 0, "cursor": "pointer" }, onClick: this.props.onClickArray[i] },
                 this.state.lines[i],
                 " of ",
                 React.createElement("b", null, this.props.ancestors[i].replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""))));
         }
-        return React.createElement("fieldset", { style: { "borderColor": "#800080", "margin": 0, "marginTop": "3vmin", "minWidth": "20%", "borderRadius": "5px" } }, ps);
+        return React.createElement("fieldset", null, ps);
     };
     return AncestorSection;
 }(React.Component));
@@ -206,22 +213,20 @@ var DescendantSection = /** @class */ (function (_super) {
         if (this.state.hovered) {
             var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "HOVERING OVER");
             var noRanksName = this.state.self.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "");
-            var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "1vmin" } },
+            var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "0vmin" } },
                 "Taxon: ",
-                React.createElement("b", null, noRanksName),
-                ", #",
-                this.state.layer);
+                React.createElement("b", null, noRanksName));
             var rankLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
                 "Rank: ",
-                this.state.rank);
+                React.createElement("b", null, this.state.rank));
             var totalCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
                 "Total count: ",
-                this.state.totalCount);
+                React.createElement("b", null, this.state.totalCount));
             var unassignedCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
                 "Unassigned ",
                 this.state.self.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""),
                 ": ",
-                this.state.unassignedCount);
+                React.createElement("b", null, this.state.unassignedCount));
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine];
             return React.createElement("fieldset", { style: { "borderColor": "#800080", "margin": 0, "marginTop": "3vmin", "minWidth": "20%", "borderRadius": "5px" } }, ps);
         }
@@ -1238,7 +1243,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 shapes,
                 " ",
                 labels,
-                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "ancestors" }, ancestors), React.createElement("div", { style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "width": "20%", "padding": 0, "margin": 0 } },
+                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "ancestors" }, ancestors), React.createElement("div", { id: "left-column", style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "width": "20%", "padding": 0, "margin": 0 } },
                 React.createElement(AncestorSection, { ancestors: anc, root: this.state.root, layer: this.state.layer, plotEValue: this.state.plotEValue, onClickArray: anc.map(function (self, index) { return function () { _this.handleClick("".concat(self, "_-_").concat(-index)); }; }) }),
                 React.createElement(DescendantSection, { self: "Felinae", layer: 0, ancestor: "Felidae", hovered: true }))];
     };

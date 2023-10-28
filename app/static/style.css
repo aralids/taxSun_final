@@ -4,7 +4,24 @@ svg {
     z-index: 100;
 }
 
-#interaction {
-    position: fixed;
+#interaction, #left-column {
+    display: flex; 
+    flex-direction: column; 
+    position: fixed; 
+    top: 0;
+    width: 20%;
     z-index: 200;
+}
+
+fieldset {
+    border-color: #800080; 
+    min-width: 0px; 
+    max-width: 100%; 
+    margin: 0; 
+    margin-top: 3vh;
+    padding-left: 1.5vw;
+    padding-right: 1.5vw;
+    padding-top: 1.5vh;
+    padding-bottom: 2vh;
+    border-radius: 5px;
 }
