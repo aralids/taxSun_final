@@ -14,11 +14,12 @@ var reactRoot = ReactDOM.createRoot(domContainer);
 var viewportDimensions = getViewportDimensions();
 var alreadyVisited:object = {};
 let fileName = "lessSpontaneous2.tsv";
-let taxonName = "Laurasiatheria";
-let layerName = 7;
+let taxonName = "Sarcopterygii";
+let layerName = 5;
 let collapseName = "collapseFalse";
 let modeName = "allEqual";
 var eThreshold:any = null;
+let newDataLoaded:boolean = false;
 
 /* ===== FETCHING THE DATA ===== */
 
@@ -53,12 +54,15 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
     }
 
     componentDidUpdate() {
-        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue) || (eThreshold !== this.state.eThresholdHere)) {
+        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue) || (eThreshold !== this.state.eThresholdHere) || newDataLoaded) {
+            newDataLoaded = false;
             this.getCounts();
         }
+
     }
 
     getCounts() {
+        console.log("new Ancestor Section!")
         let totalCount:number = 0;
         let unassignedCount:number = 0;
         let rank:string = "";
@@ -181,7 +185,7 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
             let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
             let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned {this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: <b>{this.state.unassignedCount}</b></p>
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine]
-            return <fieldset style={{"borderColor": "#800080", "margin": 0, "marginTop": "3vmin", "minWidth": "20%", "borderRadius": "5px"}}>{ps}</fieldset>
+            return <fieldset id="hovering-over">{ps}</fieldset>
         }
         return <div></div>
     }
@@ -191,8 +195,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     constructor(props) {
         super(props);
         this.state = {
-            root: "Laurasiatheria",
-            layer: 7,
+            root: "Sarcopterygii",
+            layer: 5,
             collapse: false,
             horizontalShift: viewportDimensions["cx"],
             verticalShift: viewportDimensions["cy"],
@@ -311,6 +315,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     // Leave only relevant lineages and crop them if necessary.
     cropLineages(root=this.state.root, layer=this.state.layer, alteration=this.state.alteration, collapse=this.state.collapse, plotEValue=this.state.plotEValue, lineages=lineagesNames, ranks=lineagesRanks):void {
 
+        console.log("aTR: ", allTaxaReduced)
         // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
         taxonName = root.slice(0, 10);
         layerName = layer;
@@ -428,6 +433,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             }
         }
         else {
+            console.log("allTaxaReduced tUC: ", allTaxaReduced, root)
             totalUnassignedCount = allTaxaReduced[root]["totalCount"];
         }
         
@@ -460,9 +466,11 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         // Continue if more than one lineage fulfilling the criteria was found.
         var currPlotId:string = root + layer + collapse + alteration + plotEValue + round(layerWidth) + eThreshold;
-        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
+        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1 && newDataLoaded) {
+            console.log("no new plot")
             this.setState(alreadyVisited[currPlotId]);
         } else if (croppedLineages.length >= 1) {
+            console.log("new plot")
             this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue});
         }
     }
@@ -1012,7 +1020,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let transformOrigin = `${newTaxonSpecifics[key]["center"][0]} ${newTaxonSpecifics[key]["center"][1]}`;
             let top = newTaxonSpecifics[key]["center"][1] + height/2;
             let left, radialLeft, horizontalSpace, abbreviation, howManyLettersFit, hoverLeft, hoverRadialLeft;
-            console.log("tS key: ", key);
 
             // Calculate left and angle for all labels of the last layer, which are always radial.
             if (newTaxonSpecifics[key]["label"]["direction"] === "radial") {
@@ -1048,15 +1055,16 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
 
                 let leftIntersect, rightIntersect;
-                if (centerDegree >= 180 && centerDegree < 360) {
+                if ((centerDegree % 360) >= 180 && (centerDegree % 360) < 360) {
                     radialLeft = hoverRadialLeft = newTaxonSpecifics[key]["center"][0];
                     radialAngle = 360 - (270 - radialAngle);
                     
                     // (1)
                     leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
                     rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
+                    console.log("top: ")
                 }
-                else if (centerDegree >= 0 && centerDegree <= 180) {
+                else if ((centerDegree % 360) >= 0 && (centerDegree % 360) <= 180) {
                     radialLeft = newTaxonSpecifics[key]["center"][0] - width;
                     hoverRadialLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
                     radialAngle = 270 - radialAngle;
@@ -1064,6 +1072,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     // (1)
                     leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
                     rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
+                    console.log("bottom: ")
                 }
 
                 // (1)
@@ -1071,6 +1080,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     horizontalSpace = 0;
                 }
                 else {
+                    console.log("key: ", key, centerDegree)
                     horizontalSpace = lineLength(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"])
                 }
 
@@ -1214,7 +1224,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         let anc:any[] = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
 
-        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<div id="left-column" style={{"display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "width": "20%", "padding": 0, "margin": 0}}><AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} plotEValue={this.state.plotEValue} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
+        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<div id="left-column"><AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} plotEValue={this.state.plotEValue} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
     }
     //<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>
 }
@@ -1383,7 +1393,9 @@ document.getElementById("file")?.addEventListener("change", () => {
             newData.checked = true;
             document.getElementById("status")!.innerHTML = "check";
             var evt = new CustomEvent('change');
+            console.log("aTR after load: ", allTaxaReduced)
             newData.dispatchEvent(evt);
+            newDataLoaded = true;
         },
         error: function (response) {
             console.log("ERROR", response);

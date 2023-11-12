@@ -434,11 +434,12 @@ var reactRoot = ReactDOM.createRoot(domContainer);
 var viewportDimensions = (0, helperFunctions_js_1.getViewportDimensions)();
 var alreadyVisited = {};
 var fileName = "lessSpontaneous2.tsv";
-var taxonName = "Laurasiatheria";
-var layerName = 7;
+var taxonName = "Sarcopterygii";
+var layerName = 5;
 var collapseName = "collapseFalse";
 var modeName = "allEqual";
 var eThreshold = null;
+var newDataLoaded = false;
 /* ===== FETCHING THE DATA ===== */
 var path = "lessSpontaneous2.tsv";
 //loadDataFromTSV(path);
@@ -468,11 +469,13 @@ var AncestorSection = /** @class */ (function (_super) {
         return _this;
     }
     AncestorSection.prototype.componentDidUpdate = function () {
-        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue) || (eThreshold !== this.state.eThresholdHere)) {
+        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue) || (eThreshold !== this.state.eThresholdHere) || newDataLoaded) {
+            newDataLoaded = false;
             this.getCounts();
         }
     };
     AncestorSection.prototype.getCounts = function () {
+        console.log("new Ancestor Section!");
         var totalCount = 0;
         var unassignedCount = 0;
         var rank = "";
@@ -624,7 +627,7 @@ var DescendantSection = /** @class */ (function (_super) {
                 ": ",
                 React.createElement("b", null, this.state.unassignedCount));
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine];
-            return React.createElement("fieldset", { style: { "borderColor": "#800080", "margin": 0, "marginTop": "3vmin", "minWidth": "20%", "borderRadius": "5px" } }, ps);
+            return React.createElement("fieldset", { id: "hovering-over" }, ps);
         }
         return React.createElement("div", null);
     };
@@ -635,8 +638,8 @@ var PlotDrawing = /** @class */ (function (_super) {
     function PlotDrawing(props) {
         var _this = _super.call(this, props) || this;
         _this.state = {
-            root: "Laurasiatheria",
-            layer: 7,
+            root: "Sarcopterygii",
+            layer: 5,
             collapse: false,
             horizontalShift: viewportDimensions["cx"],
             verticalShift: viewportDimensions["cy"],
@@ -757,6 +760,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (plotEValue === void 0) { plotEValue = this.state.plotEValue; }
         if (lineages === void 0) { lineages = lineagesNames; }
         if (ranks === void 0) { ranks = lineagesRanks; }
+        console.log("aTR: ", allTaxaReduced);
         // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
         taxonName = root.slice(0, 10);
         layerName = layer;
@@ -867,6 +871,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
         }
         else {
+            console.log("allTaxaReduced tUC: ", allTaxaReduced, root);
             totalUnassignedCount = allTaxaReduced[root]["totalCount"];
         }
         // Make all lineages take up the same amount of degrees in the plot if necessary.
@@ -897,10 +902,12 @@ var PlotDrawing = /** @class */ (function (_super) {
         var layerWidth = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
         // Continue if more than one lineage fulfilling the criteria was found.
         var currPlotId = root + layer + collapse + alteration + plotEValue + (0, helperFunctions_js_1.round)(layerWidth) + eThreshold;
-        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
+        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1 && newDataLoaded) {
+            console.log("no new plot");
             this.setState(alreadyVisited[currPlotId]);
         }
         else if (croppedLineages.length >= 1) {
+            console.log("new plot");
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue });
         }
     };
@@ -1449,7 +1456,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             var transformOrigin = "".concat(newTaxonSpecifics[key]["center"][0], " ").concat(newTaxonSpecifics[key]["center"][1]);
             var top_1 = newTaxonSpecifics[key]["center"][1] + height / 2;
             var left = void 0, radialLeft = void 0, horizontalSpace = void 0, abbreviation = void 0, howManyLettersFit = void 0, hoverLeft = void 0, hoverRadialLeft = void 0;
-            console.log("tS key: ", key);
             // Calculate left and angle for all labels of the last layer, which are always radial.
             if (newTaxonSpecifics[key]["label"]["direction"] === "radial") {
                 if (centerDegree >= 180 && centerDegree < 360) {
@@ -1481,26 +1487,29 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var cy = newTaxonSpecifics[key]["center"][1];
                 var fourPoints = (0, helperFunctions_js_1.getFourCorners)(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
                 var leftIntersect = void 0, rightIntersect = void 0;
-                if (centerDegree >= 180 && centerDegree < 360) {
+                if ((centerDegree % 360) >= 180 && (centerDegree % 360) < 360) {
                     radialLeft = hoverRadialLeft = newTaxonSpecifics[key]["center"][0];
                     radialAngle = 360 - (270 - radialAngle);
                     // (1)
                     leftIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
                     rightIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
+                    console.log("top: ");
                 }
-                else if (centerDegree >= 0 && centerDegree <= 180) {
+                else if ((centerDegree % 360) >= 0 && (centerDegree % 360) <= 180) {
                     radialLeft = newTaxonSpecifics[key]["center"][0] - width;
                     hoverRadialLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
                     radialAngle = 270 - radialAngle;
                     // (1)
                     leftIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
                     rightIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
+                    console.log("bottom: ");
                 }
                 // (1)
                 if (leftIntersect === null || rightIntersect === null) {
                     horizontalSpace = 0;
                 }
                 else {
+                    console.log("key: ", key, centerDegree);
                     horizontalSpace = (0, helperFunctions_js_1.lineLength)(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"]);
                 }
                 // Calculate radial space.
@@ -1639,7 +1648,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 shapes,
                 " ",
                 labels,
-                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "ancestors" }, ancestors), React.createElement("div", { id: "left-column", style: { "display": "flex", "flexDirection": "column", "justifyContent": "start", "position": "fixed", "top": 0, "left": "2vmin", "width": "20%", "padding": 0, "margin": 0 } },
+                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "ancestors" }, ancestors), React.createElement("div", { id: "left-column" },
                 React.createElement(AncestorSection, { ancestors: anc, root: this.state.root, layer: this.state.layer, plotEValue: this.state.plotEValue, onClickArray: anc.map(function (self, index) { return function () { _this.handleClick("".concat(self, "_-_").concat(-index)); }; }) }),
                 React.createElement(DescendantSection, { self: "Felinae", layer: 0, ancestor: "Felidae", hovered: true }))];
     };
@@ -1803,7 +1812,9 @@ var allTaxa = {};
             newData.checked = true;
             document.getElementById("status").innerHTML = "check";
             var evt = new CustomEvent('change');
+            console.log("aTR after load: ", allTaxaReduced);
             newData.dispatchEvent(evt);
+            newDataLoaded = true;
         },
         error: function (response) {
             console.log("ERROR", response);

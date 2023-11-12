@@ -13,6 +13,14 @@ svg {
     z-index: 200;
 }
 
+#left-column {
+    left: 2vmin;
+}
+
+#interaction {
+    right: 2vmin;
+}
+
 fieldset {
     border-color: #800080; 
     min-width: 0px; 
@@ -24,4 +32,40 @@ fieldset {
     padding-top: 1.5vh;
     padding-bottom: 2vh;
     border-radius: 5px;
+}
+
+#download {
+    padding: 0;
+    padding-top: 1vmin;
+    padding-bottom: 1vmin;
+    border: 1px solid black;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%
+}
+
+#download:hover {
+    background-color: rgba(211, 211, 211, 0.856);
+    color: black;
+}
+
+@media (hover: none) {
+    #hovering-over {
+        display: none;
+    }
+}
+
+@media (width <= height) {
+    #left-column {
+        transform-origin: top left; 
+        transform: rotate(-90deg); 
+        top: calc(100% - 2vmin); 
+        left: 0;
+    }
+    #interaction {
+        transform-origin: top right; 
+        transform: rotate(-90deg); 
+        right: 100%; 
+        top: 2vmin;
+    }
 }
