@@ -254,7 +254,20 @@ def load_tsv_data():
         lineagesNames.append(lineageNames)
         lineagesRanks.append(lineageRanks)
 
-    return jsonify({"lineagesNames": lineagesNames, "lineagesRanks": lineagesRanks, "allTaxaReduced": allTaxaReduced, "rankPatternFull": rankPatternFull, "allTaxa": taxDict, "offset": offset, "median": median})
+    return jsonify({"lineagesNames": lineagesNames, "lineagesRanks": lineagesRanks, "allTaxaReduced": allTaxaReduced, "rankPatternFull": rankPatternFull, "allTaxa": taxDict, "offset": offset, "median": median, "fastaHeaderIncluded": fasta_header_included})
+
+@app.route('/load_fasta_data', methods=["POST", "GET"])
+def load_fasta_data():
+    f = request.files['fasta-file'].read()
+    fasta_file = (f.decode("utf-8")[:-1]).split(">")
+    dict = {}
+    for seq in fasta_file:
+        seq2list = seq.split("\n")
+        if len(seq2list) > 1:
+            seq_name = seq2list[0]
+            seq_body = seq2list[1].replace("*", "")
+            dict[seq_name] = seq_body
+    return jsonify({"headerSeqObject": dict})
 
 @app.route('/get_tax_data')
 def get_tax_data():

@@ -23,7 +23,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
-var _a;
+var _a, _b;
 exports.__esModule = true;
 var React = require("react");
 var ReactDOM = require("react-dom/client");
@@ -44,6 +44,7 @@ var collapseName = "collapseFalse";
 var modeName = "allEqual";
 var eThreshold = null;
 var newDataLoaded = false;
+var headerSeqObject = {};
 /* ===== FETCHING THE DATA ===== */
 var path = "lessSpontaneous2.tsv";
 //loadDataFromTSV(path);
@@ -561,9 +562,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 }
                 return item <= eThreshold;
             });
-            console.log("successfulIndices: ", successfulIndices);
             allTaxaReduced[lastTaxon]["successfulIndices"] = successfulIndices;
-            console.log("whats going on: ", lastTaxon, allTaxaReduced[lastTaxon]);
             var newUnassignedCount = eValues.length;
             allEValues = allEValues.concat(originalAllTaxaReduced[lastTaxon]["eValues"]);
             var diff = oldUnassignedCount - newUnassignedCount;
@@ -1415,8 +1414,8 @@ var descendants = {};
 for (var _i = 0, aTRKeys_1 = aTRKeys; _i < aTRKeys_1.length; _i++) {
     var taxName = aTRKeys_1[_i];
     var lineage = allTaxaReduced[taxName]["lineageNames"];
-    for (var _b = 0, lineage_1 = lineage; _b < lineage_1.length; _b++) {
-        var predecessor = lineage_1[_b];
+    for (var _c = 0, lineage_1 = lineage; _c < lineage_1.length; _c++) {
+        var predecessor = lineage_1[_c];
         if (!descendants[predecessor[1]]) {
             descendants[predecessor[1]] = [taxName];
         }
@@ -1447,11 +1446,19 @@ var allTaxa = {};
             allTaxa = response["allTaxa"];
             colorOffset = response["offset"];
             eThreshold = response["median"];
+            var enableFastaUpload = response["fastaHeaderIncluded"];
             if (eThreshold) {
                 enableEValue(eThreshold);
             }
             else {
                 disableEValue();
+            }
+            if (enableFastaUpload) {
+                document.getElementById("fasta-file").removeAttribute("disabled");
+            }
+            else {
+                disableEValue();
+                document.getElementById("fasta-file").setAttribute("disabled", "disabled");
             }
             var newData = document.getElementById("new-data");
             newData.checked = true;
@@ -1464,6 +1471,29 @@ var allTaxa = {};
         error: function (response) {
             console.log("ERROR", response);
             document.getElementById("status").innerHTML = "close";
+        }
+    });
+});
+(_b = document.getElementById("fasta-file")) === null || _b === void 0 ? void 0 : _b.addEventListener("change", function () {
+    var fileInput = document.getElementById("fasta-file");
+    fileName = fileInput.files[0].name;
+    document.getElementById("fasta-status").innerHTML = "pending";
+    var uploadForm = document.getElementById("uploadForm");
+    var form_data = new FormData(uploadForm);
+    $.ajax({
+        url: '/load_fasta_data',
+        data: form_data,
+        type: 'POST',
+        processData: false,
+        contentType: false,
+        success: function (response) {
+            console.log("response FASTA: ", response);
+            document.getElementById("fasta-status").innerHTML = "check";
+            headerSeqObject = response["headerSeqObject"];
+        },
+        error: function (response) {
+            console.log("ERROR", response);
+            document.getElementById("fasta-status").innerHTML = "close";
         }
     });
 });

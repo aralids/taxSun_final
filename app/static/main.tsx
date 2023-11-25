@@ -21,6 +21,7 @@ let collapseName = "collapseFalse";
 let modeName = "allEqual";
 var eThreshold:any = null;
 let newDataLoaded:boolean = false;
+var headerSeqObject:object = {};
 
 /* ===== FETCHING THE DATA ===== */
 
@@ -1417,11 +1418,19 @@ document.getElementById("file")?.addEventListener("change", () => {
             allTaxa = response["allTaxa"];
             colorOffset = response["offset"]
             eThreshold = response["median"];
+            let enableFastaUpload:boolean = response["fastaHeaderIncluded"];
             if (eThreshold) {
                 enableEValue(eThreshold);
             }
             else {
                 disableEValue();
+            }
+            if (enableFastaUpload) {
+                document.getElementById("fasta-file")!.removeAttribute("disabled");
+            }
+            else {
+                disableEValue();
+                document.getElementById("fasta-file")!.setAttribute("disabled", "disabled");
             }
             let newData:any = document.getElementById("new-data")!
             newData.checked = true;
@@ -1434,6 +1443,30 @@ document.getElementById("file")?.addEventListener("change", () => {
         error: function (response) {
             console.log("ERROR", response);
             document.getElementById("status")!.innerHTML = "close";
+        }
+    });
+});
+
+document.getElementById("fasta-file")?.addEventListener("change", () => {
+    let fileInput:any = document.getElementById("fasta-file")!
+    fileName = fileInput.files[0].name;
+    document.getElementById("fasta-status")!.innerHTML = "pending";
+    let uploadForm:any = document.getElementById("uploadForm")!;
+    let form_data = new FormData(uploadForm);
+    $.ajax({
+        url: '/load_fasta_data',
+        data: form_data,
+        type: 'POST',
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            console.log("response FASTA: ", response);
+            document.getElementById("fasta-status")!.innerHTML = "check";
+            headerSeqObject = response["headerSeqObject"];
+        },
+        error: function (response) {
+            console.log("ERROR", response);
+            document.getElementById("fasta-status")!.innerHTML = "close";
         }
     });
 });
