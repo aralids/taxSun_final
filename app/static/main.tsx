@@ -61,8 +61,30 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
 
     }
 
+    changeDiv(taxName) {
+        $.ajax({
+            url: '/fetchID',
+            data: {"taxName": taxName.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")},
+            type: 'GET',
+            success: function(response) {
+                let taxID = response["taxID"];
+                if (!allTaxaReduced[taxName]) {
+                    allTaxaReduced[taxName] = {}
+                }
+                allTaxaReduced[taxName]["taxID"] = taxID;
+                originalAllTaxaReduced[taxName]["taxID"] = taxID;
+                },
+            error: function (response) {
+                console.log("ERROR", response);
+                document.getElementById("status")!.innerHTML = "close";
+            }
+        }).then( 
+            () => {this.setState(this.state);}
+        );
+        
+    }
+
     getCounts() {
-        console.log("new Ancestor Section!")
         let totalCount:number = 0;
         let unassignedCount:number = 0;
         let rank:string = "";
@@ -86,11 +108,12 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
     }
 
     render() {
+        let filteredRoot:any = this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
         let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>CURRENT LAYER</legend>;
         let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "0vmin"}}>Taxon: <b>{this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>
         let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: <b>{this.state.rank}</b></p>;
         let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
-        let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unspecified {this.state.root}: <b>{this.state.unassignedCount}</b></p>
+        let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unspecified {this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: <b>{this.state.unassignedCount}</b></p>
         //!!! rewrite v
         let beforePreprocessing:number = allTaxa[this.state.root] ? allTaxa[this.state.root]["unassignedCount"] : 0;
         let bPLine:any;
@@ -98,9 +121,18 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
             bPLine = <p style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
         }
         else {
-            bPLine = <p style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
+            bPLine = <p style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
         }
-        let ps:any = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine]
+        let id:string = allTaxaReduced[this.state.root] ? allTaxaReduced[this.state.root]["taxID"] : "1";
+        let taxIDline:any;
+        if (id) {
+            taxIDline = <div id="taxID-div" style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}><p style={{"padding": 0, "margin": 0}}>taxID: <a style={{"display": "inline"}} target="_blank" href={`https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=${id}&lvl=3&lin=f&keep=1&srchmode=1&unlock`}>{id}</a></p></div>
+        }
+        else {
+            taxIDline = <div id="taxID-div" style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}><p style={{"padding": 0, "margin": 0}}>taxID: <button onClick={() => this.changeDiv(this.state.root)}  id="fetch-id-button">FETCH</button></p></div>
+        }
+        
+        let ps:any = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine, taxIDline]
         for (let i=0; i<this.props.ancestors.length; i++) {
             ps.push(<p style={{"padding": 0, "margin": 0, "cursor": "pointer"}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>)
         }
@@ -315,7 +347,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     // Leave only relevant lineages and crop them if necessary.
     cropLineages(root=this.state.root, layer=this.state.layer, alteration=this.state.alteration, collapse=this.state.collapse, plotEValue=this.state.plotEValue, lineages=lineagesNames, ranks=lineagesRanks):void {
 
-        console.log("aTR: ", allTaxaReduced)
         // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
         taxonName = root.slice(0, 10);
         layerName = layer;
@@ -433,7 +464,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             }
         }
         else {
-            console.log("allTaxaReduced tUC: ", allTaxaReduced, root)
             totalUnassignedCount = allTaxaReduced[root]["totalCount"];
         }
         
@@ -467,10 +497,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         // Continue if more than one lineage fulfilling the criteria was found.
         var currPlotId:string = root + layer + collapse + alteration + plotEValue + round(layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1 && newDataLoaded) {
-            console.log("no new plot")
             this.setState(alreadyVisited[currPlotId]);
         } else if (croppedLineages.length >= 1) {
-            console.log("new plot")
             this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue});
         }
     }
@@ -1062,7 +1090,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     // (1)
                     leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
                     rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
-                    console.log("top: ")
                 }
                 else if ((centerDegree % 360) >= 0 && (centerDegree % 360) <= 180) {
                     radialLeft = newTaxonSpecifics[key]["center"][0] - width;
@@ -1072,7 +1099,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     // (1)
                     leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
                     rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
-                    console.log("bottom: ")
                 }
 
                 // (1)
@@ -1080,7 +1106,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     horizontalSpace = 0;
                 }
                 else {
-                    console.log("key: ", key, centerDegree)
                     horizontalSpace = lineLength(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"])
                 }
 

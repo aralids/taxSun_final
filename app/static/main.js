@@ -78,8 +78,27 @@ var AncestorSection = /** @class */ (function (_super) {
             this.getCounts();
         }
     };
+    AncestorSection.prototype.changeDiv = function (taxName) {
+        var _this = this;
+        $.ajax({
+            url: '/fetchID',
+            data: { "taxName": taxName.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "") },
+            type: 'GET',
+            success: function (response) {
+                var taxID = response["taxID"];
+                if (!allTaxaReduced[taxName]) {
+                    allTaxaReduced[taxName] = {};
+                }
+                allTaxaReduced[taxName]["taxID"] = taxID;
+                originalAllTaxaReduced[taxName]["taxID"] = taxID;
+            },
+            error: function (response) {
+                console.log("ERROR", response);
+                document.getElementById("status").innerHTML = "close";
+            }
+        }).then(function () { _this.setState(_this.state); });
+    };
     AncestorSection.prototype.getCounts = function () {
-        console.log("new Ancestor Section!");
         var totalCount = 0;
         var unassignedCount = 0;
         var rank = "";
@@ -101,6 +120,8 @@ var AncestorSection = /** @class */ (function (_super) {
         this.setState({ totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank, plotEValue: this.props.plotEValue, eThresholdHere: eThreshold });
     };
     AncestorSection.prototype.render = function () {
+        var _this = this;
+        var filteredRoot = this.state.root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "");
         var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "CURRENT LAYER");
         var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "0vmin" } },
             "Taxon: ",
@@ -113,7 +134,7 @@ var AncestorSection = /** @class */ (function (_super) {
             React.createElement("b", null, this.state.totalCount));
         var unassignedCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
             "Unspecified ",
-            this.state.root,
+            this.state.root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""),
             ": ",
             React.createElement("b", null, this.state.unassignedCount));
         //!!! rewrite v
@@ -126,12 +147,26 @@ var AncestorSection = /** @class */ (function (_super) {
                 ")");
         }
         else {
-            bPLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "2.5vh" } },
+            bPLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
                 "(raw file: ",
                 React.createElement("b", null, beforePreprocessing),
                 ")");
         }
-        var ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine];
+        var id = allTaxaReduced[this.state.root] ? allTaxaReduced[this.state.root]["taxID"] : "1";
+        var taxIDline;
+        if (id) {
+            taxIDline = React.createElement("div", { id: "taxID-div", style: { "padding": 0, "margin": 0, "paddingBottom": "2.5vh" } },
+                React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+                    "taxID: ",
+                    React.createElement("a", { style: { "display": "inline" }, target: "_blank", href: "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=".concat(id, "&lvl=3&lin=f&keep=1&srchmode=1&unlock") }, id)));
+        }
+        else {
+            taxIDline = React.createElement("div", { id: "taxID-div", style: { "padding": 0, "margin": 0, "paddingBottom": "2.5vh" } },
+                React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+                    "taxID: ",
+                    React.createElement("button", { onClick: function () { return _this.changeDiv(_this.state.root); }, id: "fetch-id-button" }, "FETCH")));
+        }
+        var ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine, taxIDline];
         for (var i = 0; i < this.props.ancestors.length; i++) {
             ps.push(React.createElement("p", { style: { "padding": 0, "margin": 0, "cursor": "pointer" }, onClick: this.props.onClickArray[i] },
                 this.state.lines[i],
@@ -364,7 +399,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (plotEValue === void 0) { plotEValue = this.state.plotEValue; }
         if (lineages === void 0) { lineages = lineagesNames; }
         if (ranks === void 0) { ranks = lineagesRanks; }
-        console.log("aTR: ", allTaxaReduced);
         // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
         taxonName = root.slice(0, 10);
         layerName = layer;
@@ -475,7 +509,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
         }
         else {
-            console.log("allTaxaReduced tUC: ", allTaxaReduced, root);
             totalUnassignedCount = allTaxaReduced[root]["totalCount"];
         }
         // Make all lineages take up the same amount of degrees in the plot if necessary.
@@ -507,11 +540,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         // Continue if more than one lineage fulfilling the criteria was found.
         var currPlotId = root + layer + collapse + alteration + plotEValue + (0, helperFunctions_js_1.round)(layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1 && newDataLoaded) {
-            console.log("no new plot");
             this.setState(alreadyVisited[currPlotId]);
         }
         else if (croppedLineages.length >= 1) {
-            console.log("new plot");
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue });
         }
     };
@@ -1097,7 +1128,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                     // (1)
                     leftIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
                     rightIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
-                    console.log("top: ");
                 }
                 else if ((centerDegree % 360) >= 0 && (centerDegree % 360) <= 180) {
                     radialLeft = newTaxonSpecifics[key]["center"][0] - width;
@@ -1106,14 +1136,12 @@ var PlotDrawing = /** @class */ (function (_super) {
                     // (1)
                     leftIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
                     rightIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
-                    console.log("bottom: ");
                 }
                 // (1)
                 if (leftIntersect === null || rightIntersect === null) {
                     horizontalSpace = 0;
                 }
                 else {
-                    console.log("key: ", key, centerDegree);
                     horizontalSpace = (0, helperFunctions_js_1.lineLength)(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"]);
                 }
                 // Calculate radial space.
