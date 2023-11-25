@@ -5,6 +5,7 @@ import { unmountComponentAtNode } from "react-dom";
 import { json } from "stream/consumers";
 import { ln, lr, atr } from "./predefinedObjects.js";
 import { createPalette, radians, round, sin, cos, handleMouseMove, hexToRGB, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions} from "./helperFunctions.js";
+import { threadId } from "worker_threads";
 
 var currentState;
 var skeletonColor:string = "#800080";
@@ -511,9 +512,16 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let lineage:string[] = croppedLineages[i];
             let lastTaxon:string = lineage[lineage.length-1];
             let oldUnassignedCount:number = originalAllTaxaReduced[lastTaxon]["unassignedCount"];
-            let eValues = JSON.parse(JSON.stringify(originalAllTaxaReduced[lastTaxon]["e_values"])).filter(item => item <= eThreshold!);
+            let successfulIndices:number[] = [];
+            let eValues = JSON.parse(JSON.stringify(originalAllTaxaReduced[lastTaxon]["eValues"])).filter((item, index) => {
+                if (item <= eThreshold) {
+                    successfulIndices.push(index);
+                }
+                return item <= eThreshold!
+            });
+            allTaxaReduced[lastTaxon]["successfulIndices"] = successfulIndices;
             let newUnassignedCount:number = eValues.length;
-            allEValues = allEValues.concat(originalAllTaxaReduced[lastTaxon]["e_values"]);
+            allEValues = allEValues.concat(originalAllTaxaReduced[lastTaxon]["eValues"]);
 
             let diff:number = oldUnassignedCount - newUnassignedCount;
             
@@ -1211,6 +1219,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         //console.log("render original aTR:", originalAllTaxaReduced["Aphis glycines"])
         //console.log("layerWidth: ", this.state.layerWidth);
         //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
+        console.log("render aTR: ", allTaxaReduced);
 
         currentState = this.state;
         var shapes:any = [];

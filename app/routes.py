@@ -61,9 +61,10 @@ def index():
 
 @app.route('/load_tsv_data', methods=["POST", "GET"])
 def load_tsv_data():
-    taxDict = {"root": {"taxID": "1", "unassignedCount": 0, "totalCount": 0, "lineageNames": [["root", "root"]], "rank": "root", "e_values": []}}
+    taxDict = {"root": {"taxID": "1", "unassignedCount": 0, "totalCount": 0, "lineageNames": [["root", "root"]], "rank": "root", "names": [["root", -1]], "geneNames": [], "eValues": [], "fastaHeaders": []}}
     taxID_sum = 0
     tempDict = {"1": "root"}
+    allEvals = []
     if request.method == 'GET':
         path = request.args["tsv_path"][1:]
         with open(path) as file:
@@ -75,23 +76,21 @@ def load_tsv_data():
         whole_file = (f.decode("utf-8")[:-1]).split("\n")
         first_line = whole_file[0]
         tsv_file = whole_file[1:]
-        if "bh_evalue" in first_line:
-            includeEvals = True
-            allEvals = []
-            for line in tsv_file:
-                taxDict, tempDict, taxID_sum, allEvals = read_line(line.split("\t")[1], line.split("\t")[2], taxDict, tempDict, taxID_sum, includeEvals, allEvals) 
-            median = sorted(allEvals)[len(allEvals) // 2]
-        else:
-            includeEvals = False
-            for line in tsv_file:
-                taxDict, tempDict, taxID_sum, allEvals = read_line(line.split("\t")[1], None, taxDict, tempDict, taxID_sum, includeEvals, None) 
+        e_value_included = "bh_evalue" in first_line
+        fasta_header_included = "fasta_header" in first_line
+        for line in tsv_file:
+            taxDict, tempDict, taxID_sum, allEvals = read_line(line, taxDict, tempDict, taxID_sum, allEvals, e_value_included, fasta_header_included)
             median = None
+        if e_value_included:
+            median = sorted(allEvals)[len(allEvals) // 2]
     for taxon in taxDict.keys():
         subtaxa_counts = [taxDict[other_taxon]["unassignedCount"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
         taxDict[taxon]["totalCount"] = sum(subtaxa_counts)
     #taxDict["root"]["totalCount"] = taxIDList.count("NA")
     #print('taxDict["root"]: ', taxDict["root"])
     offset = sum_to_2dig(str(taxID_sum))
+    for key,value in taxDict.items():
+        print("item: ", key, value, "\n")
 
     rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"]
     
@@ -120,7 +119,6 @@ def load_tsv_data():
         rank = value["rank"]
         lineage = value["lineageNames"]
         if (len(lineage) == 0) or rank != lineage[len(lineage)-1][0]:
-            print("key: ", key)
             reducibleTaxa.append(key)
 
     # Add "root" as first item in the lineage of every taxon in allTaxaReduced.
@@ -129,8 +127,6 @@ def load_tsv_data():
             value["lineageNames"] = [allTaxaReduced["root"]["lineageNames"][0]] + value["lineageNames"]
 
 
-    print('allTaxaReduced["root"]["totalCount"] BEFORE: ', allTaxaReduced["root"]["unassignedCount"])
- 
     # Delete reducible taxa from allTaxaReduced and add new ones, their lastPredecessor, if necessary.
     # (else) If the last predecessor is not in allTaxaReduced (doesn't have its own counts in the raw file), add it to newlyAdded and allTaxaReduced.
     # (if) If the last predecessor is in allTaxaReduced and was added in a previous iteration of this loop (doesn't have its own counts in the raw file).
@@ -140,33 +136,42 @@ def load_tsv_data():
     for taxName in reducibleTaxa:
         unassignedCount = taxDict[taxName]["unassignedCount"]
         lineage = allTaxaReduced[taxName]["lineageNames"]
-        if includeEvals:
-            e_vals = allTaxaReduced[taxName]["e_values"]
+        ns = allTaxaReduced[taxName]["names"]
+        g_names = allTaxaReduced[taxName]["geneNames"]
+        if e_value_included:
+            e_vals = allTaxaReduced[taxName]["eValues"]
+        if fasta_header_included:
+            f_headers = allTaxaReduced[taxName]["fastaHeaders"]
         lastPredecessor = lineage[-1][1]
+
         if lastPredecessor in allTaxaReduced.keys() and lastPredecessor in newlyAdded:
-            if lastPredecessor == "root":
-                print("if")
             allTaxaReduced[lastPredecessor]["unassignedCount"] += unassignedCount
-            if includeEvals:
-                allTaxaReduced[lastPredecessor]["e_values"] += e_vals
+            allTaxaReduced[lastPredecessor]["names"].append([taxName, allTaxaReduced[lastPredecessor]["names"][-1][1] + unassignedCount])
+            allTaxaReduced[lastPredecessor]["geneNames"] += g_names
+            if e_value_included:
+                allTaxaReduced[lastPredecessor]["eValues"] += e_vals
+            if fasta_header_included:
+                allTaxaReduced[lastPredecessor]["fastaHeaders"] += f_headers
             allTaxaReduced[lastPredecessor]["deletedDescendants"].append(taxName)
             del allTaxaReduced[taxName]
+
         elif lastPredecessor in allTaxaReduced.keys() and (not lastPredecessor in newlyAdded):
             if lastPredecessor == "root":
-                print("elif", taxName)
                 allTaxaReduced[lastPredecessor]["totalCount"] += unassignedCount
             allTaxaReduced[lastPredecessor]["unassignedCount"] += unassignedCount
-            
-            if includeEvals:
-                allTaxaReduced[lastPredecessor]["e_values"] += e_vals
+            allTaxaReduced[lastPredecessor]["names"].append([taxName, allTaxaReduced[lastPredecessor]["names"][-1][1] + unassignedCount])
+            allTaxaReduced[lastPredecessor]["geneNames"] += g_names
+            if e_value_included:
+                allTaxaReduced[lastPredecessor]["eValues"] += e_vals
+            if fasta_header_included:
+                allTaxaReduced[lastPredecessor]["fastaHeaders"] += f_headers
             if "deletedDescendants" in allTaxaReduced[lastPredecessor]:
                 allTaxaReduced[lastPredecessor]["deletedDescendants"].append(taxName)
             else: 
                 allTaxaReduced[lastPredecessor]["deletedDescendants"] = [taxName]
             del allTaxaReduced[taxName]
+
         else:
-            if lastPredecessor == "root":
-                print("else")
             newlyAdded.append(lastPredecessor)
             newRank = lineage[-1][0]
             allTaxaReduced[lastPredecessor] = {}
@@ -175,11 +180,13 @@ def load_tsv_data():
             allTaxaReduced[lastPredecessor]["totalCount"] = 0
             allTaxaReduced[lastPredecessor]["unassignedCount"] = unassignedCount
             allTaxaReduced[lastPredecessor]["deletedDescendants"] = [taxName]
-            if includeEvals:
-                allTaxaReduced[lastPredecessor]["e_values"] = e_vals
+            allTaxaReduced[lastPredecessor]["names"] = [[taxName, unassignedCount-1]]
+            allTaxaReduced[lastPredecessor]["geneNames"] = g_names
+            if e_value_included:
+                allTaxaReduced[lastPredecessor]["eValues"] = e_vals
+            if fasta_header_included:
+                allTaxaReduced[lastPredecessor]["fastaHeaders"] = f_headers
             del allTaxaReduced[taxName]
-
-    print('allTaxaReduced["root"]["totalCount"] AFTER: ', allTaxaReduced["root"]["unassignedCount"])
 
     # Last predecessors have been added. Now add all non-last predecessors that don't have their own unassigned counts as items in allTaxaReduced and newlyAdded.
     for taxName in list(allTaxaReduced.keys()):
@@ -195,8 +202,12 @@ def load_tsv_data():
                 allTaxaReduced[newName]["lineageNames"] = lineage[:lineage.index(predecessor)+1]
                 allTaxaReduced[newName]["totalCount"] = 0
                 allTaxaReduced[newName]["unassignedCount"] = 0
-                if includeEvals:
-                    allTaxaReduced[newName]["e_values"] = []
+                allTaxaReduced[newName]["names"] = []
+                allTaxaReduced[newName]["geneNames"] = []
+                if e_value_included:
+                    allTaxaReduced[newName]["eValues"] = []
+                if fasta_header_included:
+                    allTaxaReduced[newName]["fastaHeaders"] = []
 
     # For every taxon in allTaxaReduced, if a newlyAdded taxon shows up as a predecessor in its lineage, change the predecessor's name to taxon + rank (as opposed to just taxon).
     for taxName in list(allTaxaReduced.keys()):
@@ -284,8 +295,17 @@ def fetchID():
     #taxid = ""
     return jsonify({"taxID": taxid[0]})
 
-def read_line(taxID, e_value, taxDict, tempDict, taxID_sum, includeEvals, allEvals):
-    taxID = "".join(list(filter(lambda i: i.isdigit(), taxID)))
+def read_line(line, taxDict, tempDict, taxID_sum, allEvals, e_value_included, fasta_header_included):
+    line2list = line.split("\t")
+    line2list = [item.replace("\r","") for item in line2list]
+    gene_name = line2list[0]
+    taxID = line2list[1]
+    if e_value_included:
+        e_value = line2list[2]
+    if fasta_header_included:
+        fasta_header = line2list[3]
+    #taxID, e_value
+    #taxID = "".join(list(filter(lambda i: i.isdigit(), taxID)))
     if taxID == "NA" or taxID == "":
         taxID = "1"
     if not (taxID in tempDict):
@@ -297,11 +317,20 @@ def read_line(taxID, e_value, taxDict, tempDict, taxID_sum, includeEvals, allEva
         dictlist = [[k,v] for k,v in lineageNamesList.items()][::-1]
         if name in taxDict:
             name += " 1"
-        if includeEvals and e_value != "":
-            taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "unassignedCount": 1, "rank": rank, "totalCount": 1, "e_values": [float(e_value)]}
-            allEvals.append(float(e_value))
-        else:
-            taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "unassignedCount": 1, "rank": rank, "totalCount": 1}
+        taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "unassignedCount": 1, "rank": rank, "totalCount": 1, "names": [[name, 0]], "geneNames": [gene_name]}
+        
+        if e_value_included:
+            if e_value != "":
+                taxDict[name]["eValues"] = [float(e_value)]
+                allEvals.append(float(e_value))
+            else:
+                taxDict[name]["eValues"] = [None]
+            
+        if fasta_header_included:
+            if fasta_header != "":
+                taxDict[name]["fastaHeaders"] = [fasta_header]
+            else:
+                taxDict[name]["fastaHeaders"] = [None]
 
         if not (name in flatten(taxDict[name]["lineageNames"])):
             taxDict[name]["lineageNames"].append([rank, name])
@@ -309,7 +338,19 @@ def read_line(taxID, e_value, taxDict, tempDict, taxID_sum, includeEvals, allEva
     else:
         taxDict[tempDict[taxID]]["totalCount"] += 1
         taxDict[tempDict[taxID]]["unassignedCount"] += 1
-        if includeEvals and e_value != "":
-            taxDict[tempDict[taxID]]["e_values"].append(float(e_value))
-            allEvals.append(float(e_value))
+        taxDict[tempDict[taxID]]["geneNames"].append(gene_name)
+        taxDict[tempDict[taxID]]["names"][0][1] += 1
+
+        if e_value_included:
+            if e_value != "":
+                taxDict[tempDict[taxID]]["eValues"].append(float(e_value))
+                allEvals.append(float(e_value))
+            else:
+                taxDict[tempDict[taxID]]["eValues"].append(None)
+
+        if fasta_header_included:
+            if fasta_header != "":
+                taxDict[tempDict[taxID]]["fastaHeaders"].append(fasta_header)
+            else:
+                taxDict[tempDict[taxID]]["fastaHeaders"].append(None)
     return taxDict, tempDict, taxID_sum, allEvals

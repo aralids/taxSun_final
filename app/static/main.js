@@ -550,13 +550,22 @@ var PlotDrawing = /** @class */ (function (_super) {
         var allEValues = [];
         var newCroppedLineages = JSON.parse(JSON.stringify(croppedLineages));
         var newCroppedRanks = JSON.parse(JSON.stringify(croppedRanks));
-        for (var i = croppedLineages.length - 1; i >= 0; i--) {
+        var _loop_1 = function (i) {
             var lineage = croppedLineages[i];
             var lastTaxon = lineage[lineage.length - 1];
             var oldUnassignedCount = originalAllTaxaReduced[lastTaxon]["unassignedCount"];
-            var eValues = JSON.parse(JSON.stringify(originalAllTaxaReduced[lastTaxon]["e_values"])).filter(function (item) { return item <= eThreshold; });
+            var successfulIndices = [];
+            var eValues = JSON.parse(JSON.stringify(originalAllTaxaReduced[lastTaxon]["eValues"])).filter(function (item, index) {
+                if (item <= eThreshold) {
+                    successfulIndices.push(index);
+                }
+                return item <= eThreshold;
+            });
+            console.log("successfulIndices: ", successfulIndices);
+            allTaxaReduced[lastTaxon]["successfulIndices"] = successfulIndices;
+            console.log("whats going on: ", lastTaxon, allTaxaReduced[lastTaxon]);
             var newUnassignedCount = eValues.length;
-            allEValues = allEValues.concat(originalAllTaxaReduced[lastTaxon]["e_values"]);
+            allEValues = allEValues.concat(originalAllTaxaReduced[lastTaxon]["eValues"]);
             var diff = oldUnassignedCount - newUnassignedCount;
             if (lastTaxon !== "root") {
                 allTaxaReduced[lastTaxon]["unassignedCount"] = newUnassignedCount;
@@ -571,6 +580,9 @@ var PlotDrawing = /** @class */ (function (_super) {
                 newCroppedLineages.splice(i, 1);
                 newCroppedRanks.splice(i, 1);
             }
+        };
+        for (var i = croppedLineages.length - 1; i >= 0; i--) {
+            _loop_1(i);
         }
         var minEValue = allEValues.sort(function (a, b) { return a - b; })[0];
         return [newCroppedLineages, newCroppedRanks, minEValue];
@@ -634,7 +646,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     reductionGroups[item[1].join("")]["index"].push(item[0]);
                 }
             }
-            var _loop_1 = function (group) {
+            var _loop_2 = function (group) {
                 var spliceAt = reductionGroups[group]["spliceAt"];
                 reductionGroups[group]["index"].sort(function (index1, index2) { return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"]; });
                 var renameables = reductionGroups[group]["index"].map(function (item) { return croppedLineages[item][spliceAt]; });
@@ -659,9 +671,9 @@ var PlotDrawing = /** @class */ (function (_super) {
             // Sort indices of reduction groups in ascending order, group some of them together if they are in the same subgroup.
             for (var _d = 0, _e = Object.keys(reductionGroups); _d < _e.length; _d++) {
                 var group = _e[_d];
-                _loop_1(group);
+                _loop_2(group);
             }
-            var _loop_2 = function (group) {
+            var _loop_3 = function (group) {
                 var minimalIndexArray = reductionGroups[group]["minimalIndexArray"].map(function (item) { return parseInt(item); });
                 var indexBeginning = 0;
                 var indexEnd = minimalIndexArray.length - 1;
@@ -710,10 +722,10 @@ var PlotDrawing = /** @class */ (function (_super) {
             };
             for (var _f = 0, _g = Object.keys(reductionGroups); _f < _g.length; _f++) {
                 var group = _g[_f];
-                _loop_2(group);
+                _loop_3(group);
             }
             var newReductionGroups = {};
-            var _loop_3 = function (group) {
+            var _loop_4 = function (group) {
                 for (var i = 0; i < reductionGroups[group]["newGroups"].length; i++) {
                     newReductionGroups["".concat(group, "-").concat(i)] = {};
                     newReductionGroups["".concat(group, "-").concat(i)]["spliceAt"] = reductionGroups[group]["spliceAt"];
@@ -726,7 +738,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             var names;
             for (var _h = 0, _j = Object.keys(reductionGroups); _h < _j.length; _h++) {
                 var group = _j[_h];
-                _loop_3(group);
+                _loop_4(group);
             }
             reductionGroups = newReductionGroups;
         }
@@ -817,19 +829,19 @@ var PlotDrawing = /** @class */ (function (_super) {
         var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
         var ranksCopy = JSON.parse(JSON.stringify(croppedRanks));
         var layers = getLayers(lineagesCopy);
-        var _loop_4 = function (i) {
-            var _loop_5 = function (j) {
+        var _loop_5 = function (i) {
+            var _loop_6 = function (j) {
                 if (layers[i].filter(function (item) { return item === layers[i][j]; }).length === 1 && Boolean(layers[i + 1][j])) {
                     lineagesCopy[j].splice(i, 1, "toBeDeleted");
                     ranksCopy[j].splice(i, 1, "toBeDeleted");
                 }
             };
             for (var j = 0; j < layers[i].length; j++) {
-                _loop_5(j);
+                _loop_6(j);
             }
         };
         for (var i = 0; i < layers.length - 1; i++) {
-            _loop_4(i);
+            _loop_5(i);
         }
         for (var i = 0; i < lineagesCopy.length; i++) {
             lineagesCopy[i] = lineagesCopy[i].filter(function (item) { return item !== "toBeDeleted"; });
@@ -1227,10 +1239,11 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
     };
     PlotDrawing.prototype.render = function () {
+        var _this = this;
         //console.log("render original aTR:", originalAllTaxaReduced["Aphis glycines"])
         //console.log("layerWidth: ", this.state.layerWidth);
         //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
-        var _this = this;
+        console.log("render aTR: ", allTaxaReduced);
         currentState = this.state;
         var shapes = [];
         var labels = [];
@@ -1238,7 +1251,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var clipPaths = [];
         var tS = this.state.taxonSpecifics;
         var tSkeys = Object.keys(tS);
-        var _loop_6 = function (item) {
+        var _loop_7 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_1.state.ancestors[this_1.state.ancestors.length - 1], "_-_0") : id;
             shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"], transformOrigin: tS[item]["label"]["transformOrigin"], root: this_1.state.root }));
@@ -1249,9 +1262,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         var this_1 = this;
         for (var _i = 0, tSkeys_1 = tSkeys; _i < tSkeys_1.length; _i++) {
             var item = tSkeys_1[_i];
-            _loop_6(item);
+            _loop_7(item);
         }
-        var _loop_7 = function (item) {
+        var _loop_8 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_2.state.ancestors[this_2.state.ancestors.length - 1], "_-_0") : id;
             var label = React.createElement(TaxonLabel, { key: "".concat(id, "-label"), id: "".concat(id, "-label"), abbr: tS[item]["label"]["abbreviation"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], top: tS[item]["label"]["top"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "normal", root: this_2.state.root });
@@ -1260,9 +1273,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         var this_2 = this;
         for (var _a = 0, tSkeys_2 = tSkeys; _a < tSkeys_2.length; _a++) {
             var item = tSkeys_2[_a];
-            _loop_7(item);
+            _loop_8(item);
         }
-        var _loop_8 = function (item) {
+        var _loop_9 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_3.state.ancestors[this_3.state.ancestors.length - 1], "_-_0") : id;
             var labelBackground = React.createElement(LabelBackground, { key: "".concat(id, "-labelBackground"), id: "".concat(id, "-labelBackground"), transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"] - 4, top: (tS[item]["label"]["top"] - this_3.state.height) - 4, selfDisplay: "none", labelDisplay: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], height: this_3.state.height + 8, width: tS[item]["label"]["hoverWidth"] + 8, stroke: "#800080", fill: "#ffffff", root: this_3.state.root });
@@ -1273,7 +1286,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var this_3 = this;
         for (var _b = 0, tSkeys_3 = tSkeys; _b < tSkeys_3.length; _b++) {
             var item = tSkeys_3[_b];
-            _loop_8(item);
+            _loop_9(item);
         }
         var anc = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
         return [React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", style: { "height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none" }, id: "shapes" },
