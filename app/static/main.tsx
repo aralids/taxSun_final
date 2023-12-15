@@ -239,12 +239,8 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
         //!!! rewrite v
         let beforePreprocessing:number = allTaxa[this.state.root] ? allTaxa[this.state.root]["unassignedCount"] : 0;
         let bPLine:any;
-        if (this.state.root === "root") {
-            bPLine = <p key={"bPLine"} style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
-        }
-        else {
-            bPLine = <p key={"bPLine"} style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
-        }
+        bPLine = <p key={"bPLine"} style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
+        
         let id:string = allTaxaReduced[this.state.root] ? allTaxaReduced[this.state.root]["taxID"] : "1";
         let taxIDline:any;
         if (id) {
@@ -258,6 +254,9 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
         if (this.props.root.indexOf("&") > -1) {
             bPLine = <p key={"bPLine"} style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine];
+        }
+        else if (this.props.root === "root") {
+            ps.pop();
         }
         for (let i=0; i<this.props.ancestors.length; i++) {
             ps.push(<p key={`ps-${i}`} style={{"padding": 0, "margin": 0, "cursor": "pointer", "wordBreak": "break-all"}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>)

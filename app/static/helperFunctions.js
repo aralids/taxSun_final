@@ -117,7 +117,6 @@ function getViewportDimensions() {
     var cx = window.innerWidth / 2;
     var cy = window.innerHeight / 2;
     var twoVMin = window.innerHeight < window.innerWidth ? window.innerHeight / 50 : window.innerWidth / 50;
-    console.log("2vmin: ", twoVMin);
     return {
         "cx": cx,
         "cy": cy,

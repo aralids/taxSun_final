@@ -258,18 +258,10 @@ var AncestorSection = /** @class */ (function (_super) {
         //!!! rewrite v
         var beforePreprocessing = allTaxa[this.state.root] ? allTaxa[this.state.root]["unassignedCount"] : 0;
         var bPLine;
-        if (this.state.root === "root") {
-            bPLine = React.createElement("p", { key: "bPLine", style: { "padding": 0, "margin": 0 } },
-                "(raw file: ",
-                React.createElement("b", null, beforePreprocessing),
-                ")");
-        }
-        else {
-            bPLine = React.createElement("p", { key: "bPLine", style: { "padding": 0, "margin": 0 } },
-                "(raw file: ",
-                React.createElement("b", null, beforePreprocessing),
-                ")");
-        }
+        bPLine = React.createElement("p", { key: "bPLine", style: { "padding": 0, "margin": 0 } },
+            "(raw file: ",
+            React.createElement("b", null, beforePreprocessing),
+            ")");
         var id = allTaxaReduced[this.state.root] ? allTaxaReduced[this.state.root]["taxID"] : "1";
         var taxIDline;
         if (id) {
@@ -291,6 +283,9 @@ var AncestorSection = /** @class */ (function (_super) {
                 React.createElement("b", null, beforePreprocessing),
                 ")");
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine];
+        }
+        else if (this.props.root === "root") {
+            ps.pop();
         }
         for (var i = 0; i < this.props.ancestors.length; i++) {
             ps.push(React.createElement("p", { key: "ps-".concat(i), style: { "padding": 0, "margin": 0, "cursor": "pointer", "wordBreak": "break-all" }, onClick: this.props.onClickArray[i] },
