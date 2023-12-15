@@ -693,8 +693,15 @@ var AncestorSection = /** @class */ (function (_super) {
                     React.createElement("button", { onClick: function () { return _this.changeDiv(_this.state.root); }, id: "fetch-id-button" }, "FETCH")));
         }
         var ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine, taxIDline];
+        if (this.props.root.indexOf("&") > -1) {
+            bPLine = React.createElement("p", { key: "bPLine", style: { "padding": 0, "margin": 0, "paddingBottom": "2.5vh" } },
+                "(raw file: ",
+                React.createElement("b", null, beforePreprocessing),
+                ")");
+            ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine];
+        }
         for (var i = 0; i < this.props.ancestors.length; i++) {
-            ps.push(React.createElement("p", { key: "ps-".concat(i), style: { "padding": 0, "margin": 0, "cursor": "pointer" }, onClick: this.props.onClickArray[i] },
+            ps.push(React.createElement("p", { key: "ps-".concat(i), style: { "padding": 0, "margin": 0, "cursor": "pointer", "wordBreak": "break-all" }, onClick: this.props.onClickArray[i] },
                 this.state.lines[i],
                 " of ",
                 React.createElement("b", null, this.props.ancestors[i].replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""))));
