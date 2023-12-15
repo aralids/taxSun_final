@@ -977,6 +977,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             croppedRanks = cropped[1];
             changedLineages = cropped[2];
         }
+        croppedLineages = croppedLineages.map(function (item) { item.splice(0, 1, root); return item; }); // Fixes the problem with the root label of married plots.
         // Collapse lineages if necessary.
         if (collapse) {
             var arr = this.collapse(croppedLineages, croppedRanks);
@@ -1033,6 +1034,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var taxName_1 = _a[_i];
                 totalUnassignedCount += taxonSpecifics[taxName_1]["unassignedCount"];
             }
+            allTaxaReduced[root] = totalUnassignedCount;
         }
         else {
             totalUnassignedCount = allTaxaReduced[root]["totalCount"];

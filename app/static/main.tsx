@@ -528,6 +528,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             changedLineages = cropped[2];
         }
 
+        croppedLineages = croppedLineages.map(item => {item.splice(0, 1, root); return item}); // Fixes the problem with the root label of married plots.
+
         // Collapse lineages if necessary.
         if (collapse) {
             let arr:any = this.collapse(croppedLineages, croppedRanks);
@@ -584,6 +586,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             for (let taxName of Object.keys(taxonSpecifics)) {
                 totalUnassignedCount += taxonSpecifics[taxName]["unassignedCount"];
             }
+            allTaxaReduced[root] = totalUnassignedCount;
         }
         else {
             totalUnassignedCount = allTaxaReduced[root]["totalCount"];
