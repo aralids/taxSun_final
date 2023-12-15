@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>KRONA plot</title>
+        <title>taxSun</title>
         <link rel="stylesheet" href=""/>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin></script>
@@ -73,6 +73,12 @@
             <div style="position: fixed; height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; " id="plot-container"></div>
             <div id="labels" style="float: right;"></div>
         </main>
+        <div id="context-menu" style="width: 15%;">
+            <button id="copy">Copy own seq IDs to clipboard</button>
+            <button id="copy-all">Copy all seq IDs to clipboard</button>
+            <button id="download-seq">Download own sequences</button>
+            <button id="download-all-seq">Download all sequences</button>
+        </div>
         <script src="{{ url_for('static', filename='bundle.js') }}"></script>
     </body>
 </html>

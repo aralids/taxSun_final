@@ -1,6 +1,6 @@
 "use strict";
 exports.__esModule = true;
-exports.getViewportDimensions = exports.getFourCorners = exports.lineLength = exports.lineIntersect = exports.tintify = exports.midColor = exports.hexToRGB = exports.handleMouseMove = exports.cos = exports.sin = exports.round = exports.radians = exports.createPalette = void 0;
+exports.makeID = exports.getViewportDimensions = exports.getFourCorners = exports.lineLength = exports.lineIntersect = exports.tintify = exports.midColor = exports.hexToRGB = exports.handleMouseMove = exports.cos = exports.sin = exports.round = exports.radians = exports.createPalette = void 0;
 function createPalette(colorOffset) {
     var newColors = [];
     for (var i = 0; i < 7; i++) {
@@ -126,3 +126,15 @@ function getViewportDimensions() {
     };
 }
 exports.getViewportDimensions = getViewportDimensions;
+function makeID(length) {
+    var result = '';
+    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var charactersLength = characters.length;
+    var counter = 0;
+    while (counter < length) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        counter += 1;
+    }
+    return result;
+}
+exports.makeID = makeID;

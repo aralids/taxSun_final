@@ -38,13 +38,130 @@ var reactRoot = ReactDOM.createRoot(domContainer);
 var viewportDimensions = (0, helperFunctions_js_1.getViewportDimensions)();
 var alreadyVisited = {};
 var fileName = "lessSpontaneous2.tsv";
-var taxonName = "Sarcopterygii";
-var layerName = 5;
+var taxonName = "Bacteria";
+var layerName = 1;
 var collapseName = "collapseFalse";
 var modeName = "allEqual";
 var eThreshold = null;
 var newDataLoaded = false;
 var headerSeqObject = {};
+document.addEventListener("click", function () {
+    hideContextMenu();
+});
+document.getElementById("copy").addEventListener("click", function () {
+    var name = document.getElementById("context-menu").getAttribute("taxon").split("_-_")[0];
+    var seqIDsArray = [];
+    if (!allTaxaReduced[name]["successfulIndices"]) {
+        seqIDsArray = allTaxaReduced[name]["geneNames"];
+    }
+    else {
+        seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(function (item) { return allTaxaReduced[name]["geneNames"][item]; });
+    }
+    navigator.clipboard.writeText(seqIDsArray.join(" "));
+});
+document.getElementById("copy-all").addEventListener("click", function () {
+    var name = document.getElementById("context-menu").getAttribute("taxon").split("_-_")[0];
+    var seqIDsArray = [];
+    if (!allTaxaReduced[name]["successfulIndices"]) {
+        seqIDsArray = allTaxaReduced[name]["geneNames"];
+    }
+    else {
+        seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(function (item) { return allTaxaReduced[name]["geneNames"][item]; });
+    }
+    var _loop_1 = function (child) {
+        if (!allTaxaReduced[child]["successfulIndices"]) {
+            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["geneNames"]);
+        }
+        else {
+            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["successfulIndices"].map(function (item) { return allTaxaReduced[child]["geneNames"][item]; }));
+        }
+    };
+    for (var _i = 0, _a = allTaxaReduced[name]["descendants"]; _i < _a.length; _i++) {
+        var child = _a[_i];
+        _loop_1(child);
+    }
+    navigator.clipboard.writeText(seqIDsArray.join(" "));
+});
+document.getElementById("download-seq").addEventListener("click", function () {
+    var name = document.getElementById("context-menu").getAttribute("taxon").split("_-_")[0];
+    var seqIDsArray = [];
+    if (!allTaxaReduced[name]["successfulIndices"]) {
+        seqIDsArray = allTaxaReduced[name]["fastaHeaders"].map(function (item, index) { return [item, allTaxaReduced[name]["eValues"][index], name, findRealName(index, allTaxaReduced[name]["names"], name)]; });
+    }
+    else {
+        seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(function (item) { return [allTaxaReduced[name]["fastaHeaders"][item], allTaxaReduced[name]["eValues"][item], name, findRealName(item, allTaxaReduced[name]["names"], name)]; });
+    }
+    var seqsArray = seqIDsArray.map(function (item) {
+        if (!headerSeqObject[item[0]]) {
+            console.log("missing item: ", item);
+        }
+        else {
+            var thirdElement = item[2] === item[3] ? item[2] : "".concat(item[2], " (").concat(item[3], ")");
+            return "*** ".concat(item[0], " ").concat(item[1], " ").concat(thirdElement, "\n").concat(headerSeqObject[item[0]], "\n");
+        }
+    });
+    var eInput = document.getElementById("e-input");
+    var firstLines;
+    if (eInput.checked) {
+        firstLines = "".concat(name, " | ").concat(allTaxaReduced[name]["rank"], " | filtered by e-value: ").concat(eThreshold, "\n\n");
+    }
+    else {
+        firstLines = "".concat(name, " | ").concat(allTaxaReduced[name]["rank"], " | filtered by e-value: no\n\n");
+    }
+    seqsArray = __spreadArray([firstLines], seqsArray, true);
+    var seqsFile = seqsArray.join("\n");
+    var a = document.createElement('a');
+    var e = new MouseEvent('click');
+    a.download = "test.tsv";
+    a.href = 'data:text/tab-separated-values,' + encodeURIComponent(seqsFile);
+    a.dispatchEvent(e);
+});
+document.getElementById("download-all-seq").addEventListener("click", function () {
+    var name = document.getElementById("context-menu").getAttribute("taxon").split("_-_")[0];
+    var seqIDsArray = [];
+    if (!allTaxaReduced[name]["successfulIndices"]) {
+        seqIDsArray = allTaxaReduced[name]["fastaHeaders"].map(function (item, index) { return [item, allTaxaReduced[name]["eValues"][index], name, findRealName(index, allTaxaReduced[name]["names"], name)]; });
+    }
+    else {
+        seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(function (item) { return [allTaxaReduced[name]["fastaHeaders"][item], allTaxaReduced[name]["eValues"][item], name, findRealName(item, allTaxaReduced[name]["names"], name)]; });
+    }
+    var _loop_2 = function (child) {
+        if (!allTaxaReduced[child]["successfulIndices"]) {
+            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["fastaHeaders"].map(function (item, index) { return [item, allTaxaReduced[child]["eValues"][index], child, findRealName(index, allTaxaReduced[child]["names"], child)]; }));
+        }
+        else {
+            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["successfulIndices"].map(function (item) { return [allTaxaReduced[child]["fastaHeaders"][item], allTaxaReduced[child]["eValues"][item], child, findRealName(item, allTaxaReduced[child]["names"], child)]; }));
+        }
+    };
+    for (var _i = 0, _a = allTaxaReduced[name]["descendants"]; _i < _a.length; _i++) {
+        var child = _a[_i];
+        _loop_2(child);
+    }
+    var seqsArray = seqIDsArray.map(function (item) {
+        if (!headerSeqObject[item[0]]) {
+            console.log("missing item: ", item);
+        }
+        else {
+            var thirdElement = item[2] === item[3] ? item[2] : "".concat(item[2], " (").concat(item[3], ")");
+            return "*** ".concat(item[0], " ").concat(item[1], " ").concat(thirdElement, "\n").concat(headerSeqObject[item[0]], "\n");
+        }
+    });
+    var eInput = document.getElementById("e-input");
+    var firstLines;
+    if (eInput.checked) {
+        firstLines = "".concat(name, " | ").concat(allTaxaReduced[name]["rank"], " | filtered by e-value: ").concat(eThreshold, "\n\n");
+    }
+    else {
+        firstLines = "".concat(name, " | ").concat(allTaxaReduced[name]["rank"], " | filtered by e-value: no\n\n");
+    }
+    seqsArray = __spreadArray([firstLines], seqsArray, true);
+    var seqsFile = seqsArray.join("\n");
+    var a = document.createElement('a');
+    var e = new MouseEvent('click');
+    a.download = "test.tsv";
+    a.href = 'data:text/tab-separated-values,' + encodeURIComponent(seqsFile);
+    a.dispatchEvent(e);
+});
 /* ===== FETCHING THE DATA ===== */
 var path = "lessSpontaneous2.tsv";
 //loadDataFromTSV(path);
@@ -54,7 +171,7 @@ var allTaxaReduced = JSON.parse(JSON.stringify(predefinedObjects_js_1.atr));
 var originalAllTaxaReduced = JSON.parse(JSON.stringify(predefinedObjects_js_1.atr));
 var rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"];
 var colors = [];
-var colorOffset = Math.round(Math.random() * 100); //84, 98, 31, 20, 1, 2
+var colorOffset = 7; //84, 98, 31, 20, 1, 2
 colors = (0, helperFunctions_js_1.createPalette)(colorOffset);
 /* ===== DEFINING THE REACT COMPONENTS ===== */
 var AncestorSection = /** @class */ (function (_super) {
@@ -123,17 +240,17 @@ var AncestorSection = /** @class */ (function (_super) {
     AncestorSection.prototype.render = function () {
         var _this = this;
         var filteredRoot = this.state.root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "");
-        var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "CURRENT LAYER");
-        var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "0vmin" } },
+        var firstLine = React.createElement("legend", { key: "legend", style: { "color": "#800080", "fontWeight": "bold" } }, "CURRENT LAYER");
+        var nameLine = React.createElement("p", { key: "nameLine", style: { "padding": 0, "margin": 0, "paddingBottom": "0vmin" } },
             "Taxon: ",
             React.createElement("b", null, this.state.root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "")));
-        var rankLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+        var rankLine = React.createElement("p", { key: "rankLine", style: { "padding": 0, "margin": 0 } },
             "Rank: ",
             React.createElement("b", null, this.state.rank));
-        var totalCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+        var totalCountLine = React.createElement("p", { key: "totalCountLine", style: { "padding": 0, "margin": 0 } },
             "Total count: ",
             React.createElement("b", null, this.state.totalCount));
-        var unassignedCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+        var unassignedCountLine = React.createElement("p", { key: "unassignedCountLine", style: { "padding": 0, "margin": 0 } },
             "Unspecified ",
             this.state.root.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""),
             ": ",
@@ -142,13 +259,13 @@ var AncestorSection = /** @class */ (function (_super) {
         var beforePreprocessing = allTaxa[this.state.root] ? allTaxa[this.state.root]["unassignedCount"] : 0;
         var bPLine;
         if (this.state.root === "root") {
-            bPLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+            bPLine = React.createElement("p", { key: "bPLine", style: { "padding": 0, "margin": 0 } },
                 "(raw file: ",
                 React.createElement("b", null, beforePreprocessing),
                 ")");
         }
         else {
-            bPLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+            bPLine = React.createElement("p", { key: "bPLine", style: { "padding": 0, "margin": 0 } },
                 "(raw file: ",
                 React.createElement("b", null, beforePreprocessing),
                 ")");
@@ -156,20 +273,20 @@ var AncestorSection = /** @class */ (function (_super) {
         var id = allTaxaReduced[this.state.root] ? allTaxaReduced[this.state.root]["taxID"] : "1";
         var taxIDline;
         if (id) {
-            taxIDline = React.createElement("div", { id: "taxID-div", style: { "padding": 0, "margin": 0, "paddingBottom": "2.5vh" } },
+            taxIDline = React.createElement("div", { key: "taxIDline", id: "taxID-div", style: { "padding": 0, "margin": 0, "paddingBottom": "2.5vh" } },
                 React.createElement("p", { style: { "padding": 0, "margin": 0 } },
                     "taxID: ",
                     React.createElement("a", { style: { "display": "inline" }, target: "_blank", href: "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=".concat(id, "&lvl=3&lin=f&keep=1&srchmode=1&unlock") }, id)));
         }
         else {
-            taxIDline = React.createElement("div", { id: "taxID-div", style: { "padding": 0, "margin": 0, "paddingBottom": "2.5vh" } },
+            taxIDline = React.createElement("div", { key: "taxIDline", id: "taxID-div", style: { "padding": 0, "margin": 0, "paddingBottom": "2.5vh" } },
                 React.createElement("p", { style: { "padding": 0, "margin": 0 } },
                     "taxID: ",
                     React.createElement("button", { onClick: function () { return _this.changeDiv(_this.state.root); }, id: "fetch-id-button" }, "FETCH")));
         }
         var ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine, taxIDline];
         for (var i = 0; i < this.props.ancestors.length; i++) {
-            ps.push(React.createElement("p", { style: { "padding": 0, "margin": 0, "cursor": "pointer" }, onClick: this.props.onClickArray[i] },
+            ps.push(React.createElement("p", { key: "ps-".concat(i), style: { "padding": 0, "margin": 0, "cursor": "pointer" }, onClick: this.props.onClickArray[i] },
                 this.state.lines[i],
                 " of ",
                 React.createElement("b", null, this.props.ancestors[i].replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""))));
@@ -250,18 +367,18 @@ var DescendantSection = /** @class */ (function (_super) {
     DescendantSection.prototype.render = function () {
         var ps = [];
         if (this.state.hovered) {
-            var firstLine = React.createElement("legend", { style: { "color": "#800080", "fontWeight": "bold" } }, "HOVERING OVER");
+            var firstLine = React.createElement("legend", { key: "firstLine", style: { "color": "#800080", "fontWeight": "bold" } }, "HOVERING OVER");
             var noRanksName = this.state.self.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "");
-            var nameLine = React.createElement("p", { style: { "padding": 0, "margin": 0, "paddingBottom": "0vmin" } },
+            var nameLine = React.createElement("p", { key: "nameLine", style: { "padding": 0, "margin": 0, "paddingBottom": "0vmin" } },
                 "Taxon: ",
                 React.createElement("b", null, noRanksName));
-            var rankLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+            var rankLine = React.createElement("p", { key: "rankLine", style: { "padding": 0, "margin": 0 } },
                 "Rank: ",
                 React.createElement("b", null, this.state.rank));
-            var totalCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+            var totalCountLine = React.createElement("p", { key: "totalCountLine", style: { "padding": 0, "margin": 0 } },
                 "Total count: ",
                 React.createElement("b", null, this.state.totalCount));
-            var unassignedCountLine = React.createElement("p", { style: { "padding": 0, "margin": 0 } },
+            var unassignedCountLine = React.createElement("p", { key: "unassignedCountLine", style: { "padding": 0, "margin": 0 } },
                 "Unassigned ",
                 this.state.self.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), ""),
                 ": ",
@@ -278,8 +395,8 @@ var PlotDrawing = /** @class */ (function (_super) {
     function PlotDrawing(props) {
         var _this = _super.call(this, props) || this;
         _this.state = {
-            root: "Sarcopterygii",
-            layer: 5,
+            root: "Bacteria",
+            layer: 1,
             collapse: false,
             horizontalShift: viewportDimensions["cx"],
             verticalShift: viewportDimensions["cy"],
@@ -551,7 +668,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var allEValues = [];
         var newCroppedLineages = JSON.parse(JSON.stringify(croppedLineages));
         var newCroppedRanks = JSON.parse(JSON.stringify(croppedRanks));
-        var _loop_1 = function (i) {
+        var _loop_3 = function (i) {
             var lineage = croppedLineages[i];
             var lastTaxon = lineage[lineage.length - 1];
             var oldUnassignedCount = originalAllTaxaReduced[lastTaxon]["unassignedCount"];
@@ -581,7 +698,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
         };
         for (var i = croppedLineages.length - 1; i >= 0; i--) {
-            _loop_1(i);
+            _loop_3(i);
         }
         var minEValue = allEValues.sort(function (a, b) { return a - b; })[0];
         return [newCroppedLineages, newCroppedRanks, minEValue];
@@ -645,7 +762,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     reductionGroups[item[1].join("")]["index"].push(item[0]);
                 }
             }
-            var _loop_2 = function (group) {
+            var _loop_4 = function (group) {
                 var spliceAt = reductionGroups[group]["spliceAt"];
                 reductionGroups[group]["index"].sort(function (index1, index2) { return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"]; });
                 var renameables = reductionGroups[group]["index"].map(function (item) { return croppedLineages[item][spliceAt]; });
@@ -670,9 +787,9 @@ var PlotDrawing = /** @class */ (function (_super) {
             // Sort indices of reduction groups in ascending order, group some of them together if they are in the same subgroup.
             for (var _d = 0, _e = Object.keys(reductionGroups); _d < _e.length; _d++) {
                 var group = _e[_d];
-                _loop_2(group);
+                _loop_4(group);
             }
-            var _loop_3 = function (group) {
+            var _loop_5 = function (group) {
                 var minimalIndexArray = reductionGroups[group]["minimalIndexArray"].map(function (item) { return parseInt(item); });
                 var indexBeginning = 0;
                 var indexEnd = minimalIndexArray.length - 1;
@@ -721,10 +838,10 @@ var PlotDrawing = /** @class */ (function (_super) {
             };
             for (var _f = 0, _g = Object.keys(reductionGroups); _f < _g.length; _f++) {
                 var group = _g[_f];
-                _loop_3(group);
+                _loop_5(group);
             }
             var newReductionGroups = {};
-            var _loop_4 = function (group) {
+            var _loop_6 = function (group) {
                 for (var i = 0; i < reductionGroups[group]["newGroups"].length; i++) {
                     newReductionGroups["".concat(group, "-").concat(i)] = {};
                     newReductionGroups["".concat(group, "-").concat(i)]["spliceAt"] = reductionGroups[group]["spliceAt"];
@@ -737,7 +854,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             var names;
             for (var _h = 0, _j = Object.keys(reductionGroups); _h < _j.length; _h++) {
                 var group = _j[_h];
-                _loop_4(group);
+                _loop_6(group);
             }
             reductionGroups = newReductionGroups;
         }
@@ -828,19 +945,19 @@ var PlotDrawing = /** @class */ (function (_super) {
         var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
         var ranksCopy = JSON.parse(JSON.stringify(croppedRanks));
         var layers = getLayers(lineagesCopy);
-        var _loop_5 = function (i) {
-            var _loop_6 = function (j) {
+        var _loop_7 = function (i) {
+            var _loop_8 = function (j) {
                 if (layers[i].filter(function (item) { return item === layers[i][j]; }).length === 1 && Boolean(layers[i + 1][j])) {
                     lineagesCopy[j].splice(i, 1, "toBeDeleted");
                     ranksCopy[j].splice(i, 1, "toBeDeleted");
                 }
             };
             for (var j = 0; j < layers[i].length; j++) {
-                _loop_6(j);
+                _loop_8(j);
             }
         };
         for (var i = 0; i < layers.length - 1; i++) {
-            _loop_5(i);
+            _loop_7(i);
         }
         for (var i = 0; i < lineagesCopy.length; i++) {
             lineagesCopy[i] = lineagesCopy[i].filter(function (item) { return item !== "toBeDeleted"; });
@@ -1133,14 +1250,14 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var cy = newTaxonSpecifics[key]["center"][1];
                 var fourPoints = (0, helperFunctions_js_1.getFourCorners)(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
                 var leftIntersect = void 0, rightIntersect = void 0;
-                if ((centerDegree % 360) >= 180 && (centerDegree % 360) < 360) {
+                if (centerDegree >= 180 && centerDegree < 360) {
                     radialLeft = hoverRadialLeft = newTaxonSpecifics[key]["center"][0];
                     radialAngle = 360 - (270 - radialAngle);
                     // (1)
                     leftIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
                     rightIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
                 }
-                else if ((centerDegree % 360) >= 0 && (centerDegree % 360) <= 180) {
+                else if (centerDegree >= 0 && centerDegree <= 180) {
                     radialLeft = newTaxonSpecifics[key]["center"][0] - width;
                     hoverRadialLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
                     radialAngle = 270 - radialAngle;
@@ -1238,11 +1355,11 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
     };
     PlotDrawing.prototype.render = function () {
-        var _this = this;
         //console.log("render original aTR:", originalAllTaxaReduced["Aphis glycines"])
         //console.log("layerWidth: ", this.state.layerWidth);
         //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
-        console.log("render aTR: ", allTaxaReduced);
+        //console.log("render aTR: ", allTaxaReduced);
+        var _this = this;
         currentState = this.state;
         var shapes = [];
         var labels = [];
@@ -1250,20 +1367,20 @@ var PlotDrawing = /** @class */ (function (_super) {
         var clipPaths = [];
         var tS = this.state.taxonSpecifics;
         var tSkeys = Object.keys(tS);
-        var _loop_7 = function (item) {
+        var _loop_9 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_1.state.ancestors[this_1.state.ancestors.length - 1], "_-_0") : id;
-            shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"], transformOrigin: tS[item]["label"]["transformOrigin"], root: this_1.state.root }));
+            shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], onClick: function () { return _this.handleClick(redirectTo); }, d: tS[item]["svgPath"], onContextMenu: function (e) { showContextMenu(e); }, strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"], transformOrigin: tS[item]["label"]["transformOrigin"], root: this_1.state.root }));
             if (tS[item]["married"]) {
-                clipPaths.push(React.createElement("path", { d: tS[item]["svgPath"] }));
+                clipPaths.push(React.createElement("path", { key: "clippath-".concat(id), d: tS[item]["svgPath"] }));
             }
         };
         var this_1 = this;
         for (var _i = 0, tSkeys_1 = tSkeys; _i < tSkeys_1.length; _i++) {
             var item = tSkeys_1[_i];
-            _loop_7(item);
+            _loop_9(item);
         }
-        var _loop_8 = function (item) {
+        var _loop_10 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_2.state.ancestors[this_2.state.ancestors.length - 1], "_-_0") : id;
             var label = React.createElement(TaxonLabel, { key: "".concat(id, "-label"), id: "".concat(id, "-label"), abbr: tS[item]["label"]["abbreviation"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], top: tS[item]["label"]["top"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "normal", root: this_2.state.root });
@@ -1272,29 +1389,29 @@ var PlotDrawing = /** @class */ (function (_super) {
         var this_2 = this;
         for (var _a = 0, tSkeys_2 = tSkeys; _a < tSkeys_2.length; _a++) {
             var item = tSkeys_2[_a];
-            _loop_8(item);
+            _loop_10(item);
         }
-        var _loop_9 = function (item) {
+        var _loop_11 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_3.state.ancestors[this_3.state.ancestors.length - 1], "_-_0") : id;
             var labelBackground = React.createElement(LabelBackground, { key: "".concat(id, "-labelBackground"), id: "".concat(id, "-labelBackground"), transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"] - 4, top: (tS[item]["label"]["top"] - this_3.state.height) - 4, selfDisplay: "none", labelDisplay: tS[item]["label"]["display"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], height: this_3.state.height + 8, width: tS[item]["label"]["hoverWidth"] + 8, stroke: "#800080", fill: "#ffffff", root: this_3.state.root });
-            var hoverLabel = React.createElement(TaxonLabel, { key: "".concat(id, "-hoverLabel"), id: "".concat(id, "-hoverLabel"), abbr: tS[item]["label"]["fullLabel"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"], top: tS[item]["label"]["top"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["hoverDisplay"], onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "bold", root: this_3.state.root });
+            var hoverLabel = React.createElement(TaxonLabel, { key: "".concat(id, "-hoverLabel"), id: "".concat(id, "-hoverLabel"), abbr: tS[item]["label"]["fullLabel"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"], top: tS[item]["label"]["top"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["hoverDisplay"], onContextMenu: function (e) { showContextMenu(e); }, onClick: function () { _this.handleClick(redirectTo); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "bold", root: this_3.state.root });
             labels.push(labelBackground);
             labels.push(hoverLabel);
         };
         var this_3 = this;
         for (var _b = 0, tSkeys_3 = tSkeys; _b < tSkeys_3.length; _b++) {
             var item = tSkeys_3[_b];
-            _loop_9(item);
+            _loop_11(item);
         }
         var anc = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
-        return [React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", style: { "height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none" }, id: "shapes" },
+        return [React.createElement("svg", { key: "svg", xmlns: "http://www.w3.org/2000/svg", style: { "height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none" }, id: "shapes" },
                 shapes,
                 " ",
                 labels,
-                React.createElement("clipPath", { id: "mask" }, clipPaths)), React.createElement("div", { id: "ancestors" }, ancestors), React.createElement("div", { id: "left-column" },
-                React.createElement(AncestorSection, { ancestors: anc, root: this.state.root, layer: this.state.layer, plotEValue: this.state.plotEValue, onClickArray: anc.map(function (self, index) { return function () { _this.handleClick("".concat(self, "_-_").concat(-index)); }; }) }),
-                React.createElement(DescendantSection, { self: "Felinae", layer: 0, ancestor: "Felidae", hovered: true }))];
+                React.createElement("clipPath", { key: "clipPath", id: "mask" }, clipPaths)), React.createElement("div", { key: "div-ancestors", id: "ancestors" }, ancestors), React.createElement("div", { key: "left-column", id: "left-column" },
+                React.createElement(AncestorSection, { key: "ancestor-section", ancestors: anc, root: this.state.root, layer: this.state.layer, plotEValue: this.state.plotEValue, onClickArray: anc.map(function (self, index) { return function () { _this.handleClick("".concat(self, "_-_").concat(-index)); }; }) }),
+                React.createElement(DescendantSection, { key: "descendant-section", self: "Felinae", layer: 0, ancestor: "Felidae", hovered: true }))];
     };
     return PlotDrawing;
 }(React.Component));
@@ -1320,13 +1437,18 @@ function loadDataFromTSV(tsv_path) {
     });
 }
 function TaxonShape(props) {
-    return React.createElement("path", { id: props.id, className: "thing", d: props.d, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, style: { "stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor } });
+    return React.createElement("path", { id: props.id, className: "thing", d: props.d, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, onContextMenu: props.onContextMenu, style: { "stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor } });
 }
 function TaxonLabel(props) {
-    return React.createElement("text", { className: "thing", x: props.left, y: props.top, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, style: { "margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight } }, props.abbr);
+    return React.createElement("text", { className: "thing", x: props.left, y: props.top, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, onContextMenu: function (e) { showContextMenu(e); }, style: { "margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight } }, props.abbr);
 }
 function LabelBackground(props) {
-    return React.createElement("rect", { className: "thing", x: props.left, y: props.top, height: props.height, width: props.width, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, fill: props.fill, stroke: props.stroke, style: { "position": "fixed", "display": props.selfDisplay, "strokeWidth": "0.2vmin" } });
+    if (props.top) {
+        return React.createElement("rect", { className: "thing", x: props.left, y: props.top, height: props.height, width: props.width, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return hoverHandler(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return onMouseOutHandler(props.id, props.labelDisplay); }, onClick: props.onClick, fill: props.fill, stroke: props.stroke, style: { "position": "fixed", "display": props.selfDisplay, "strokeWidth": "0.2vmin" } });
+    }
+    else {
+        return null;
+    }
 }
 //addEventListener("mousemove", (event) => handleMouseMove(event));
 function hoverHandler(id, fullLabel, root) {
@@ -1441,6 +1563,7 @@ var allTaxa = {};
             lineagesNames = response["lineagesNames"];
             lineagesRanks = response["lineagesRanks"];
             allTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
+            console.log("new aTR load: ", allTaxaReduced);
             originalAllTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
             rankPatternFull = response["rankPatternFull"];
             allTaxa = response["allTaxa"];
@@ -1459,12 +1582,12 @@ var allTaxa = {};
             else {
                 disableEValue();
                 document.getElementById("fasta-file").setAttribute("disabled", "disabled");
+                document.getElementById("status").innerHTML = "";
             }
             var newData = document.getElementById("new-data");
             newData.checked = true;
             document.getElementById("status").innerHTML = "check";
             var evt = new CustomEvent('change');
-            console.log("aTR after load: ", allTaxaReduced);
             newData.dispatchEvent(evt);
             newDataLoaded = true;
         },
@@ -1487,7 +1610,6 @@ var allTaxa = {};
         processData: false,
         contentType: false,
         success: function (response) {
-            console.log("response FASTA: ", response);
             document.getElementById("fasta-status").innerHTML = "check";
             headerSeqObject = response["headerSeqObject"];
         },
@@ -1516,9 +1638,11 @@ addEventListener("mousemove", function (e) {
         document.getElementById("descendant-section").dispatchEvent(evt);
     }
 });
-document.getElementById("upload-button").addEventListener("click", function () {
+/*
+document.getElementById("upload-button")!.addEventListener("click", () => {
     $('input[type="file"]').click();
-});
+})
+*/
 function enableEValue(median) {
     document.getElementById("e-input").removeAttribute("disabled");
     document.getElementById("e-label").style.color = "black";
@@ -1532,4 +1656,71 @@ function disableEValue() {
     var eText = document.getElementById("e-text");
     eText.setAttribute("disabled", "disabled");
     eText.value = "";
+}
+function showContextMenu(e) {
+    e.preventDefault();
+    document.getElementById("context-menu").style.display = "block";
+    positionMenu(e);
+}
+function hideContextMenu() {
+    document.getElementById("context-menu").style.display = "none";
+}
+// Get the position of the right click in window and returns the X and Y coordinates
+function getPosition(e) {
+    var posx = 0;
+    var posy = 0;
+    if (!e) {
+        var e = window.event;
+    }
+    if (e.pageX || e.pageY) {
+        posx = e.pageX;
+        posy = e.pageY;
+    }
+    else if (e.clientX || e.clientY) {
+        posx =
+            e.clientX +
+                document.body.scrollLeft +
+                document.documentElement.scrollLeft;
+        posy =
+            e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+    }
+    return {
+        x: posx,
+        y: posy
+    };
+}
+// Position the Context Menu in right position.
+function positionMenu(e) {
+    var menu = document.getElementById("context-menu");
+    var clickCoords = getPosition(e);
+    var clickCoordsX = clickCoords.x;
+    var clickCoordsY = clickCoords.y;
+    var menuWidth = menu.offsetWidth;
+    var menuHeight = menu.offsetHeight;
+    var windowWidth = window.innerWidth;
+    var windowHeight = window.innerHeight;
+    if (windowWidth - clickCoordsX < menuWidth) {
+        menu.style.left = windowWidth - menuWidth + "px";
+    }
+    else {
+        menu.style.left = clickCoordsX + "px";
+    }
+    if (windowHeight - clickCoordsY < menuHeight) {
+        menu.style.top = windowHeight - menuHeight + "px";
+    }
+    else {
+        menu.style.top = clickCoordsY - menuHeight + "px";
+    }
+    menu.setAttribute("taxon", e.target["id"]);
+}
+function findRealName(index, namesArray, name) {
+    if (namesArray.length === 0) {
+        return name;
+    }
+    for (var i = namesArray.length - 2; i >= 0; i--) {
+        if (index > namesArray[i][1]) {
+            return namesArray[i + 1][0];
+        }
+    }
+    return namesArray[0][0];
 }

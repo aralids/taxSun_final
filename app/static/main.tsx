@@ -4,7 +4,7 @@ import * as _html2canvas from "html2canvas";
 import { unmountComponentAtNode } from "react-dom";
 import { json } from "stream/consumers";
 import { ln, lr, atr } from "./predefinedObjects.js";
-import { createPalette, radians, round, sin, cos, handleMouseMove, hexToRGB, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions} from "./helperFunctions.js";
+import { createPalette, radians, round, sin, cos, handleMouseMove, hexToRGB, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions, makeID} from "./helperFunctions.js";
 import { threadId } from "worker_threads";
 
 var currentState;
@@ -15,13 +15,133 @@ var reactRoot = ReactDOM.createRoot(domContainer);
 var viewportDimensions = getViewportDimensions();
 var alreadyVisited:object = {};
 let fileName = "lessSpontaneous2.tsv";
-let taxonName = "Sarcopterygii";
-let layerName = 5;
+let taxonName = "Bacteria";
+let layerName = 1;
 let collapseName = "collapseFalse";
 let modeName = "allEqual";
 var eThreshold:any = null;
 let newDataLoaded:boolean = false;
 var headerSeqObject:object = {};
+document.addEventListener("click", () => {
+    hideContextMenu();
+})
+document.getElementById("copy")!.addEventListener("click", () => {
+    let name:string = document.getElementById("context-menu")!.getAttribute("taxon")!.split("_-_")[0];
+    let seqIDsArray:string[] = [];
+    if (!allTaxaReduced[name]["successfulIndices"]) {
+        seqIDsArray = allTaxaReduced[name]["geneNames"];
+    }
+    else {
+        seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(item => allTaxaReduced[name]["geneNames"][item]);
+    }
+    navigator.clipboard.writeText(seqIDsArray.join(" "));
+})
+document.getElementById("copy-all")!.addEventListener("click", () => {
+    let name:string = document.getElementById("context-menu")!.getAttribute("taxon")!.split("_-_")[0];
+    let seqIDsArray:string[] = [];
+    if (!allTaxaReduced[name]["successfulIndices"]) {
+        seqIDsArray = allTaxaReduced[name]["geneNames"];
+    }
+    else {
+        seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(item => allTaxaReduced[name]["geneNames"][item]);
+    }
+
+    for (let child of allTaxaReduced[name]["descendants"]) {
+        if (!allTaxaReduced[child]["successfulIndices"]) {
+            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["geneNames"]);
+        }
+        else {
+            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["successfulIndices"].map(item => allTaxaReduced[child]["geneNames"][item]));
+        }
+    }
+    navigator.clipboard.writeText(seqIDsArray.join(" "));
+})
+document.getElementById("download-seq")!.addEventListener("click", () => {
+    let name:string = document.getElementById("context-menu")!.getAttribute("taxon")!.split("_-_")[0];
+    let seqIDsArray:string[] = [];
+    if (!allTaxaReduced[name]["successfulIndices"]) {
+        seqIDsArray = allTaxaReduced[name]["fastaHeaders"].map((item, index) => [item, allTaxaReduced[name]["eValues"][index], name, findRealName(index, allTaxaReduced[name]["names"], name)]);
+    }
+    else {
+        seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(item => [allTaxaReduced[name]["fastaHeaders"][item], allTaxaReduced[name]["eValues"][item], name, findRealName(item, allTaxaReduced[name]["names"], name)]);
+    }
+    let seqsArray = seqIDsArray.map(item => {
+        if (!headerSeqObject[item[0]]) {
+            console.log("missing item: ", item);
+        }
+        else {
+            let thirdElement:string = item[2] === item[3] ? item[2] : `${item[2]} (${item[3]})`;
+            return `*** ${item[0]} ${item[1]} ${thirdElement}\n${headerSeqObject[item[0]]}\n`;
+        }
+    })
+
+    let eInput:any = document.getElementById("e-input")!
+    let firstLines:string;
+    if (eInput.checked) {
+        firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: ${eThreshold}\n\n`
+    }
+    else {
+        firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: no\n\n`
+    }
+
+    seqsArray = [firstLines, ...seqsArray];
+
+    let seqsFile = seqsArray.join("\n");
+    const a = document.createElement('a');
+    const e = new MouseEvent('click');
+  
+    a.download = `test.tsv`;
+    a.href = 'data:text/tab-separated-values,' + encodeURIComponent(seqsFile);
+    a.dispatchEvent(e);
+})
+document.getElementById("download-all-seq")!.addEventListener("click", () => {
+    let name:string = document.getElementById("context-menu")!.getAttribute("taxon")!.split("_-_")[0];
+    let seqIDsArray:string[] = [];
+    if (!allTaxaReduced[name]["successfulIndices"]) {
+        seqIDsArray = allTaxaReduced[name]["fastaHeaders"].map((item, index) => [item, allTaxaReduced[name]["eValues"][index], name, findRealName(index, allTaxaReduced[name]["names"], name)]);
+    }
+    else {
+        seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(item => [allTaxaReduced[name]["fastaHeaders"][item], allTaxaReduced[name]["eValues"][item], name, findRealName(item, allTaxaReduced[name]["names"], name)]);
+    }
+
+    for (let child of allTaxaReduced[name]["descendants"]) {
+        if (!allTaxaReduced[child]["successfulIndices"]) {
+            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["fastaHeaders"].map((item, index) => [item, allTaxaReduced[child]["eValues"][index], child, findRealName(index, allTaxaReduced[child]["names"], child)]));
+        }
+        else {
+            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["successfulIndices"].map(item => [allTaxaReduced[child]["fastaHeaders"][item], allTaxaReduced[child]["eValues"][item], child, findRealName(item, allTaxaReduced[child]["names"], child)]));
+        }
+    }
+
+    let seqsArray = seqIDsArray.map(item => {
+        if (!headerSeqObject[item[0]]) {
+            console.log("missing item: ", item);
+        }
+        else {
+            let thirdElement:string = item[2] === item[3] ? item[2] : `${item[2]} (${item[3]})`;
+            return `*** ${item[0]} ${item[1]} ${thirdElement}\n${headerSeqObject[item[0]]}\n`;
+        }
+    })
+
+    let eInput:any = document.getElementById("e-input")!
+    let firstLines:string;
+    if (eInput.checked) {
+        firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: ${eThreshold}\n\n`
+    }
+    else {
+        firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: no\n\n`
+    }
+
+    seqsArray = [firstLines, ...seqsArray];
+
+    let seqsFile = seqsArray.join("\n");
+    const a = document.createElement('a');
+    const e = new MouseEvent('click');
+  
+    a.download = `test.tsv`;
+    a.href = 'data:text/tab-separated-values,' + encodeURIComponent(seqsFile);
+    a.dispatchEvent(e);
+})
 
 /* ===== FETCHING THE DATA ===== */
 
@@ -34,7 +154,7 @@ let originalAllTaxaReduced:object = JSON.parse(JSON.stringify(atr));
 let rankPatternFull:string[] = ["root","superkingdom","kingdom","subkingdom","superphylum","phylum","subphylum","superclass","class","subclass","superorder","order","suborder","superfamily","family","subfamily","supergenus","genus","subgenus","superspecies","species"];
 
 var colors:string[] = [];
-var colorOffset:number = Math.round(Math.random() * 100); //84, 98, 31, 20, 1, 2
+var colorOffset:number = 7; //84, 98, 31, 20, 1, 2
 colors = createPalette(colorOffset);
 
 
@@ -111,32 +231,32 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
 
     render() {
         let filteredRoot:any = this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
-        let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>CURRENT LAYER</legend>;
-        let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "0vmin"}}>Taxon: <b>{this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>
-        let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: <b>{this.state.rank}</b></p>;
-        let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
-        let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unspecified {this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: <b>{this.state.unassignedCount}</b></p>
+        let firstLine:any = <legend key={"legend"} style={{"color": "#800080", "fontWeight": "bold"}}>CURRENT LAYER</legend>;
+        let nameLine:any = <p key={"nameLine"} style={{"padding": 0, "margin": 0, "paddingBottom": "0vmin"}}>Taxon: <b>{this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>
+        let rankLine:any = <p key={"rankLine"} style={{"padding": 0, "margin": 0}}>Rank: <b>{this.state.rank}</b></p>;
+        let totalCountLine:any = <p key={"totalCountLine"} style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
+        let unassignedCountLine:any = <p key={"unassignedCountLine"} style={{"padding": 0, "margin": 0}}>Unspecified {this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: <b>{this.state.unassignedCount}</b></p>
         //!!! rewrite v
         let beforePreprocessing:number = allTaxa[this.state.root] ? allTaxa[this.state.root]["unassignedCount"] : 0;
         let bPLine:any;
         if (this.state.root === "root") {
-            bPLine = <p style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
+            bPLine = <p key={"bPLine"} style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
         }
         else {
-            bPLine = <p style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
+            bPLine = <p key={"bPLine"} style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
         }
         let id:string = allTaxaReduced[this.state.root] ? allTaxaReduced[this.state.root]["taxID"] : "1";
         let taxIDline:any;
         if (id) {
-            taxIDline = <div id="taxID-div" style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}><p style={{"padding": 0, "margin": 0}}>taxID: <a style={{"display": "inline"}} target="_blank" href={`https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=${id}&lvl=3&lin=f&keep=1&srchmode=1&unlock`}>{id}</a></p></div>
+            taxIDline = <div key={"taxIDline"} id="taxID-div" style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}><p style={{"padding": 0, "margin": 0}}>taxID: <a style={{"display": "inline"}} target="_blank" href={`https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=${id}&lvl=3&lin=f&keep=1&srchmode=1&unlock`}>{id}</a></p></div>
         }
         else {
-            taxIDline = <div id="taxID-div" style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}><p style={{"padding": 0, "margin": 0}}>taxID: <button onClick={() => this.changeDiv(this.state.root)}  id="fetch-id-button">FETCH</button></p></div>
+            taxIDline = <div key={"taxIDline"} id="taxID-div" style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}><p style={{"padding": 0, "margin": 0}}>taxID: <button onClick={() => this.changeDiv(this.state.root)}  id="fetch-id-button">FETCH</button></p></div>
         }
         
         let ps:any = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine, taxIDline]
         for (let i=0; i<this.props.ancestors.length; i++) {
-            ps.push(<p style={{"padding": 0, "margin": 0, "cursor": "pointer"}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>)
+            ps.push(<p key={`ps-${i}`} style={{"padding": 0, "margin": 0, "cursor": "pointer"}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>)
         }
         return <fieldset>{ps}</fieldset>
     }
@@ -212,12 +332,12 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
     render() {
         let ps:any[] = [];
         if (this.state.hovered) {
-            let firstLine:any = <legend style={{"color": "#800080", "fontWeight": "bold"}}>HOVERING OVER</legend>;
+            let firstLine:any = <legend key={"firstLine"} style={{"color": "#800080", "fontWeight": "bold"}}>HOVERING OVER</legend>;
             let noRanksName:string = this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
-            let nameLine:any = <p style={{"padding": 0, "margin": 0, "paddingBottom": "0vmin"}}>Taxon: <b>{noRanksName}</b></p>
-            let rankLine:any = <p style={{"padding": 0, "margin": 0}}>Rank: <b>{this.state.rank}</b></p>;
-            let totalCountLine:any = <p style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
-            let unassignedCountLine:any = <p style={{"padding": 0, "margin": 0}}>Unassigned {this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: <b>{this.state.unassignedCount}</b></p>
+            let nameLine:any = <p key={"nameLine"}style={{"padding": 0, "margin": 0, "paddingBottom": "0vmin"}}>Taxon: <b>{noRanksName}</b></p>
+            let rankLine:any = <p key={"rankLine"} style={{"padding": 0, "margin": 0}}>Rank: <b>{this.state.rank}</b></p>;
+            let totalCountLine:any = <p key={"totalCountLine"} style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
+            let unassignedCountLine:any = <p key={"unassignedCountLine"} style={{"padding": 0, "margin": 0}}>Unassigned {this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: <b>{this.state.unassignedCount}</b></p>
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine]
             return <fieldset id="hovering-over">{ps}</fieldset>
         }
@@ -229,8 +349,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     constructor(props) {
         super(props);
         this.state = {
-            root: "Sarcopterygii",
-            layer: 5,
+            root: "Bacteria",
+            layer: 1,
             collapse: false,
             horizontalShift: viewportDimensions["cx"],
             verticalShift: viewportDimensions["cy"],
@@ -1092,7 +1212,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
 
                 let leftIntersect, rightIntersect;
-                if ((centerDegree % 360) >= 180 && (centerDegree % 360) < 360) {
+                if (centerDegree >= 180 && centerDegree < 360) {
                     radialLeft = hoverRadialLeft = newTaxonSpecifics[key]["center"][0];
                     radialAngle = 360 - (270 - radialAngle);
                     
@@ -1100,7 +1220,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
                     rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
                 }
-                else if ((centerDegree % 360) >= 0 && (centerDegree % 360) <= 180) {
+                else if (centerDegree >= 0 && centerDegree <= 180) {
                     radialLeft = newTaxonSpecifics[key]["center"][0] - width;
                     hoverRadialLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
                     radialAngle = 270 - radialAngle;
@@ -1220,7 +1340,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         //console.log("render original aTR:", originalAllTaxaReduced["Aphis glycines"])
         //console.log("layerWidth: ", this.state.layerWidth);
         //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
-        console.log("render aTR: ", allTaxaReduced);
+        //console.log("render aTR: ", allTaxaReduced);
 
         currentState = this.state;
         var shapes:any = [];
@@ -1232,9 +1352,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (let item of tSkeys) {
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
-            shapes.push(<TaxonShape key={id} id={id} abbr={tS[item]["label"]["abbreviation"]} onClick={() => this.handleClick(redirectTo)} d={tS[item]["svgPath"]} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]} transformOrigin={tS[item]["label"]["transformOrigin"]} root={this.state.root}/>);
+            shapes.push(<TaxonShape key={id} id={id} abbr={tS[item]["label"]["abbreviation"]} onClick={() => this.handleClick(redirectTo)} d={tS[item]["svgPath"]} onContextMenu={(e) => {showContextMenu(e)}} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]} transformOrigin={tS[item]["label"]["transformOrigin"]} root={this.state.root}/>);
             if (tS[item]["married"]) {
-                clipPaths.push(<path d={tS[item]["svgPath"]}/>)
+                clipPaths.push(<path key={`clippath-${id}`} d={tS[item]["svgPath"]}/>)
             }
         }
         
@@ -1252,14 +1372,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
             let labelBackground = <LabelBackground key={`${id}-labelBackground`} id={`${id}-labelBackground`} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]-4} top={(tS[item]["label"]["top"]-this.state.height) - 4} selfDisplay="none" labelDisplay={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} height={this.state.height+8} width={tS[item]["label"]["hoverWidth"]+8} stroke="#800080" fill="#ffffff" root={this.state.root}/>
 
-            let hoverLabel = <TaxonLabel key={`${id}-hoverLabel`} id={`${id}-hoverLabel`} abbr={tS[item]["label"]["fullLabel"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]} top={tS[item]["label"]["top"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["hoverDisplay"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="bold" root={this.state.root}/>;
+            let hoverLabel = <TaxonLabel key={`${id}-hoverLabel`} id={`${id}-hoverLabel`} abbr={tS[item]["label"]["fullLabel"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]} top={tS[item]["label"]["top"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["hoverDisplay"]} onContextMenu={(e) => {showContextMenu(e)}} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="bold" root={this.state.root}/>;
             labels.push(labelBackground);
             labels.push(hoverLabel);
         }
 
         let anc:any[] = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
 
-        return [<svg xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath id="mask">{clipPaths}</clipPath></svg>,<div id="ancestors">{ancestors}</div>,<div id="left-column"><AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} plotEValue={this.state.plotEValue} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
+        return [<svg key={"svg"} xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath key={"clipPath"} id="mask">{clipPaths}</clipPath></svg>,<div key={"div-ancestors"} id="ancestors">{ancestors}</div>,<div key={"left-column"} id="left-column"><AncestorSection key={"ancestor-section"} ancestors={anc} root={this.state.root} layer={this.state.layer} plotEValue={this.state.plotEValue} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection key={"descendant-section"} self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
     }
     //<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>
 }
@@ -1288,14 +1408,19 @@ function loadDataFromTSV(tsv_path) {
 }
 
 function TaxonShape(props) {
-    return <path id={props.id} className="thing" d={props.d} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
+    return <path id={props.id} className="thing" d={props.d} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} onContextMenu={props.onContextMenu} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
 }
 function TaxonLabel(props) {
-    return <text className="thing" x={props.left} y={props.top} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight}}>{props.abbr}</text>
+    return <text className="thing" x={props.left} y={props.top} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} onContextMenu={(e) => {showContextMenu(e)}} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight}}>{props.abbr}</text>
 }
 
 function LabelBackground(props) {
-    return <rect className="thing" x={props.left} y={props.top} height={props.height} width={props.width} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} fill={props.fill} stroke={props.stroke} style={{"position": "fixed", "display": props.selfDisplay, "strokeWidth":"0.2vmin"}}/>
+    if (props.top) {
+        return <rect className="thing" x={props.left} y={props.top} height={props.height} width={props.width} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} fill={props.fill} stroke={props.stroke} style={{"position": "fixed", "display": props.selfDisplay, "strokeWidth":"0.2vmin"}}/>
+    }
+    else {
+        return null
+    }
 }
 
 //addEventListener("mousemove", (event) => handleMouseMove(event));
@@ -1413,6 +1538,7 @@ document.getElementById("file")?.addEventListener("change", () => {
             lineagesNames = response["lineagesNames"];
             lineagesRanks = response["lineagesRanks"];
             allTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
+            console.log("new aTR load: ", allTaxaReduced);
             originalAllTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
             rankPatternFull = response["rankPatternFull"];
             allTaxa = response["allTaxa"];
@@ -1431,12 +1557,12 @@ document.getElementById("file")?.addEventListener("change", () => {
             else {
                 disableEValue();
                 document.getElementById("fasta-file")!.setAttribute("disabled", "disabled");
+                document.getElementById("status")!.innerHTML = "";
             }
             let newData:any = document.getElementById("new-data")!
             newData.checked = true;
             document.getElementById("status")!.innerHTML = "check";
             var evt = new CustomEvent('change');
-            console.log("aTR after load: ", allTaxaReduced)
             newData.dispatchEvent(evt);
             newDataLoaded = true;
         },
@@ -1460,7 +1586,6 @@ document.getElementById("fasta-file")?.addEventListener("change", () => {
         processData: false,
         contentType: false,
         success: function(response) {
-            console.log("response FASTA: ", response);
             document.getElementById("fasta-status")!.innerHTML = "check";
             headerSeqObject = response["headerSeqObject"];
         },
@@ -1494,9 +1619,11 @@ addEventListener("mousemove", (e) => {
     }
 })
 
+/*
 document.getElementById("upload-button")!.addEventListener("click", () => {
     $('input[type="file"]').click();
 })
+*/
 
 function enableEValue(median) {
     document.getElementById("e-input")!.removeAttribute("disabled");
@@ -1512,4 +1639,81 @@ function disableEValue() {
     let eText:any = document.getElementById("e-text")!;
     eText.setAttribute("disabled", "disabled");
     eText.value = "";
+}
+
+function showContextMenu(e) {
+    e.preventDefault();
+    document.getElementById("context-menu")!.style.display = "block";
+    positionMenu(e);
+}
+
+function hideContextMenu() {
+    document.getElementById("context-menu")!.style.display = "none";
+}
+
+// Get the position of the right click in window and returns the X and Y coordinates
+function getPosition(e) {
+  var posx = 0;
+  var posy = 0;
+
+  if (!e) {
+    var e:any = window.event;
+  }
+
+  if (e.pageX || e.pageY) {
+    posx = e.pageX;
+    posy = e.pageY;
+  } 
+  else if (e.clientX || e.clientY) {
+    posx =
+      e.clientX +
+      document.body.scrollLeft +
+      document.documentElement.scrollLeft;
+    posy =
+      e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+  }
+
+  return {
+    x: posx,
+    y: posy
+  };
+}
+
+// Position the Context Menu in right position.
+function positionMenu(e) {
+    let menu:any = document.getElementById("context-menu")!;
+    let clickCoords = getPosition(e);
+    let clickCoordsX = clickCoords.x;
+    let clickCoordsY = clickCoords.y;
+
+    let menuWidth = menu.offsetWidth;
+    let menuHeight = menu.offsetHeight;
+    let windowWidth = window.innerWidth;
+    let windowHeight = window.innerHeight;
+
+    if (windowWidth - clickCoordsX < menuWidth) {
+        menu.style.left = windowWidth - menuWidth + "px";
+    } else {
+        menu.style.left = clickCoordsX + "px";
+    }
+
+    if (windowHeight - clickCoordsY < menuHeight) {
+        menu.style.top = windowHeight - menuHeight + "px";
+    } else {
+        menu.style.top = clickCoordsY - menuHeight + "px";
+    }
+
+    menu.setAttribute("taxon", e.target["id"]);
+}
+
+function findRealName(index, namesArray, name) {
+    if (namesArray.length === 0) {
+        return name;
+    }
+    for (let i=namesArray.length-2; i>=0; i--) {
+        if (index > namesArray[i][1]) {
+            return namesArray[i+1][0];
+        }
+    }
+    return namesArray[0][0];
 }

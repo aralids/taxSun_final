@@ -61,8 +61,8 @@ def index():
 
 @app.route('/load_tsv_data', methods=["POST", "GET"])
 def load_tsv_data():
-    taxDict = {"root": {"taxID": "1", "unassignedCount": 0, "totalCount": 0, "lineageNames": [["root", "root"]], "rank": "root", "names": [["root", -1]], "geneNames": [], "eValues": [], "fastaHeaders": []}}
-    taxID_sum = 0
+    taxDict = {"root": {"taxID": "1", "unassignedCount": 0, "totalCount": 0, "lineageNames": [["root", "root"]], "rank": "root", "names": [["root", -1]], "geneNames": [], "eValues": [], "fastaHeaders": [], "descendants": []}}
+    taxID_sum = 84
     tempDict = {"1": "root"}
     allEvals = []
     if request.method == 'GET':
@@ -89,9 +89,6 @@ def load_tsv_data():
     #taxDict["root"]["totalCount"] = taxIDList.count("NA")
     #print('taxDict["root"]: ', taxDict["root"])
     offset = sum_to_2dig(str(taxID_sum))
-    for key,value in taxDict.items():
-        print("item: ", key, value, "\n")
-
     rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"]
     
     # Get the names of all taxa with reducible lineages in a list
@@ -187,6 +184,7 @@ def load_tsv_data():
             if fasta_header_included:
                 allTaxaReduced[lastPredecessor]["fastaHeaders"] = f_headers
             del allTaxaReduced[taxName]
+            allTaxaReduced[lastPredecessor]["descendants"] = []
 
     # Last predecessors have been added. Now add all non-last predecessors that don't have their own unassigned counts as items in allTaxaReduced and newlyAdded.
     for taxName in list(allTaxaReduced.keys()):
@@ -208,6 +206,7 @@ def load_tsv_data():
                     allTaxaReduced[newName]["eValues"] = []
                 if fasta_header_included:
                     allTaxaReduced[newName]["fastaHeaders"] = []
+                allTaxaReduced[newName]["descendants"] = []
 
     # For every taxon in allTaxaReduced, if a newlyAdded taxon shows up as a predecessor in its lineage, change the predecessor's name to taxon + rank (as opposed to just taxon).
     for taxName in list(allTaxaReduced.keys()):
@@ -238,6 +237,8 @@ def load_tsv_data():
             allTaxaReduced["root"]["totalCount"] += allTaxaReduced[taxName]["unassignedCount"]
         lineage = allTaxaReduced[taxName]["lineageNames"]
         for i in range(0, len(lineage)-1):
+            if allTaxaReduced[taxName]["unassignedCount"] > 0:
+                allTaxaReduced[lineage[i][1]]["descendants"].append(taxName)
             if lineage[i][0] == lineage[i+1][0]:
                 del lineage[i]
 
@@ -330,7 +331,7 @@ def read_line(line, taxDict, tempDict, taxID_sum, allEvals, e_value_included, fa
         dictlist = [[k,v] for k,v in lineageNamesList.items()][::-1]
         if name in taxDict:
             name += " 1"
-        taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "unassignedCount": 1, "rank": rank, "totalCount": 1, "names": [[name, 0]], "geneNames": [gene_name]}
+        taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "unassignedCount": 1, "rank": rank, "totalCount": 1, "names": [[name, 0]], "geneNames": [gene_name], "descendants": []}
         
         if e_value_included:
             if e_value != "":

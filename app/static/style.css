@@ -49,6 +49,24 @@ fieldset {
     color: black;
 }
 
+#context-menu {
+    display: none;
+    position: absolute;
+    z-index: 300;
+    border-radius: 5px;
+}
+
+#copy, #download-seq, #copy-all, #download-all-seq {
+    width: 100%;
+    border: none;
+    padding-top: 1vmin;
+    padding-bottom: 1vmin;
+}
+
+#copy:hover, #download-seq:hover, #copy-all:hover, #download-all-seq:hover {
+    background-color: rgba(211, 211, 211);
+}
+
 @media (hover: none) {
     #hovering-over {
         display: none;
