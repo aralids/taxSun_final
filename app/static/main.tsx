@@ -488,6 +488,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             }
         }
 
+        console.log(JSON.parse(JSON.stringify(croppedLineages)), root, layer);
+
         // Crop lineages so they start with clicked taxon.
         var ancestors:string[] = [""];
         if (croppedLineages[0]) { // If there is anything to show at all, a.k.a if there are lineages that passed the first requirement above...
@@ -618,7 +620,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
 
         var dpmm:number = viewportDimensions["dpmm"];
-        var numberOfLayers:number = alignedCropppedLineages[0].length;
+        var numberOfLayers:number = alignedCropppedLineages[0] ? alignedCropppedLineages[0].length : 0;
         var smallerDimension:number = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
         var layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
 
@@ -1155,11 +1157,12 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var taxon:string = shapeId.match(/.+?(?=_)/)[0];
         var currLayer:number = parseInt(shapeId.match(/-?\d+/)[0]);
         var nextLayer;
-        if (this.state.root.includes("&")) {
-            nextLayer = currLayer <= 0 ? this.state.layer + (currLayer-1) : (currLayer + this.state.layer) - 1;
+        console.log("taxon: ", taxon)
+        if (taxon.includes("&")) {
+            nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length-1;
         }
         else {
-            nextLayer = currLayer <= 0 ? this.state.layer + (currLayer-1) : currLayer + this.state.layer;
+            nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length-1;
         }
         let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
@@ -1544,7 +1547,7 @@ document.getElementById("file")?.addEventListener("change", () => {
             lineagesNames = response["lineagesNames"];
             lineagesRanks = response["lineagesRanks"];
             allTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
-            console.log("new aTR load: ", allTaxaReduced);
+            console.log("new aTR load: ", JSON.stringify(response["allTaxaReduced"]));
             originalAllTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
             rankPatternFull = response["rankPatternFull"];
             allTaxa = response["allTaxa"];
@@ -1594,6 +1597,7 @@ document.getElementById("fasta-file")?.addEventListener("change", () => {
         success: function(response) {
             document.getElementById("fasta-status")!.innerHTML = "check";
             headerSeqObject = response["headerSeqObject"];
+            console.log("new fasta: ", JSON.stringify(response["headerSeqObject"]));
         },
         error: function (response) {
             console.log("ERROR", response);

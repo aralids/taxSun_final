@@ -940,6 +940,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 croppedRanks.push(ranks[i]);
             }
         }
+        console.log(JSON.parse(JSON.stringify(croppedLineages)), root, layer);
         // Crop lineages so they start with clicked taxon.
         var ancestors = [""];
         if (croppedLineages[0]) { // If there is anything to show at all, a.k.a if there are lineages that passed the first requirement above...
@@ -1063,7 +1064,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
         }
         var dpmm = viewportDimensions["dpmm"];
-        var numberOfLayers = alignedCropppedLineages[0].length;
+        var numberOfLayers = alignedCropppedLineages[0] ? alignedCropppedLineages[0].length : 0;
         var smallerDimension = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
         var layerWidth = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
         // Continue if more than one lineage fulfilling the criteria was found.
@@ -1601,11 +1602,12 @@ var PlotDrawing = /** @class */ (function (_super) {
         var taxon = shapeId.match(/.+?(?=_)/)[0];
         var currLayer = parseInt(shapeId.match(/-?\d+/)[0]);
         var nextLayer;
-        if (this.state.root.includes("&")) {
-            nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : (currLayer + this.state.layer) - 1;
+        console.log("taxon: ", taxon);
+        if (taxon.includes("&")) {
+            nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length - 1;
         }
         else {
-            nextLayer = currLayer <= 0 ? this.state.layer + (currLayer - 1) : currLayer + this.state.layer;
+            nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length - 1;
         }
         var plotId = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + (0, helperFunctions_js_1.round)(this.state.layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
@@ -1974,7 +1976,7 @@ var allTaxa = {};
             lineagesNames = response["lineagesNames"];
             lineagesRanks = response["lineagesRanks"];
             allTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
-            console.log("new aTR load: ", allTaxaReduced);
+            console.log("new aTR load: ", JSON.stringify(response["allTaxaReduced"]));
             originalAllTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
             rankPatternFull = response["rankPatternFull"];
             allTaxa = response["allTaxa"];
@@ -2023,6 +2025,7 @@ var allTaxa = {};
         success: function (response) {
             document.getElementById("fasta-status").innerHTML = "check";
             headerSeqObject = response["headerSeqObject"];
+            console.log("new fasta: ", JSON.stringify(response["headerSeqObject"]));
         },
         error: function (response) {
             console.log("ERROR", response);
