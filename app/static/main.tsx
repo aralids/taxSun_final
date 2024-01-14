@@ -1,61 +1,72 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
-import * as _html2canvas from "html2canvas";
-import { unmountComponentAtNode } from "react-dom";
-import { json } from "stream/consumers";
-import { ln, lr, atr } from "./predefinedObjects.js";
-import { createPalette, radians, round, sin, cos, handleMouseMove, hexToRGB, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions, makeID} from "./helperFunctions.js";
-import { threadId } from "worker_threads";
+import {ln, lr, atr, at} from "./predefinedObjects.js";
+import {getViewportDimensions, handleMouseMove,
+        createPalette, midColor, tintify,
+        round, sin, cos,
+        lineIntersect, lineLength, getFourCorners,
+        enableEValue, disableEValue, showContextMenu, hideContextMenu, findRealName, downloadSVGasTextFile, 
+        hoverHandler, onMouseOutHandler, getLayers} from "./helperFunctions.js";
 
-var currentState;
-var skeletonColor:string = "#800080";
-const html2canvas: any = _html2canvas;
-const domContainer:any = document.querySelector('#plot-container');
-var reactRoot = ReactDOM.createRoot(domContainer);
-var viewportDimensions = getViewportDimensions();
-var alreadyVisited:object = {};
+/* ===== VARIABLE DECLARATIONS/DEFINITIONS - all of which will ideally become either a prop or a part of the state of PlotDrawing. ===== */
+
 let fileName = "lessSpontaneous2.tsv";
 let taxonName = "Bacteria";
 let layerName = 1;
 let collapseName = "collapseFalse";
 let modeName = "allEqual";
+
+var skeletonColor:string = "#800080";
+var viewportDimensions = getViewportDimensions();
+var alreadyVisited:object = {};
 var eThreshold:any = null;
 let newDataLoaded:boolean = false;
 var headerSeqObject:object = {};
-document.addEventListener("click", () => {
-    hideContextMenu();
-})
+let allTaxa:object = at;
+let lineagesNames:string[][] = ln;
+let lineagesRanks:string[][] = lr;
+let allTaxaReduced:object = JSON.parse(JSON.stringify(atr));
+let originalAllTaxaReduced:object = JSON.parse(JSON.stringify(atr));
+let rankPatternFull:string[] = ["root","superkingdom","kingdom","subkingdom","superphylum","phylum","subphylum","superclass","class","subclass","superorder","order","suborder","superfamily","family","subfamily","supergenus","genus","subgenus","superspecies","species"];
+let colorOffset;
+let colors:string[] = createPalette();
+
+let aTRKeys:string[] = Object.keys(allTaxaReduced);
+let descendants:object = {};
+for (let taxName of aTRKeys) {
+    let lineage = allTaxaReduced[taxName]["lineageNames"];
+    for (let predecessor of lineage) {
+        if (!descendants[predecessor[1]]) { descendants[predecessor[1]] = [taxName]; }
+        else { descendants[predecessor[1]].push(taxName); };
+    };
+};
+
+/* ===== EVENT LISTENERS ===== */
+
+document.addEventListener("click", () => { hideContextMenu(); });
+
 document.getElementById("copy")!.addEventListener("click", () => {
     let name:string = document.getElementById("context-menu")!.getAttribute("taxon")!.split("_-_")[0];
     let seqIDsArray:string[] = [];
-    if (!allTaxaReduced[name]["successfulIndices"]) {
-        seqIDsArray = allTaxaReduced[name]["geneNames"];
-    }
-    else {
-        seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(item => allTaxaReduced[name]["geneNames"][item]);
-    }
+    if (!allTaxaReduced[name]["successfulIndices"]) { seqIDsArray = allTaxaReduced[name]["geneNames"]; }
+    else { seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(item => allTaxaReduced[name]["geneNames"][item]); };
     navigator.clipboard.writeText(seqIDsArray.join(" "));
-})
+});
+
 document.getElementById("copy-all")!.addEventListener("click", () => {
     let name:string = document.getElementById("context-menu")!.getAttribute("taxon")!.split("_-_")[0];
     let seqIDsArray:string[] = [];
-    if (!allTaxaReduced[name]["successfulIndices"]) {
-        seqIDsArray = allTaxaReduced[name]["geneNames"];
-    }
-    else {
-        seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(item => allTaxaReduced[name]["geneNames"][item]);
-    }
+    if (!allTaxaReduced[name]["successfulIndices"]) { seqIDsArray = allTaxaReduced[name]["geneNames"]; }
+    else { seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(item => allTaxaReduced[name]["geneNames"][item]); };
 
     for (let child of allTaxaReduced[name]["descendants"]) {
-        if (!allTaxaReduced[child]["successfulIndices"]) {
-            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["geneNames"]);
-        }
-        else {
-            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["successfulIndices"].map(item => allTaxaReduced[child]["geneNames"][item]));
-        }
-    }
+        if (!allTaxaReduced[child]["successfulIndices"]) { seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["geneNames"]); }
+        else { seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["successfulIndices"].map(item => allTaxaReduced[child]["geneNames"][item])); } 
+    };
+
     navigator.clipboard.writeText(seqIDsArray.join(" "));
-})
+});
+
 document.getElementById("download-seq")!.addEventListener("click", () => {
     let name:string = document.getElementById("context-menu")!.getAttribute("taxon")!.split("_-_")[0];
     let seqIDsArray:string[] = [];
@@ -64,28 +75,21 @@ document.getElementById("download-seq")!.addEventListener("click", () => {
     }
     else {
         seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(item => [allTaxaReduced[name]["fastaHeaders"][item], allTaxaReduced[name]["eValues"][item], name, findRealName(item, allTaxaReduced[name]["names"], name)]);
-    }
+    };
     let seqsArray = seqIDsArray.map(item => {
-        if (!headerSeqObject[item[0]]) {
-            console.log("missing item: ", item);
-        }
+        if (!headerSeqObject[item[0]]) { console.log("missing item: ", item); }
         else {
             let thirdElement:string = item[2] === item[3] ? item[2] : `${item[2]} (${item[3]})`;
             return `*** ${item[0]} ${item[1]} ${thirdElement}\n${headerSeqObject[item[0]]}\n`;
-        }
-    })
+        };
+    });
 
-    let eInput:any = document.getElementById("e-input")!
+    let eInput:any = document.getElementById("e-input")!;
     let firstLines:string;
-    if (eInput.checked) {
-        firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: ${eThreshold}\n\n`
-    }
-    else {
-        firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: no\n\n`
-    }
+    if (eInput.checked) { firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: ${eThreshold}\n\n`; }
+    else { firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: no\n\n`; };
 
     seqsArray = [firstLines, ...seqsArray];
-
     let seqsFile = seqsArray.join("\n");
     const a = document.createElement('a');
     const e = new MouseEvent('click');
@@ -93,7 +97,8 @@ document.getElementById("download-seq")!.addEventListener("click", () => {
     a.download = `test.tsv`;
     a.href = 'data:text/tab-separated-values,' + encodeURIComponent(seqsFile);
     a.dispatchEvent(e);
-})
+});
+
 document.getElementById("download-all-seq")!.addEventListener("click", () => {
     let name:string = document.getElementById("context-menu")!.getAttribute("taxon")!.split("_-_")[0];
     let seqIDsArray:string[] = [];
@@ -114,23 +119,17 @@ document.getElementById("download-all-seq")!.addEventListener("click", () => {
     }
 
     let seqsArray = seqIDsArray.map(item => {
-        if (!headerSeqObject[item[0]]) {
-            console.log("missing item: ", item);
-        }
+        if (!headerSeqObject[item[0]]) { console.log("missing item: ", item); }
         else {
             let thirdElement:string = item[2] === item[3] ? item[2] : `${item[2]} (${item[3]})`;
             return `*** ${item[0]} ${item[1]} ${thirdElement}\n${headerSeqObject[item[0]]}\n`;
-        }
-    })
+        };
+    });
 
-    let eInput:any = document.getElementById("e-input")!
+    let eInput:any = document.getElementById("e-input")!;
     let firstLines:string;
-    if (eInput.checked) {
-        firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: ${eThreshold}\n\n`
-    }
-    else {
-        firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: no\n\n`
-    }
+    if (eInput.checked) { firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: ${eThreshold}\n\n`; }
+    else { firstLines = `${name} | ${allTaxaReduced[name]["rank"]} | filtered by e-value: no\n\n`; };
 
     seqsArray = [firstLines, ...seqsArray];
 
@@ -141,24 +140,92 @@ document.getElementById("download-all-seq")!.addEventListener("click", () => {
     a.download = `test.tsv`;
     a.href = 'data:text/tab-separated-values,' + encodeURIComponent(seqsFile);
     a.dispatchEvent(e);
-})
+});
 
-/* ===== FETCHING THE DATA ===== */
+document.getElementById("file")?.addEventListener("change", () => {
+    let fileInput:any = document.getElementById("file")!
+    fileName = fileInput.files[0].name;
+    document.getElementById("status")!.innerHTML = "pending";
+    let uploadForm:any = document.getElementById("uploadForm")!
+    let form_data = new FormData(uploadForm);
+    $.ajax({
+        url: '/load_tsv_data',
+        data: form_data,
+        type: 'POST',
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            lineagesNames = response["lineagesNames"];
+            lineagesRanks = response["lineagesRanks"];
+            allTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
+            originalAllTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
+            rankPatternFull = response["rankPatternFull"];
+            allTaxa = response["allTaxa"];
+            colorOffset = response["offset"];
+            eThreshold = response["median"];
+            let enableFastaUpload:boolean = response["fastaHeaderIncluded"];
 
-var path = "lessSpontaneous2.tsv";
-//loadDataFromTSV(path);
-let lineagesNames:string[][] = ln;
-let lineagesRanks:string[][] = lr;
-let allTaxaReduced:object = JSON.parse(JSON.stringify(atr));
-let originalAllTaxaReduced:object = JSON.parse(JSON.stringify(atr));
-let rankPatternFull:string[] = ["root","superkingdom","kingdom","subkingdom","superphylum","phylum","subphylum","superclass","class","subclass","superorder","order","suborder","superfamily","family","subfamily","supergenus","genus","subgenus","superspecies","species"];
+            if (eThreshold) { enableEValue(eThreshold); }
+            else { disableEValue(); };
 
-var colors:string[] = [];
-var colorOffset:number = 7; //84, 98, 31, 20, 1, 2
-colors = createPalette(colorOffset);
+            if (enableFastaUpload) { document.getElementById("fasta-file")!.removeAttribute("disabled") }
+            else {
+                disableEValue();
+                document.getElementById("fasta-file")!.setAttribute("disabled", "disabled");
+                document.getElementById("status")!.innerHTML = "";
+            };
 
+            let newData:any = document.getElementById("new-data")!
+            newData.checked = true;
+            document.getElementById("status")!.innerHTML = "check";
+            var evt = new CustomEvent('change');
+            newData.dispatchEvent(evt);
+            newDataLoaded = true;
+        },
+        error: function (response) {
+            console.log("ERROR", response);
+            document.getElementById("status")!.innerHTML = "close";
+        }
+    });
+});
 
-/* ===== DEFINING THE REACT COMPONENTS ===== */
+document.getElementById("fasta-file")?.addEventListener("change", () => {
+    let fileInput:any = document.getElementById("fasta-file")!;
+    fileName = fileInput.files[0].name;
+    document.getElementById("fasta-status")!.innerHTML = "pending";
+    let uploadForm:any = document.getElementById("uploadForm")!;
+    let form_data = new FormData(uploadForm);
+    $.ajax({
+        url: '/load_fasta_data',
+        data: form_data,
+        type: 'POST',
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            document.getElementById("fasta-status")!.innerHTML = "check";
+            headerSeqObject = response["headerSeqObject"];
+        },
+        error: function (response) {
+            console.log("ERROR", response);
+            document.getElementById("fasta-status")!.innerHTML = "close";
+        }
+    });
+});
+  
+document.getElementById("download")!.addEventListener("click", () => {
+    downloadSVGasTextFile(fileName, taxonName, layerName, modeName, collapseName);
+});
+
+document.addEventListener("mousemove", (e) => {
+    let target:any = e.target!
+    if (!target.classList.contains('hoverable-object')) {
+        document.getElementById("descendant-section")!.setAttribute('value', "");
+        var evt = new CustomEvent('change');
+        document.getElementById("descendant-section")!.dispatchEvent(evt);
+    };
+});
+
+/* ===== DEFINITIONS OF THE REACT COMPONENTS: AncestorSection, DescendantSection, PlotDrawing ===== */
 
 class AncestorSection extends React.Component<{ancestors:string[], root:string, layer:number, onClickArray:any, plotEValue:boolean}, {root:string, layer:number, rank:string, totalCount:number, unassignedCount:number, lines:string[], plotEValue:boolean, eThresholdHere:any}> {
     constructor(props) {
@@ -172,16 +239,19 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
             lines: [],
             plotEValue: false,
             eThresholdHere: eThreshold
-        }
-    }
+        };
+    };
 
     componentDidUpdate() {
-        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue) || (eThreshold !== this.state.eThresholdHere) || newDataLoaded) {
+        if ((this.props.root !== this.state.root) || 
+            (this.props.plotEValue !== this.state.plotEValue) || 
+            (eThreshold !== this.state.eThresholdHere) || 
+            newDataLoaded) {
+
             newDataLoaded = false;
             this.getCounts();
-        }
-
-    }
+        };
+    };
 
     changeDiv(taxName) {
         $.ajax({
@@ -191,7 +261,7 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
             success: function(response) {
                 let taxID = response["taxID"];
                 if (!allTaxaReduced[taxName]) {
-                    allTaxaReduced[taxName] = {}
+                    allTaxaReduced[taxName] = {};
                 }
                 allTaxaReduced[taxName]["taxID"] = taxID;
                 originalAllTaxaReduced[taxName]["taxID"] = taxID;
@@ -201,10 +271,9 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
                 document.getElementById("status")!.innerHTML = "close";
             }
         }).then( 
-            () => {this.setState(this.state);}
+            () => { this.setState(this.state); }
         );
-        
-    }
+    };
 
     getCounts() {
         let totalCount:number = 0;
@@ -213,7 +282,7 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
         if (this.props.root.indexOf("&") > -1) {
             let groupedTaxa:string[] = this.props.root.split(" & ");
             for (let taxon of groupedTaxa) {
-                totalCount += allTaxaReduced[taxon]["totalCount"]
+                totalCount += allTaxaReduced[taxon]["totalCount"];
             }
             unassignedCount = 0;
             rank = allTaxaReduced[groupedTaxa[0]]["rank"];
@@ -222,48 +291,94 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
             totalCount = allTaxaReduced[this.props.root]["totalCount"];
             unassignedCount = allTaxaReduced[this.props.root]["unassignedCount"];
             rank = allTaxaReduced[this.props.root]["rank"];
-        }
+        };
 
-        let lines:string[] = this.props.ancestors.map(item => (`${round(totalCount * 100 / allTaxaReduced[item]["totalCount"], 2)}%`));
+        let lines:string[] = this.props.ancestors.map(item => 
+            (`${round(totalCount * 100 / allTaxaReduced[item]["totalCount"], 2)}%`));
 
-        this.setState({totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank, plotEValue: this.props.plotEValue, eThresholdHere: eThreshold});
-    }
+        this.setState({ totalCount: totalCount, 
+                        unassignedCount: unassignedCount, 
+                        root: this.props.root, 
+                        layer: this.props.layer, 
+                        lines: lines, 
+                        rank: rank, 
+                        plotEValue: this.props.plotEValue, 
+                        eThresholdHere: eThreshold });
+    };
 
     render() {
-        let filteredRoot:any = this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
-        let firstLine:any = <legend key={"legend"} style={{"color": "#800080", "fontWeight": "bold"}}>CURRENT LAYER</legend>;
-        let nameLine:any = <p key={"nameLine"} style={{"padding": 0, "margin": 0, "paddingBottom": "0vmin"}}>Taxon: <b>{this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>
-        let rankLine:any = <p key={"rankLine"} style={{"padding": 0, "margin": 0}}>Rank: <b>{this.state.rank}</b></p>;
-        let totalCountLine:any = <p key={"totalCountLine"} style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
-        let unassignedCountLine:any = <p key={"unassignedCountLine"} style={{"padding": 0, "margin": 0}}>Unspecified {this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: <b>{this.state.unassignedCount}</b></p>
-        //!!! rewrite v
+        let rootNameNoRank = this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
+        
+        let firstLine:any = <legend key={"legend"} style={{"color": "#800080", "fontWeight": "bold"}}>
+                                CURRENT LAYER
+                            </legend>;
+
+        let nameLine:any = <p key={"nameLine"} className="mp-zero">
+                                Taxon: <b>{rootNameNoRank}</b>
+                           </p>;
+
+        let rankLine:any = <p key={"rankLine"} className="mp-zero">
+                                Rank: <b>{this.state.rank}</b>
+                           </p>;
+
+        let totalCountLine:any = <p key={"totalCountLine"} className="mp-zero">
+                                    Total count: <b>{this.state.totalCount}</b>
+                                 </p>;
+
+        let unassignedCountLine:any = <p key={"unassignedCountLine"} className="mp-zero">
+                                            Unspecified {rootNameNoRank}: <b>{this.state.unassignedCount}</b>
+                                      </p>;
+        
         let beforePreprocessing:number = allTaxa[this.state.root] ? allTaxa[this.state.root]["unassignedCount"] : 0;
-        let bPLine:any;
-        bPLine = <p key={"bPLine"} style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
+        let bPLine:any = <p key={"bPLine"} className="mp-zero">
+                            (raw file: <b>{beforePreprocessing}</b>)
+                         </p>;
         
         let id:string = allTaxaReduced[this.state.root] ? allTaxaReduced[this.state.root]["taxID"] : "1";
         let taxIDline:any;
         if (id) {
-            taxIDline = <div key={"taxIDline"} id="taxID-div" style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}><p style={{"padding": 0, "margin": 0}}>taxID: <a style={{"display": "inline"}} target="_blank" href={`https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=${id}&lvl=3&lin=f&keep=1&srchmode=1&unlock`}>{id}</a></p></div>
+            taxIDline = <div key={"taxIDline"} id="taxID-div" className="mp-zero-pb-not">
+                    	    <p className="mp-zero">
+                                taxID: <a style={{"display": "inline"}} target="_blank" href={`https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=${id}&lvl=3&lin=f&keep=1&srchmode=1&unlock`}>
+                                            {id}
+                                       </a>
+                            </p>
+                        </div>;
         }
         else {
-            taxIDline = <div key={"taxIDline"} id="taxID-div" style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}><p style={{"padding": 0, "margin": 0}}>taxID: <button onClick={() => this.changeDiv(this.state.root)}  id="fetch-id-button">FETCH</button></p></div>
-        }
+            taxIDline = <div key={"taxIDline"} id="taxID-div" className="mp-zero-pb-not">
+                            <p className="mp-zero">
+                                taxID: <button onClick={() => this.changeDiv(this.state.root)}  id="fetch-id-button">
+                                                FETCH
+                                       </button>
+                            </p>
+                        </div>
+        };
         
         let ps:any = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine, taxIDline];
+
         if (this.props.root.indexOf("&") > -1) {
-            bPLine = <p key={"bPLine"} style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
+            bPLine = <p key={"bPLine"} className="mp-zero-pb-not">
+                        (raw file: <b>{beforePreprocessing}</b>)
+                     </p>;
+
             ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine];
         }
-        else if (this.props.root === "root") {
-            ps.pop();
-        }
+        else if (this.props.root === "root") { ps.pop(); };
+
         for (let i=0; i<this.props.ancestors.length; i++) {
-            ps.push(<p key={`ps-${i}`} style={{"padding": 0, "margin": 0, "cursor": "pointer", "wordBreak": "break-all"}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>)
-        }
-        return <fieldset>{ps}</fieldset>
-    }
-}
+            let ancNameNoRank = this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
+            ps.push(<p key={`ps-${i}`} 
+                       className="mp-zero"
+                       style={{"cursor": "pointer", "wordBreak": "break-all"}} 
+                       onClick={this.props.onClickArray[i]}>
+                        {this.state.lines[i]} of <b>{ancNameNoRank}</b>
+                    </p>);
+        };
+
+        return <fieldset>{ps}</fieldset>;
+    };
+};
 
 class DescendantSection extends React.Component<{self:string, ancestor:string, layer:number, hovered:boolean}, {rank:string, totalCount:number, unassignedCount:number, percentage:number, self:string, layer:number, hovered:boolean}> {
     constructor(props) {
@@ -276,8 +391,8 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
             unassignedCount: 0,
             percentage: 0,
             hovered: false
-        }
-    }
+        };
+    };
 
     componentDidMount(): void {
         document.getElementById("descendant-section")?.addEventListener("change", () => {
@@ -287,6 +402,7 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
             let layer:number;
             let ancestor:string;
             let hovered:boolean;
+
             if (el.value.length === 0) {
                 self = "";
                 layer = 0;
@@ -299,23 +415,23 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
                 layer = parseInt(values[1]);
                 ancestor = values[2];
                 hovered = true;
-            }
+            };
+
             if (!(this.state.self === self)) {
                 this.calculateParams(self, layer, ancestor, hovered);
-            }
-        })
-    }
+            };
+        });
+    };
 
     calculateParams(self, layer, ancestor, hovered) {
         if (hovered) {
             let totalCount:number = 0;
             let unassignedCount:number = 0;
             let rank:string;
+            
             if (self.indexOf("&") > -1) {
                 let groupedTaxa:string[] = self.split(" & ");
-                for (let taxon of groupedTaxa) {
-                    totalCount += allTaxaReduced[taxon]["totalCount"]
-                }
+                for (let taxon of groupedTaxa) { totalCount += allTaxaReduced[taxon]["totalCount"] };
                 unassignedCount = 0;
                 rank = allTaxaReduced[groupedTaxa[0]]["rank"];
             }
@@ -323,30 +439,62 @@ class DescendantSection extends React.Component<{self:string, ancestor:string, l
                 totalCount = allTaxaReduced[self]["totalCount"];
                 unassignedCount = allTaxaReduced[self]["unassignedCount"];
                 rank = allTaxaReduced[self]["rank"];
-            }
+            };
+
             let percentage:number = totalCount * 100 / allTaxaReduced[ancestor]["totalCount"];
-            this.setState({totalCount: totalCount, unassignedCount: unassignedCount, rank: rank, percentage: percentage, layer: layer, self: self, hovered: hovered});
+
+            this.setState({ totalCount: totalCount, 
+                            unassignedCount: unassignedCount, 
+                            rank: rank, 
+                            percentage: percentage, 
+                            layer: layer, self: self, 
+                            hovered: hovered });
         }
-        else {
-            this.setState({totalCount: 0, unassignedCount: 0, rank: "", percentage: 0, self: "", layer: 0, hovered: hovered});
-        }
-    }
+        else { 
+            this.setState({ totalCount: 0, 
+                               unassignedCount: 0, 
+                               rank: "", 
+                               percentage: 0, 
+                               self: "", 
+                               layer: 0, 
+                               hovered: hovered });
+        };
+    };
 
     render() {
         let ps:any[] = [];
+
         if (this.state.hovered) {
-            let firstLine:any = <legend key={"firstLine"} style={{"color": "#800080", "fontWeight": "bold"}}>HOVERING OVER</legend>;
-            let noRanksName:string = this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
-            let nameLine:any = <p key={"nameLine"}style={{"padding": 0, "margin": 0, "paddingBottom": "0vmin"}}>Taxon: <b>{noRanksName}</b></p>
-            let rankLine:any = <p key={"rankLine"} style={{"padding": 0, "margin": 0}}>Rank: <b>{this.state.rank}</b></p>;
-            let totalCountLine:any = <p key={"totalCountLine"} style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
-            let unassignedCountLine:any = <p key={"unassignedCountLine"} style={{"padding": 0, "margin": 0}}>Unassigned {this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: <b>{this.state.unassignedCount}</b></p>
-            ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine]
-            return <fieldset id="hovering-over">{ps}</fieldset>
-        }
-        return <div></div>
-    }
-}
+            let selfNameNoRank:string = this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
+
+            let firstLine:any = <legend key={"firstLine"} style={{"color": "#800080", "fontWeight": "bold"}}>
+                                    HOVERING OVER
+                                </legend>;
+
+            let nameLine:any = <p key={"nameLine"} className="mp-zero">
+                                    Taxon: <b>{selfNameNoRank}</b>
+                               </p>;
+
+            let rankLine:any = <p key={"rankLine"} className="mp-zero">
+                                    Rank: <b>{this.state.rank}</b>
+                               </p>;
+
+            let totalCountLine:any = <p key={"totalCountLine"} className="mp-zero">
+                                        Total count: <b>{this.state.totalCount}</b>
+                                    </p>;
+
+            let unassignedCountLine:any = <p key={"unassignedCountLine"} className="mp-zero">
+                                                Unassigned {selfNameNoRank}: <b>{this.state.unassignedCount}</b>
+                                          </p>;
+
+            ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine];
+
+            return <fieldset id="hovering-over">{ps}</fieldset>;
+        };
+
+        return <div></div>;
+    };
+};
 
 class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number, numberOfLayers:number, layerWidth:number, count:number, abbreviateLabels:boolean, labelsPlaced:boolean, height:number, alreadyRepeated:boolean, plotEValue:boolean}> {
     constructor(props) {
@@ -1346,12 +1494,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
 
     render() {
-        //console.log("render original aTR:", originalAllTaxaReduced["Aphis glycines"])
-        //console.log("layerWidth: ", this.state.layerWidth);
-        //console.log("taxonSpecifics for animation: ", JSON.stringify(this.state.taxonSpecifics));
-        //console.log("render aTR: ", allTaxaReduced);
-
-        currentState = this.state;
         var shapes:any = [];
         var labels:any = [];
         var ancestors:any = [];
@@ -1393,337 +1535,24 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     //<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>
 }
 
-/* ===== DRAWING THE PLOT ===== */
-reactRoot.render(<PlotDrawing lineages={lineagesNames} ranks={lineagesRanks}/>);
-
-/* ===== FUNCTION DEFINITIONS ===== */
-function loadDataFromTSV(tsv_path) {
-    $.ajax({
-        type: "GET",
-        url: "/load_tsv_data",
-        data: {"tsv_path": tsv_path},
-        success: function (response) {
-            lineagesNames = response["lineagesNames"];
-            lineagesRanks = response["lineagesRanks"];
-            allTaxaReduced = response["allTaxaReduced"];
-            let allTaxa = response["allTaxa"];
-            rankPatternFull = response["rankPatternFull"];
-            reactRoot.render(<PlotDrawing lineages={lineagesNames} ranks={lineagesRanks}/>);
-        },
-        error: function (response) {
-            console.log("ERROR", response);
-        }
-    });
-}
-
 function TaxonShape(props) {
-    return <path id={props.id} className="thing" d={props.d} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} onContextMenu={props.onContextMenu} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
-}
+    return <path id={props.id} className="hoverable-object" d={props.d} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} onContextMenu={props.onContextMenu} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
+};
+
 function TaxonLabel(props) {
-    return <text className="thing" x={props.left} y={props.top} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} onContextMenu={(e) => {showContextMenu(e)}} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight}}>{props.abbr}</text>
-}
+    return <text className="hoverable-object" x={props.left} y={props.top} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} onContextMenu={(e) => {showContextMenu(e)}} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight}}>{props.abbr}</text>
+};
 
 function LabelBackground(props) {
     if (props.top) {
-        return <rect className="thing" x={props.left} y={props.top} height={props.height} width={props.width} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} fill={props.fill} stroke={props.stroke} style={{"position": "fixed", "display": props.selfDisplay, "strokeWidth":"0.2vmin"}}/>
+        return <rect className="hoverable-object" x={props.left} y={props.top} height={props.height} width={props.width} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} fill={props.fill} stroke={props.stroke} style={{"position": "fixed", "display": props.selfDisplay, "strokeWidth":"0.2vmin"}}/>
     }
-    else {
-        return null
-    }
-}
+    else { return null; };
+};
+
+/* ===== DRAWING THE PLOT ===== */
+let domContainer:any = document.querySelector('#plot-container');
+let reactRoot = ReactDOM.createRoot(domContainer);
+reactRoot.render(<PlotDrawing lineages={lineagesNames} ranks={lineagesRanks}/>);
 
 //addEventListener("mousemove", (event) => handleMouseMove(event));
-
-function hoverHandler(id:string, fullLabel:string, root:string):void {
-    if (id.indexOf("-labelBackground") > -1) {
-        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
-        var shape = id.replace("-labelBackground", "");
-        var label = id.replace("-labelBackground", "-label");
-        var labelBackground = id;
-    } else if (id.indexOf("-hoverLabel") > -1) {
-        var hoverLabel = id;
-        var shape = id.replace("-hoverLabel", "");
-        var label = id.replace("-hoverLabel", "-label");
-        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
-    }
-    else if (id.indexOf("-label") > -1) {
-        var label = id;
-        var shape = id.replace("-label", "");
-        var hoverLabel = id.replace("-label", "-hoverLabel");
-        var labelBackground = id.replace("-label", "-labelBackground");
-    } else {
-        var shape = id;
-        var label = id + "-label";
-        var hoverLabel = id + "-hoverLabel";
-        var labelBackground = id + "-labelBackground";
-    }
-
-    document.getElementById(shape)!.style.strokeWidth = "0.4vmin";
-    document.getElementById(hoverLabel)!.style.display = "unset";
-    document.getElementById(label)!.style.display = "none";
-    document.getElementById(labelBackground)!.style.display = "unset";
-    document.getElementById("descendant-section")!.setAttribute('value', `${shape.split("_-_")[0]}*${shape.split("_-_")[1]}*${root}`);
-    var evt = new CustomEvent('change');
-    document.getElementById("descendant-section")!.dispatchEvent(evt);
-}
-
-function onMouseOutHandler(id:string, initialLabelDisplay:string):void {
-    if (id.indexOf("-labelBackground") > -1) {
-        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
-        var shape = id.replace("-labelBackground", "");
-        var label = id.replace("-labelBackground", "-label");
-        var labelBackground = id;
-    } else if (id.indexOf("-hoverLabel") > -1) {
-        var hoverLabel = id;
-        var shape = id.replace("-hoverLabel", "");
-        var label = id.replace("-hoverLabel", "-label");
-        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
-    }
-    else if (id.indexOf("-label") > -1) {
-        var label = id;
-        var shape = id.replace("-label", "");
-        var hoverLabel = id.replace("-label", "-hoverLabel");
-        var labelBackground = id.replace("-label", "-labelBackground");
-    } else {
-        var shape = id;
-        var label = id + "-label";
-        var hoverLabel = id + "-hoverLabel";
-        var labelBackground = id + "-labelBackground";
-    }
-
-    document.getElementById(shape)!.style.strokeWidth = "0.2vmin";
-    document.getElementById(label)!.style.display = initialLabelDisplay;
-    document.getElementById(hoverLabel)!.style.display = "none";
-    document.getElementById(labelBackground)!.style.display = "none";
-}
-
-
-// Returns a set of arrays, where each array contains all elements that will be on the same level in the plot.
-function getLayers(lineagesCopy:string[][], unique:boolean=false):string[][] {
-    var longestLineageLength:number = Math.max(...lineagesCopy.map(item => item.length)); // get the length of the longest lineage, i.e. how many layers the plot will have
-    var layers:string[][] = [];
-    for (let i=0; i<longestLineageLength; i++) {
-        var layer:string[] = [];
-        for (let j=0; j<lineagesCopy.length; j++) {
-            layer.push(lineagesCopy[j][i]);
-        }
-        if (unique) { 
-            layer = layer.filter((value, index, self) => Boolean(value) && self.indexOf(value) === index);
-        }
-        layers.push(layer);
-    }
-    return layers;
-}
-
-let aTRKeys:string[] = Object.keys(allTaxaReduced);
-let descendants:object = {}
-for (let taxName of aTRKeys) {
-    let lineage = allTaxaReduced[taxName]["lineageNames"];
-    for (let predecessor of lineage) {
-        if (!descendants[predecessor[1]]) {
-            descendants[predecessor[1]] = [taxName];
-        }
-        else {
-            descendants[predecessor[1]].push(taxName);
-        }
-    }
-}
-
-let allTaxa:object = {};
-
-document.getElementById("file")?.addEventListener("change", () => {
-    let fileInput:any = document.getElementById("file")!
-    fileName = fileInput.files[0].name;
-    document.getElementById("status")!.innerHTML = "pending";
-    let uploadForm:any = document.getElementById("uploadForm")!
-    let form_data = new FormData(uploadForm);
-    $.ajax({
-        url: '/load_tsv_data',
-        data: form_data,
-        type: 'POST',
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            lineagesNames = response["lineagesNames"];
-            lineagesRanks = response["lineagesRanks"];
-            allTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
-            console.log("new aTR load: ", JSON.stringify(response["allTaxaReduced"]));
-            originalAllTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
-            rankPatternFull = response["rankPatternFull"];
-            allTaxa = response["allTaxa"];
-            colorOffset = response["offset"]
-            eThreshold = response["median"];
-            let enableFastaUpload:boolean = response["fastaHeaderIncluded"];
-            if (eThreshold) {
-                enableEValue(eThreshold);
-            }
-            else {
-                disableEValue();
-            }
-            if (enableFastaUpload) {
-                document.getElementById("fasta-file")!.removeAttribute("disabled");
-            }
-            else {
-                disableEValue();
-                document.getElementById("fasta-file")!.setAttribute("disabled", "disabled");
-                document.getElementById("status")!.innerHTML = "";
-            }
-            let newData:any = document.getElementById("new-data")!
-            newData.checked = true;
-            document.getElementById("status")!.innerHTML = "check";
-            var evt = new CustomEvent('change');
-            newData.dispatchEvent(evt);
-            newDataLoaded = true;
-        },
-        error: function (response) {
-            console.log("ERROR", response);
-            document.getElementById("status")!.innerHTML = "close";
-        }
-    });
-});
-
-document.getElementById("fasta-file")?.addEventListener("change", () => {
-    let fileInput:any = document.getElementById("fasta-file")!
-    fileName = fileInput.files[0].name;
-    document.getElementById("fasta-status")!.innerHTML = "pending";
-    let uploadForm:any = document.getElementById("uploadForm")!;
-    let form_data = new FormData(uploadForm);
-    $.ajax({
-        url: '/load_fasta_data',
-        data: form_data,
-        type: 'POST',
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            document.getElementById("fasta-status")!.innerHTML = "check";
-            headerSeqObject = response["headerSeqObject"];
-            console.log("new fasta: ", JSON.stringify(response["headerSeqObject"]));
-        },
-        error: function (response) {
-            console.log("ERROR", response);
-            document.getElementById("fasta-status")!.innerHTML = "close";
-        }
-    });
-});
-
-function downloadSVGasTextFile() {
-    const base64doc = btoa(unescape(encodeURIComponent(document.querySelector('svg')!.outerHTML)));
-    const a = document.createElement('a');
-    const e = new MouseEvent('click');
-  
-    a.download = `${fileName}_${taxonName}${layerName}_${modeName}_${collapseName}.svg`;
-    a.href = 'data:text/html;base64,' + base64doc;
-    a.dispatchEvent(e);
-}
-  
-document.getElementById("download")!.addEventListener("click", () => {
-    downloadSVGasTextFile();
-})
-
-addEventListener("mousemove", (e) => {
-    let target:any = e.target!
-    if (!target.classList.contains('thing')) {
-        document.getElementById("descendant-section")!.setAttribute('value', "");
-        var evt = new CustomEvent('change');
-        document.getElementById("descendant-section")!.dispatchEvent(evt);
-    }
-})
-
-/*
-document.getElementById("upload-button")!.addEventListener("click", () => {
-    $('input[type="file"]').click();
-})
-*/
-
-function enableEValue(median) {
-    document.getElementById("e-input")!.removeAttribute("disabled");
-    document.getElementById("e-label")!.style.color = "black";
-    let eText:any = document.getElementById("e-text")!;
-    eText.removeAttribute("disabled");
-    eText.value = median;
-}
-
-function disableEValue() {
-    document.getElementById("e-input")!.setAttribute("disabled", "disabled");
-    document.getElementById("e-label")!.style.color = "grey";
-    let eText:any = document.getElementById("e-text")!;
-    eText.setAttribute("disabled", "disabled");
-    eText.value = "";
-}
-
-function showContextMenu(e) {
-    e.preventDefault();
-    document.getElementById("context-menu")!.style.display = "block";
-    positionMenu(e);
-}
-
-function hideContextMenu() {
-    document.getElementById("context-menu")!.style.display = "none";
-}
-
-// Get the position of the right click in window and returns the X and Y coordinates
-function getPosition(e) {
-  var posx = 0;
-  var posy = 0;
-
-  if (!e) {
-    var e:any = window.event;
-  }
-
-  if (e.pageX || e.pageY) {
-    posx = e.pageX;
-    posy = e.pageY;
-  } 
-  else if (e.clientX || e.clientY) {
-    posx =
-      e.clientX +
-      document.body.scrollLeft +
-      document.documentElement.scrollLeft;
-    posy =
-      e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
-  }
-
-  return {
-    x: posx,
-    y: posy
-  };
-}
-
-// Position the Context Menu in right position.
-function positionMenu(e) {
-    let menu:any = document.getElementById("context-menu")!;
-    let clickCoords = getPosition(e);
-    let clickCoordsX = clickCoords.x;
-    let clickCoordsY = clickCoords.y;
-
-    let menuWidth = menu.offsetWidth;
-    let menuHeight = menu.offsetHeight;
-    let windowWidth = window.innerWidth;
-    let windowHeight = window.innerHeight;
-
-    if (windowWidth - clickCoordsX < menuWidth) {
-        menu.style.left = windowWidth - menuWidth + "px";
-    } else {
-        menu.style.left = clickCoordsX + "px";
-    }
-
-    if (windowHeight - clickCoordsY < menuHeight) {
-        menu.style.top = windowHeight - menuHeight + "px";
-    } else {
-        menu.style.top = clickCoordsY - menuHeight + "px";
-    }
-
-    menu.setAttribute("taxon", e.target["id"]);
-}
-
-function findRealName(index, namesArray, name) {
-    if (namesArray.length === 0) {
-        return name;
-    }
-    for (let i=namesArray.length-2; i>=0; i--) {
-        if (index > namesArray[i][1]) {
-            return namesArray[i+1][0];
-        }
-    }
-    return namesArray[0][0];
-}

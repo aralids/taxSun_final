@@ -7,36 +7,6 @@ import json
 import copy
 from werkzeug.utils import secure_filename
 
-
-
-@app.route("/send-email", methods=['GET', 'POST'])
-def send_email():
-    email = RedMail()
-    url = '"' + str(request.form["url"]) + '"'
-    
-    print("state", json.loads(request.form["currentState"])["root"], json.loads(request.form["currentState"])["layer"], json.loads(request.form["currentState"])["collapse"])
-    state = json.loads(request.form["currentState"])
-    colors = state["colors"]
-    root = state["root"]
-    layer = state["layer"]
-    collapse = state["collapse"]
-    structure_by_taxon = state["structureByTaxon"]
-    email.send(
-        subject="Colors & Corrections",
-        receivers=["dilara.sarach@abv.bg"],
-        html="""
-            <h1>Colors & Corrections</h1>
-            <img width="700px" src=""" + url + """/>
-            <p><b>colors:</b> <style='color: bluel'>""" + " ".join(colors) + """</style> </p>
-            <p><b>root:</b> """ + root + """ </p>
-            <p><b>layer:</b> """ + str(layer) + """ </p>
-            <p><b>collapse:</b> """ + str(collapse) + """ </p>
-            <p><b>structure_by_taxon:</b> """ + '<br/>'.join([f'{key}: {value}' for key, value in structure_by_taxon.items()]) + """ </p>
-
-        """
-    )
-    return jsonify()
-
 taxdb = None
 taxdb = taxopy.TaxDb()
 
@@ -45,14 +15,6 @@ def flatten(l):
 
 def get_count(key):
     return key["count"]
-
-'''
-@app.route('/')
-def loading_database():
-    global taxdb
-    taxdb = taxopy.TaxDb()
-    return redirect(url_for("index"))
-'''
 
 # previously @app.route('/index')
 @app.route('/')
@@ -269,26 +231,6 @@ def load_fasta_data():
             seq_body = seq2list[1].replace("*", "")
             dict[seq_name] = seq_body
     return jsonify({"headerSeqObject": dict})
-
-@app.route('/get_tax_data')
-def get_tax_data():
-    print("request.method: ", request.args["taxID"])
-    taxon = taxopy.Taxon(int(request.args["taxID"]), taxdb)
-    lineageNamesList = taxon.name_lineage[::-1][2:]
-    lineageRanksList = list(map(get_rank, lineageNamesList))
-    for i in reversed(range(0, len(lineageRanksList))):
-        if lineageRanksList[i] == "clade":
-            del lineageRanksList[i]
-            del lineageNamesList[i]
-    return jsonify({"name": taxon.name, "lineageNames": lineageNamesList, "lineageRanks": lineageRanksList})
-
-@app.route('/uploader', methods = ['GET', 'POST'])
-def upload_file():
-   if request.method == 'POST':
-      f = request.files['file'].read()
-      #f.save(secure_filename(f.filename))
-      print("f: ", f)
-      return redirect(url_for("load_tsv_data"))
    
 def sum_to_2dig(sum_str, start=0, end=2):
     if start == len(sum_str):

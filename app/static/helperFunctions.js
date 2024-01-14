@@ -1,7 +1,8 @@
 "use strict";
 exports.__esModule = true;
-exports.makeID = exports.getViewportDimensions = exports.getFourCorners = exports.lineLength = exports.lineIntersect = exports.tintify = exports.midColor = exports.hexToRGB = exports.handleMouseMove = exports.cos = exports.sin = exports.round = exports.radians = exports.createPalette = void 0;
+exports.getLayers = exports.onMouseOutHandler = exports.hoverHandler = exports.downloadSVGasTextFile = exports.findRealName = exports.hideContextMenu = exports.showContextMenu = exports.disableEValue = exports.enableEValue = exports.makeID = exports.getViewportDimensions = exports.getFourCorners = exports.lineLength = exports.lineIntersect = exports.tintify = exports.midColor = exports.hexToRGB = exports.handleMouseMove = exports.cos = exports.sin = exports.round = exports.radians = exports.createPalette = void 0;
 function createPalette(colorOffset) {
+    if (colorOffset === void 0) { colorOffset = 7; }
     var newColors = [];
     for (var i = 0; i < 7; i++) {
         var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
@@ -137,3 +138,176 @@ function makeID(length) {
     return result;
 }
 exports.makeID = makeID;
+function enableEValue(median) {
+    document.getElementById("e-input").removeAttribute("disabled");
+    document.getElementById("e-label").style.color = "black";
+    var eText = document.getElementById("e-text");
+    eText.removeAttribute("disabled");
+    eText.value = median;
+}
+exports.enableEValue = enableEValue;
+function disableEValue() {
+    document.getElementById("e-input").setAttribute("disabled", "disabled");
+    document.getElementById("e-label").style.color = "grey";
+    var eText = document.getElementById("e-text");
+    eText.setAttribute("disabled", "disabled");
+    eText.value = "";
+}
+exports.disableEValue = disableEValue;
+function showContextMenu(e) {
+    e.preventDefault();
+    document.getElementById("context-menu").style.display = "block";
+    positionContextMenu(e);
+}
+exports.showContextMenu = showContextMenu;
+function hideContextMenu() {
+    document.getElementById("context-menu").style.display = "none";
+}
+exports.hideContextMenu = hideContextMenu;
+// Get the position of the right click in window and returns the X and Y coordinates
+function getClickCoords(e) {
+    var posx = 0;
+    var posy = 0;
+    if (!e) {
+        var e = window.event;
+    }
+    ;
+    if (e.pageX || e.pageY) {
+        posx = e.pageX;
+        posy = e.pageY;
+    }
+    else if (e.clientX || e.clientY) {
+        posx = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+        posy = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+    }
+    ;
+    return { x: posx, y: posy };
+}
+// Position the Context Menu in right position.
+function positionContextMenu(e) {
+    var menu = document.getElementById("context-menu");
+    var clickCoords = getClickCoords(e);
+    var clickCoordsX = clickCoords.x;
+    var clickCoordsY = clickCoords.y;
+    var menuWidth = menu.offsetWidth;
+    var menuHeight = menu.offsetHeight;
+    var windowWidth = window.innerWidth;
+    var windowHeight = window.innerHeight;
+    if (windowWidth - clickCoordsX < menuWidth) {
+        menu.style.left = windowWidth - menuWidth + "px";
+    }
+    else {
+        menu.style.left = clickCoordsX + "px";
+    }
+    if (windowHeight - clickCoordsY < menuHeight) {
+        menu.style.top = windowHeight - menuHeight + "px";
+    }
+    else {
+        menu.style.top = clickCoordsY - menuHeight + "px";
+    }
+    menu.setAttribute("taxon", e.target["id"]);
+}
+function findRealName(index, namesArray, name) {
+    if (namesArray.length === 0) {
+        return name;
+    }
+    for (var i = namesArray.length - 2; i >= 0; i--) {
+        if (index > namesArray[i][1]) {
+            return namesArray[i + 1][0];
+        }
+    }
+    return namesArray[0][0];
+}
+exports.findRealName = findRealName;
+function downloadSVGasTextFile(fileName, taxonName, layerName, modeName, collapseName) {
+    var base64doc = btoa(unescape(encodeURIComponent(document.querySelector('svg').outerHTML)));
+    var a = document.createElement('a');
+    var e = new MouseEvent('click');
+    a.download = "".concat(fileName, "_").concat(taxonName).concat(layerName, "_").concat(modeName, "_").concat(collapseName, ".svg");
+    a.href = 'data:text/html;base64,' + base64doc;
+    a.dispatchEvent(e);
+}
+exports.downloadSVGasTextFile = downloadSVGasTextFile;
+function hoverHandler(id, fullLabel, root) {
+    if (id.indexOf("-labelBackground") > -1) {
+        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
+        var shape = id.replace("-labelBackground", "");
+        var label = id.replace("-labelBackground", "-label");
+        var labelBackground = id;
+    }
+    else if (id.indexOf("-hoverLabel") > -1) {
+        var hoverLabel = id;
+        var shape = id.replace("-hoverLabel", "");
+        var label = id.replace("-hoverLabel", "-label");
+        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
+    }
+    else if (id.indexOf("-label") > -1) {
+        var label = id;
+        var shape = id.replace("-label", "");
+        var hoverLabel = id.replace("-label", "-hoverLabel");
+        var labelBackground = id.replace("-label", "-labelBackground");
+    }
+    else {
+        var shape = id;
+        var label = id + "-label";
+        var hoverLabel = id + "-hoverLabel";
+        var labelBackground = id + "-labelBackground";
+    }
+    document.getElementById(shape).style.strokeWidth = "0.4vmin";
+    document.getElementById(hoverLabel).style.display = "unset";
+    document.getElementById(label).style.display = "none";
+    document.getElementById(labelBackground).style.display = "unset";
+    document.getElementById("descendant-section").setAttribute('value', "".concat(shape.split("_-_")[0], "*").concat(shape.split("_-_")[1], "*").concat(root));
+    var evt = new CustomEvent('change');
+    document.getElementById("descendant-section").dispatchEvent(evt);
+}
+exports.hoverHandler = hoverHandler;
+function onMouseOutHandler(id, initialLabelDisplay) {
+    if (id.indexOf("-labelBackground") > -1) {
+        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
+        var shape = id.replace("-labelBackground", "");
+        var label = id.replace("-labelBackground", "-label");
+        var labelBackground = id;
+    }
+    else if (id.indexOf("-hoverLabel") > -1) {
+        var hoverLabel = id;
+        var shape = id.replace("-hoverLabel", "");
+        var label = id.replace("-hoverLabel", "-label");
+        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
+    }
+    else if (id.indexOf("-label") > -1) {
+        var label = id;
+        var shape = id.replace("-label", "");
+        var hoverLabel = id.replace("-label", "-hoverLabel");
+        var labelBackground = id.replace("-label", "-labelBackground");
+    }
+    else {
+        var shape = id;
+        var label = id + "-label";
+        var hoverLabel = id + "-hoverLabel";
+        var labelBackground = id + "-labelBackground";
+    }
+    document.getElementById(shape).style.strokeWidth = "0.2vmin";
+    document.getElementById(label).style.display = initialLabelDisplay;
+    document.getElementById(hoverLabel).style.display = "none";
+    document.getElementById(labelBackground).style.display = "none";
+}
+exports.onMouseOutHandler = onMouseOutHandler;
+// Returns a set of arrays, where each array contains all elements that will be on the same level in the plot.
+function getLayers(lineagesCopy, unique) {
+    if (unique === void 0) { unique = false; }
+    var longestLineageLength = Math.max.apply(Math, lineagesCopy.map(function (item) { return item.length; })); // get the length of the longest lineage, i.e. how many layers the plot will have
+    var layers = [];
+    for (var i = 0; i < longestLineageLength; i++) {
+        var layer = [];
+        for (var j = 0; j < lineagesCopy.length; j++) {
+            layer.push(lineagesCopy[j][i]);
+        }
+        if (unique) {
+            layer = layer.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; });
+        }
+        layers.push(layer);
+    }
+    return layers;
+}
+exports.getLayers = getLayers;

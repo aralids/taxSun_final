@@ -67,6 +67,17 @@ fieldset {
     background-color: rgba(211, 211, 211);
 }
 
+.mp-zero {
+    margin: 0;
+    padding: 0;
+}
+
+.mp-zero-pb-not {
+    margin: 0;
+    padding: 0;
+    padding-bottom: 2.5vh;
+}
+
 @media (hover: none) {
     #hovering-over {
         display: none;

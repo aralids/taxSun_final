@@ -1,4 +1,4 @@
-function createPalette(colorOffset:number):string[] {
+function createPalette(colorOffset:number = 7):string[] {
     let newColors:string[] = []
     for (let i=0; i<7; i++) {
         var r = Math.sin(0.3 * colorOffset + 4) * 55 + 200;
@@ -135,4 +135,179 @@ function makeID(length) {
     return result;
 }
 
-export {createPalette, radians, round, sin, cos, handleMouseMove, hexToRGB, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions, makeID}
+function enableEValue(median) {
+    document.getElementById("e-input")!.removeAttribute("disabled");
+    document.getElementById("e-label")!.style.color = "black";
+    let eText:any = document.getElementById("e-text")!;
+    eText.removeAttribute("disabled");
+    eText.value = median;
+}
+
+function disableEValue() {
+    document.getElementById("e-input")!.setAttribute("disabled", "disabled");
+    document.getElementById("e-label")!.style.color = "grey";
+    let eText:any = document.getElementById("e-text")!;
+    eText.setAttribute("disabled", "disabled");
+    eText.value = "";
+}
+
+function showContextMenu(e) {
+    e.preventDefault();
+    document.getElementById("context-menu")!.style.display = "block";
+    positionContextMenu(e);
+}
+
+function hideContextMenu() {
+    document.getElementById("context-menu")!.style.display = "none";
+}
+
+// Get the position of the right click in window and returns the X and Y coordinates
+function getClickCoords(e) {
+  var posx = 0;
+  var posy = 0;
+
+  if (!e) { var e:any = window.event; };
+
+  if (e.pageX || e.pageY) {
+    posx = e.pageX;
+    posy = e.pageY;
+  } 
+  else if (e.clientX || e.clientY) {
+    posx = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+    posy = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+  };
+
+  return { x: posx, y: posy };
+}
+
+// Position the Context Menu in right position.
+function positionContextMenu(e) {
+    let menu:any = document.getElementById("context-menu")!;
+    let clickCoords = getClickCoords(e);
+    let clickCoordsX = clickCoords.x;
+    let clickCoordsY = clickCoords.y;
+
+    let menuWidth = menu.offsetWidth;
+    let menuHeight = menu.offsetHeight;
+    let windowWidth = window.innerWidth;
+    let windowHeight = window.innerHeight;
+
+    if (windowWidth - clickCoordsX < menuWidth) {
+        menu.style.left = windowWidth - menuWidth + "px";
+    } else {
+        menu.style.left = clickCoordsX + "px";
+    }
+
+    if (windowHeight - clickCoordsY < menuHeight) {
+        menu.style.top = windowHeight - menuHeight + "px";
+    } else {
+        menu.style.top = clickCoordsY - menuHeight + "px";
+    }
+
+    menu.setAttribute("taxon", e.target["id"]);
+}
+
+function findRealName(index, namesArray, name) {
+    if (namesArray.length === 0) {
+        return name;
+    }
+    for (let i=namesArray.length-2; i>=0; i--) {
+        if (index > namesArray[i][1]) {
+            return namesArray[i+1][0];
+        }
+    }
+    return namesArray[0][0];
+}
+
+function downloadSVGasTextFile(fileName, taxonName, layerName, modeName, collapseName) {
+    const base64doc = btoa(unescape(encodeURIComponent(document.querySelector('svg')!.outerHTML)));
+    const a = document.createElement('a');
+    const e = new MouseEvent('click');
+  
+    a.download = `${fileName}_${taxonName}${layerName}_${modeName}_${collapseName}.svg`;
+    a.href = 'data:text/html;base64,' + base64doc;
+    a.dispatchEvent(e);
+}
+
+function hoverHandler(id:string, fullLabel:string, root:string):void {
+    if (id.indexOf("-labelBackground") > -1) {
+        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
+        var shape = id.replace("-labelBackground", "");
+        var label = id.replace("-labelBackground", "-label");
+        var labelBackground = id;
+    } else if (id.indexOf("-hoverLabel") > -1) {
+        var hoverLabel = id;
+        var shape = id.replace("-hoverLabel", "");
+        var label = id.replace("-hoverLabel", "-label");
+        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
+    }
+    else if (id.indexOf("-label") > -1) {
+        var label = id;
+        var shape = id.replace("-label", "");
+        var hoverLabel = id.replace("-label", "-hoverLabel");
+        var labelBackground = id.replace("-label", "-labelBackground");
+    } else {
+        var shape = id;
+        var label = id + "-label";
+        var hoverLabel = id + "-hoverLabel";
+        var labelBackground = id + "-labelBackground";
+    }
+
+    document.getElementById(shape)!.style.strokeWidth = "0.4vmin";
+    document.getElementById(hoverLabel)!.style.display = "unset";
+    document.getElementById(label)!.style.display = "none";
+    document.getElementById(labelBackground)!.style.display = "unset";
+    document.getElementById("descendant-section")!.setAttribute('value', `${shape.split("_-_")[0]}*${shape.split("_-_")[1]}*${root}`);
+    var evt = new CustomEvent('change');
+    document.getElementById("descendant-section")!.dispatchEvent(evt);
+}
+
+function onMouseOutHandler(id:string, initialLabelDisplay:string):void {
+    if (id.indexOf("-labelBackground") > -1) {
+        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
+        var shape = id.replace("-labelBackground", "");
+        var label = id.replace("-labelBackground", "-label");
+        var labelBackground = id;
+    } else if (id.indexOf("-hoverLabel") > -1) {
+        var hoverLabel = id;
+        var shape = id.replace("-hoverLabel", "");
+        var label = id.replace("-hoverLabel", "-label");
+        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
+    }
+    else if (id.indexOf("-label") > -1) {
+        var label = id;
+        var shape = id.replace("-label", "");
+        var hoverLabel = id.replace("-label", "-hoverLabel");
+        var labelBackground = id.replace("-label", "-labelBackground");
+    } else {
+        var shape = id;
+        var label = id + "-label";
+        var hoverLabel = id + "-hoverLabel";
+        var labelBackground = id + "-labelBackground";
+    }
+
+    document.getElementById(shape)!.style.strokeWidth = "0.2vmin";
+    document.getElementById(label)!.style.display = initialLabelDisplay;
+    document.getElementById(hoverLabel)!.style.display = "none";
+    document.getElementById(labelBackground)!.style.display = "none";
+}
+
+
+// Returns a set of arrays, where each array contains all elements that will be on the same level in the plot.
+function getLayers(lineagesCopy:string[][], unique:boolean=false):string[][] {
+    var longestLineageLength:number = Math.max(...lineagesCopy.map(item => item.length)); // get the length of the longest lineage, i.e. how many layers the plot will have
+    var layers:string[][] = [];
+    for (let i=0; i<longestLineageLength; i++) {
+        var layer:string[] = [];
+        for (let j=0; j<lineagesCopy.length; j++) {
+            layer.push(lineagesCopy[j][i]);
+        }
+        if (unique) { 
+            layer = layer.filter((value, index, self) => Boolean(value) && self.indexOf(value) === index);
+        }
+        layers.push(layer);
+    }
+    return layers;
+}
+
+export {createPalette, radians, round, sin, cos, handleMouseMove, hexToRGB, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions, makeID, enableEValue, disableEValue, showContextMenu, hideContextMenu, findRealName, downloadSVGasTextFile, hoverHandler, onMouseOutHandler, getLayers};
