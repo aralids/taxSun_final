@@ -110,39 +110,23 @@ def load_tsv_data():
     for taxName in reducibleTaxa:
         unassignedCount = taxDict[taxName]["unassignedCount"]
         lineage = allTaxaReduced[taxName]["lineageNames"]
-        ns = allTaxaReduced[taxName]["names"]
         g_names = allTaxaReduced[taxName]["geneNames"]
-        if e_value_included:
-            e_vals = allTaxaReduced[taxName]["eValues"]
-        if fasta_header_included:
-            f_headers = allTaxaReduced[taxName]["fastaHeaders"]
         lastPredecessor = lineage[-1][1]
 
-        if lastPredecessor in allTaxaReduced.keys() and lastPredecessor in newlyAdded:
-            allTaxaReduced[lastPredecessor]["unassignedCount"] += unassignedCount
-            allTaxaReduced[lastPredecessor]["names"].append([taxName, allTaxaReduced[lastPredecessor]["names"][-1][1] + unassignedCount])
-            allTaxaReduced[lastPredecessor]["geneNames"] += g_names
-            if e_value_included:
-                allTaxaReduced[lastPredecessor]["eValues"] += e_vals
-            if fasta_header_included:
-                allTaxaReduced[lastPredecessor]["fastaHeaders"] += f_headers
-            allTaxaReduced[lastPredecessor]["deletedDescendants"].append(taxName)
-            del allTaxaReduced[taxName]
-
-        elif lastPredecessor in allTaxaReduced.keys() and (not lastPredecessor in newlyAdded):
-            if lastPredecessor == "root":
+        if lastPredecessor in allTaxaReduced.keys():
+            if lastPredecessor == "root" and (not lastPredecessor in newlyAdded):
                 allTaxaReduced[lastPredecessor]["totalCount"] += unassignedCount
             allTaxaReduced[lastPredecessor]["unassignedCount"] += unassignedCount
             allTaxaReduced[lastPredecessor]["names"].append([taxName, allTaxaReduced[lastPredecessor]["names"][-1][1] + unassignedCount])
             allTaxaReduced[lastPredecessor]["geneNames"] += g_names
             if e_value_included:
-                allTaxaReduced[lastPredecessor]["eValues"] += e_vals
+                allTaxaReduced[lastPredecessor]["eValues"] += allTaxaReduced[taxName]["eValues"]
             if fasta_header_included:
-                allTaxaReduced[lastPredecessor]["fastaHeaders"] += f_headers
-            if "deletedDescendants" in allTaxaReduced[lastPredecessor]:
-                allTaxaReduced[lastPredecessor]["deletedDescendants"].append(taxName)
-            else: 
+                allTaxaReduced[lastPredecessor]["fastaHeaders"] += allTaxaReduced[taxName]["fastaHeaders"]
+            if (not lastPredecessor in newlyAdded) and (not "deletedDescendants" in allTaxaReduced[lastPredecessor]):
                 allTaxaReduced[lastPredecessor]["deletedDescendants"] = [taxName]
+            else:
+                allTaxaReduced[lastPredecessor]["deletedDescendants"].append(taxName)
             del allTaxaReduced[taxName]
 
         else:
@@ -157,9 +141,9 @@ def load_tsv_data():
             allTaxaReduced[lastPredecessor]["names"] = [[taxName, unassignedCount-1]]
             allTaxaReduced[lastPredecessor]["geneNames"] = g_names
             if e_value_included:
-                allTaxaReduced[lastPredecessor]["eValues"] = e_vals
+                allTaxaReduced[lastPredecessor]["eValues"] = allTaxaReduced[taxName]["eValues"]
             if fasta_header_included:
-                allTaxaReduced[lastPredecessor]["fastaHeaders"] = f_headers
+                allTaxaReduced[lastPredecessor]["fastaHeaders"] = allTaxaReduced[taxName]["fastaHeaders"]
             del allTaxaReduced[taxName]
             allTaxaReduced[lastPredecessor]["descendants"] = []
 
