@@ -29,6 +29,7 @@ var React = require("react");
 var ReactDOM = require("react-dom/client");
 var predefinedObjects_js_1 = require("./predefinedObjects.js");
 var helperFunctions_js_1 = require("./helperFunctions.js");
+/* ===== VARIABLE DECLARATIONS/DEFINITIONS - all of which will ideally become either a prop or a part of the state of PlotDrawing. ===== */
 var fileName = "lessSpontaneous2.tsv";
 var taxonName = "Bacteria";
 var layerName = 1;
@@ -66,9 +67,21 @@ for (var _i = 0, aTRKeys_1 = aTRKeys; _i < aTRKeys_1.length; _i++) {
     ;
 }
 ;
+/* ===== EVENT LISTENERS ===== */
 document.addEventListener("click", function () { (0, helperFunctions_js_1.hideContextMenu)(); });
-document.getElementById("copy").addEventListener("click", function () {
-    var name = document.getElementById("context-menu").getAttribute("taxon").split("_-_")[0];
+/**
+ * Get the gene identifiers that correspond to the right-clicked taxon shape, and copy them to clipboard.
+ * @param  {boolean} copyAll Copy all sequences instead of just unspecified ones.
+ * @return {void}
+ */
+function copy2clipboard(copyAll) {
+    if (copyAll === void 0) { copyAll = false; }
+    // Get the name of the clicked taxon.
+    var name = document.getElementById("context-menu")
+        .getAttribute("taxon")
+        .split("_-_")[0];
+    // Put the identifiers of all genes with appropriate e-value (if filtering was applied)
+    // associated with the current taxon in the array seqIDsArray.
     var seqIDsArray = [];
     if (!allTaxaReduced[name]["successfulIndices"]) {
         seqIDsArray = allTaxaReduced[name]["geneNames"];
@@ -77,32 +90,33 @@ document.getElementById("copy").addEventListener("click", function () {
         seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(function (item) { return allTaxaReduced[name]["geneNames"][item]; });
     }
     ;
+    // If all gene identifiers and not just the current taxon's own unspecified ones are required,
+    // add the gene identifiers of the DESCENDANTS of the current taxon to seqIDsArray.
+    // Again, only considering the ones with appropriate e-value.
+    if (copyAll) {
+        var _loop_1 = function (child) {
+            if (!allTaxaReduced[child]["successfulIndices"]) {
+                seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["geneNames"]);
+            }
+            else {
+                seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["successfulIndices"].map(function (item) { return allTaxaReduced[child]["geneNames"][item]; }));
+            }
+        };
+        for (var _i = 0, _a = allTaxaReduced[name]["descendants"]; _i < _a.length; _i++) {
+            var child = _a[_i];
+            _loop_1(child);
+        }
+        ;
+    }
+    ;
     navigator.clipboard.writeText(seqIDsArray.join(" "));
+}
+;
+document.getElementById("copy").addEventListener("click", function () {
+    copy2clipboard();
 });
 document.getElementById("copy-all").addEventListener("click", function () {
-    var name = document.getElementById("context-menu").getAttribute("taxon").split("_-_")[0];
-    var seqIDsArray = [];
-    if (!allTaxaReduced[name]["successfulIndices"]) {
-        seqIDsArray = allTaxaReduced[name]["geneNames"];
-    }
-    else {
-        seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(function (item) { return allTaxaReduced[name]["geneNames"][item]; });
-    }
-    ;
-    var _loop_1 = function (child) {
-        if (!allTaxaReduced[child]["successfulIndices"]) {
-            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["geneNames"]);
-        }
-        else {
-            seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["successfulIndices"].map(function (item) { return allTaxaReduced[child]["geneNames"][item]; }));
-        }
-    };
-    for (var _i = 0, _a = allTaxaReduced[name]["descendants"]; _i < _a.length; _i++) {
-        var child = _a[_i];
-        _loop_1(child);
-    }
-    ;
-    navigator.clipboard.writeText(seqIDsArray.join(" "));
+    copy2clipboard(true);
 });
 document.getElementById("download-seq").addEventListener("click", function () {
     var name = document.getElementById("context-menu").getAttribute("taxon").split("_-_")[0];
@@ -274,7 +288,7 @@ document.addEventListener("mousemove", function (e) {
     }
     ;
 });
-/* ===== DEFINING THE REACT COMPONENTS: AncestorSection, DescendantSection, PlotDrawing ===== */
+/* ===== DEFINITIONS OF THE REACT COMPONENTS: AncestorSection, DescendantSection, PlotDrawing ===== */
 var AncestorSection = /** @class */ (function (_super) {
     __extends(AncestorSection, _super);
     function AncestorSection(props) {
@@ -678,7 +692,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 croppedRanks.push(ranks[i]);
             }
         }
-        console.log(JSON.parse(JSON.stringify(croppedLineages)), root, layer);
+        ;
         // Crop lineages so they start with clicked taxon.
         var ancestors = [""];
         if (croppedLineages[0]) { // If there is anything to show at all, a.k.a if there are lineages that passed the first requirement above...
@@ -1340,7 +1354,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         var taxon = shapeId.match(/.+?(?=_)/)[0];
         var currLayer = parseInt(shapeId.match(/-?\d+/)[0]);
         var nextLayer;
-        console.log("taxon: ", taxon);
         if (taxon.includes("&")) {
             nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length - 1;
         }

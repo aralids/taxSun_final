@@ -45,32 +45,46 @@ def load_tsv_data():
             median = None
         if e_value_included:
             median = sorted(allEvals)[len(allEvals) // 2]
+    counter = 0
     for taxon in taxDict.keys():
         subtaxa_counts = [taxDict[other_taxon]["unassignedCount"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
         taxDict[taxon]["totalCount"] = sum(subtaxa_counts)
+        counter += 1
+        print("taxon: ", taxon, counter, len(taxDict.keys()))
     #taxDict["root"]["totalCount"] = taxIDList.count("NA")
     #print('taxDict["root"]: ', taxDict["root"])
     offset = sum_to_2dig(str(taxID_sum))
     rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"]
-    
-    # Get the names of all taxa with reducible lineages in a list
+
+    # Get the names of all taxa with reducible lineages in a list.
+    # For the taxa in taxaWithReducibleLineages, reduce their lineages 
+    # in allTaxaReduced by removing each rank which is not in the full rank pattern.
     allTaxaReduced = copy.deepcopy(taxDict)
-    taxaWithReducibleLineages = []
+    reducibleTaxa = []
     for key,value in taxDict.items():
         lineage = value["lineageNames"]
-        for i in range(0, len(lineage)):
+        rank = value["rank"]
+        reducedLineage = copy.deepcopy(lineage)
+        for i in reversed(range(0, len(lineage))):
             if not (lineage[i][0] in rankPatternFull):
-                taxaWithReducibleLineages.append(key)
-                break
+                del reducedLineage[i]
+        if (key != "root"):
+            reducedLineage = [allTaxaReduced["root"]["lineageNames"][0]] + reducedLineage
+        allTaxaReduced[key]["lineageNames"] = reducedLineage
+        if (len(reducedLineage) == 0) or rank != reducedLineage[len(reducedLineage)-1][0]:
+            reducibleTaxa.append(key)
 
-    # For the taxa in taxaWithReducibleLineages, reduce their lineages in allTaxaReduced by removing each rank which is not in the full rank pattern.
+    '''
+    # For the taxa in taxaWithReducibleLineages, reduce their lineages 
+    # in allTaxaReduced by removing each rank which is not in the full rank pattern.
     for taxName in taxaWithReducibleLineages:
         lineage = taxDict[taxName]["lineageNames"]
         reducedLineage = copy.deepcopy(lineage)
         for i in reversed(range(0, len(lineage))):
-            if not(lineage[i][0] in rankPatternFull):
+            if not (lineage[i][0] in rankPatternFull):
                 del reducedLineage[i]
         allTaxaReduced[taxName]["lineageNames"] = reducedLineage
+    
 
     # Mark all taxa in allTaxaReduced which have to be deleted (the taxon is most likely a clade) by putting it in the reducibleTaxa list.
     reducibleTaxa = []
@@ -79,12 +93,13 @@ def load_tsv_data():
         lineage = value["lineageNames"]
         if (len(lineage) == 0) or rank != lineage[len(lineage)-1][0]:
             reducibleTaxa.append(key)
+    
 
     # Add "root" as first item in the lineage of every taxon in allTaxaReduced.
     for key,value in allTaxaReduced.items():
         if (key != "root"):
             value["lineageNames"] = [allTaxaReduced["root"]["lineageNames"][0]] + value["lineageNames"]
-
+    '''
 
     # Delete reducible taxa from allTaxaReduced and add new ones, their lastPredecessor, if necessary.
     # (else) If the last predecessor is not in allTaxaReduced (doesn't have its own counts in the raw file), add it to newlyAdded and allTaxaReduced.
@@ -173,7 +188,6 @@ def load_tsv_data():
     # For every taxon in allTaxaReduced, if a newlyAdded taxon shows up as a predecessor in its lineage, change the predecessor's name to taxon + rank (as opposed to just taxon).
     for taxName in list(allTaxaReduced.keys()):
         lineage = allTaxaReduced[taxName]["lineageNames"]
-        allTaxaReducedKeys = list(allTaxaReduced.keys())
         for predecessor in lineage:
             if predecessor[1] + " " + predecessor[0] in newlyAdded:
                 predecessor[1] = predecessor[1] + " " + predecessor[0]

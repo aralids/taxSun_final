@@ -45,26 +45,42 @@ for (let taxName of aTRKeys) {
 
 document.addEventListener("click", () => { hideContextMenu(); });
 
-document.getElementById("copy")!.addEventListener("click", () => {
-    let name:string = document.getElementById("context-menu")!.getAttribute("taxon")!.split("_-_")[0];
+/**
+ * Get the gene identifiers that correspond to the right-clicked taxon shape, and copy them to clipboard.
+ * @param  {boolean} copyAll Copy all sequences instead of just unspecified ones.
+ * @return {void}         
+ */
+function copy2clipboard(copyAll:boolean = false):void {
+    // Get the name of the clicked taxon.
+    let name:string = document.getElementById("context-menu")!
+                              .getAttribute("taxon")!
+                              .split("_-_")[0];
+
+    // Put the identifiers of all genes with appropriate e-value (if filtering was applied)
+    // associated with the current taxon in the array seqIDsArray.
     let seqIDsArray:string[] = [];
     if (!allTaxaReduced[name]["successfulIndices"]) { seqIDsArray = allTaxaReduced[name]["geneNames"]; }
     else { seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(item => allTaxaReduced[name]["geneNames"][item]); };
-    navigator.clipboard.writeText(seqIDsArray.join(" "));
-});
 
-document.getElementById("copy-all")!.addEventListener("click", () => {
-    let name:string = document.getElementById("context-menu")!.getAttribute("taxon")!.split("_-_")[0];
-    let seqIDsArray:string[] = [];
-    if (!allTaxaReduced[name]["successfulIndices"]) { seqIDsArray = allTaxaReduced[name]["geneNames"]; }
-    else { seqIDsArray = allTaxaReduced[name]["successfulIndices"].map(item => allTaxaReduced[name]["geneNames"][item]); };
-
-    for (let child of allTaxaReduced[name]["descendants"]) {
-        if (!allTaxaReduced[child]["successfulIndices"]) { seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["geneNames"]); }
-        else { seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["successfulIndices"].map(item => allTaxaReduced[child]["geneNames"][item])); } 
+    // If all gene identifiers and not just the current taxon's own unspecified ones are required,
+    // add the gene identifiers of the DESCENDANTS of the current taxon to seqIDsArray.
+    // Again, only considering the ones with appropriate e-value.
+    if (copyAll) {
+        for (let child of allTaxaReduced[name]["descendants"]) {
+            if (!allTaxaReduced[child]["successfulIndices"]) { seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["geneNames"]); }
+            else { seqIDsArray = seqIDsArray.concat(allTaxaReduced[child]["successfulIndices"].map(item => allTaxaReduced[child]["geneNames"][item])); } 
+        };
     };
 
     navigator.clipboard.writeText(seqIDsArray.join(" "));
+};
+
+document.getElementById("copy")!.addEventListener("click", () => {
+    copy2clipboard();
+});
+
+document.getElementById("copy-all")!.addEventListener("click", () => {
+    copy2clipboard(true);
 });
 
 document.getElementById("download-seq")!.addEventListener("click", () => {
@@ -634,9 +650,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 croppedLineages.push(lineages[i]);
                 croppedRanks.push(ranks[i]);
             }
-        }
-
-        console.log(JSON.parse(JSON.stringify(croppedLineages)), root, layer);
+        };
 
         // Crop lineages so they start with clicked taxon.
         var ancestors:string[] = [""];
@@ -1305,7 +1319,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var taxon:string = shapeId.match(/.+?(?=_)/)[0];
         var currLayer:number = parseInt(shapeId.match(/-?\d+/)[0]);
         var nextLayer;
-        console.log("taxon: ", taxon)
         if (taxon.includes("&")) {
             nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length-1;
         }
