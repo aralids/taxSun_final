@@ -1,8 +1,7 @@
-from flask import render_template, url_for, request, jsonify, redirect
+from flask import render_template, request, jsonify
 from app import app
 import taxopy
 import csv
-from flask_redmail import RedMail
 import json
 import copy
 from werkzeug.utils import secure_filename
@@ -185,11 +184,27 @@ def load_tsv_data():
             if predecessor[1] in newlyAdded:
                 allTaxaReduced[predecessor[1]]["totalCount"] += unassignedCount
 
+        if (allTaxaReduced[taxName]["unassignedCount"] == 0):
+            allTaxaReduced[taxName]["skip"] = True
+        else:
+            allTaxaReduced[taxName]["skip"] = False
+            
+        if taxName != "root":
+            allTaxaReduced["root"]["totalCount"] += allTaxaReduced[taxName]["unassignedCount"]
+        lineage = allTaxaReduced[taxName]["lineageNames"]
+        for i in range(0, len(lineage)-1):
+            if allTaxaReduced[taxName]["unassignedCount"] > 0:
+                allTaxaReduced[lineage[i][1]]["descendants"].append(taxName)
+            if lineage[i][0] == lineage[i+1][0]:
+                del lineage[i]
+
+    '''
     for taxName in list(allTaxaReduced.keys()):
         if (allTaxaReduced[taxName]["unassignedCount"] == 0):
             allTaxaReduced[taxName]["skip"] = True
         else:
             allTaxaReduced[taxName]["skip"] = False
+    
     
     # If a rank shows up twice (or multiple times) in the lineage of a taxon, remove the first occurrence from the lineage.
     for taxName in list(allTaxaReduced.keys()):
@@ -201,6 +216,7 @@ def load_tsv_data():
                 allTaxaReduced[lineage[i][1]]["descendants"].append(taxName)
             if lineage[i][0] == lineage[i+1][0]:
                 del lineage[i]
+    '''
 
     lineagesFull = []
     for taxName in list(filter(lambda item: (not allTaxaReduced[item]["skip"]), list(allTaxaReduced.keys()))):
