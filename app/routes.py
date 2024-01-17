@@ -58,6 +58,8 @@ def load_tsv_data():
     # Get the names of all taxa with reducible lineages in a list.
     # For the taxa in taxaWithReducibleLineages, reduce their lineages 
     # in allTaxaReduced by removing each rank which is not in the full rank pattern.
+    # Mark all taxa in allTaxaReduced which have to be deleted (the taxon is most likely a clade) by putting it in the reducibleTaxa list.
+    # Add "root" as first item in the lineage of every taxon in allTaxaReduced.
     allTaxaReduced = copy.deepcopy(taxDict)
     reducibleTaxa = []
     for key,value in taxDict.items():
@@ -72,33 +74,6 @@ def load_tsv_data():
         allTaxaReduced[key]["lineageNames"] = reducedLineage
         if (len(reducedLineage) == 0) or rank != reducedLineage[len(reducedLineage)-1][0]:
             reducibleTaxa.append(key)
-
-    '''
-    # For the taxa in taxaWithReducibleLineages, reduce their lineages 
-    # in allTaxaReduced by removing each rank which is not in the full rank pattern.
-    for taxName in taxaWithReducibleLineages:
-        lineage = taxDict[taxName]["lineageNames"]
-        reducedLineage = copy.deepcopy(lineage)
-        for i in reversed(range(0, len(lineage))):
-            if not (lineage[i][0] in rankPatternFull):
-                del reducedLineage[i]
-        allTaxaReduced[taxName]["lineageNames"] = reducedLineage
-    
-
-    # Mark all taxa in allTaxaReduced which have to be deleted (the taxon is most likely a clade) by putting it in the reducibleTaxa list.
-    reducibleTaxa = []
-    for key,value in allTaxaReduced.items():
-        rank = value["rank"]
-        lineage = value["lineageNames"]
-        if (len(lineage) == 0) or rank != lineage[len(lineage)-1][0]:
-            reducibleTaxa.append(key)
-    
-
-    # Add "root" as first item in the lineage of every taxon in allTaxaReduced.
-    for key,value in allTaxaReduced.items():
-        if (key != "root"):
-            value["lineageNames"] = [allTaxaReduced["root"]["lineageNames"][0]] + value["lineageNames"]
-    '''
 
     # Delete reducible taxa from allTaxaReduced and add new ones, their lastPredecessor, if necessary.
     # (else) If the last predecessor is not in allTaxaReduced (doesn't have its own counts in the raw file), add it to newlyAdded and allTaxaReduced.
@@ -184,11 +159,7 @@ def load_tsv_data():
             if predecessor[1] in newlyAdded:
                 allTaxaReduced[predecessor[1]]["totalCount"] += unassignedCount
 
-        if (allTaxaReduced[taxName]["unassignedCount"] == 0):
-            allTaxaReduced[taxName]["skip"] = True
-        else:
-            allTaxaReduced[taxName]["skip"] = False
-            
+        # If a rank shows up twice (or multiple times) in the lineage of a taxon, remove the first occurrence from the lineage.
         if taxName != "root":
             allTaxaReduced["root"]["totalCount"] += allTaxaReduced[taxName]["unassignedCount"]
         lineage = allTaxaReduced[taxName]["lineageNames"]
@@ -197,29 +168,9 @@ def load_tsv_data():
                 allTaxaReduced[lineage[i][1]]["descendants"].append(taxName)
             if lineage[i][0] == lineage[i+1][0]:
                 del lineage[i]
-
-    '''
-    for taxName in list(allTaxaReduced.keys()):
-        if (allTaxaReduced[taxName]["unassignedCount"] == 0):
-            allTaxaReduced[taxName]["skip"] = True
-        else:
-            allTaxaReduced[taxName]["skip"] = False
-    
-    
-    # If a rank shows up twice (or multiple times) in the lineage of a taxon, remove the first occurrence from the lineage.
-    for taxName in list(allTaxaReduced.keys()):
-        if taxName != "root":
-            allTaxaReduced["root"]["totalCount"] += allTaxaReduced[taxName]["unassignedCount"]
-        lineage = allTaxaReduced[taxName]["lineageNames"]
-        for i in range(0, len(lineage)-1):
-            if allTaxaReduced[taxName]["unassignedCount"] > 0:
-                allTaxaReduced[lineage[i][1]]["descendants"].append(taxName)
-            if lineage[i][0] == lineage[i+1][0]:
-                del lineage[i]
-    '''
 
     lineagesFull = []
-    for taxName in list(filter(lambda item: (not allTaxaReduced[item]["skip"]), list(allTaxaReduced.keys()))):
+    for taxName in list(filter(lambda item: (allTaxaReduced[item]["unassignedCount"] != 0), list(allTaxaReduced.keys()))):
         lineagesFull.append(list(map(lambda item: item[1] + "_*_" + item[0], allTaxaReduced[taxName]["lineageNames"])))
     lineagesFull.sort()
 
