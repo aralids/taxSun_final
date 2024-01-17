@@ -26,13 +26,7 @@ def load_tsv_data():
     taxID_sum = 84
     tempDict = {"1": "root"}
     allEvals = []
-    if request.method == 'GET':
-        path = request.args["tsv_path"][1:]
-        with open(path) as file:
-            tsv_file = csv.reader(file, delimiter="\t", quotechar='"')
-            for line in tsv_file:
-                taxDict, tempDict, taxID_sum = read_line(line[1], line[2], taxDict, tempDict, taxID_sum)    
-    elif request.method == 'POST':
+    if request.method == 'POST':
         f = request.files['file'].read()
         whole_file = (f.decode("utf-8")[:-1]).split("\n")
         first_line = whole_file[0]
@@ -44,14 +38,10 @@ def load_tsv_data():
             median = None
         if e_value_included:
             median = sorted(allEvals)[len(allEvals) // 2]
-    counter = 0
+
     for taxon in taxDict.keys():
         subtaxa_counts = [taxDict[other_taxon]["unassignedCount"] for other_taxon in taxDict.keys() if taxon in flatten(taxDict[other_taxon]["lineageNames"])]
         taxDict[taxon]["totalCount"] = sum(subtaxa_counts)
-        counter += 1
-        print("taxon: ", taxon, counter, len(taxDict.keys()))
-    #taxDict["root"]["totalCount"] = taxIDList.count("NA")
-    #print('taxDict["root"]: ', taxDict["root"])
     offset = sum_to_2dig(str(taxID_sum))
     rankPatternFull = ["root", "superkingdom", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "superorder", "order", "suborder", "superfamily", "family", "subfamily", "supergenus", "genus", "subgenus", "superspecies", "species"]
 
@@ -101,7 +91,6 @@ def load_tsv_data():
                 allTaxaReduced[lastPredecessor]["deletedDescendants"] = [taxName]
             else:
                 allTaxaReduced[lastPredecessor]["deletedDescendants"].append(taxName)
-            del allTaxaReduced[taxName]
 
         else:
             newlyAdded.append(lastPredecessor)
@@ -118,8 +107,9 @@ def load_tsv_data():
                 allTaxaReduced[lastPredecessor]["eValues"] = allTaxaReduced[taxName]["eValues"]
             if fasta_header_included:
                 allTaxaReduced[lastPredecessor]["fastaHeaders"] = allTaxaReduced[taxName]["fastaHeaders"]
-            del allTaxaReduced[taxName]
             allTaxaReduced[lastPredecessor]["descendants"] = []
+        
+        del allTaxaReduced[taxName]
 
     # Last predecessors have been added. Now add all non-last predecessors that don't have their own unassigned counts as items in allTaxaReduced and newlyAdded.
     for taxName in list(allTaxaReduced.keys()):
@@ -213,7 +203,6 @@ def sum_to_2dig(sum_str, start=0, end=2):
 def fetchID():
     print("taxName for fetching ID: ", request.args["taxName"])
     taxid = taxopy.taxid_from_name(request.args["taxName"], taxdb)
-    #taxid = ""
     return jsonify({"taxID": taxid[0]})
 
 def read_line(line, taxDict, tempDict, taxID_sum, allEvals, e_value_included, fasta_header_included):
@@ -225,10 +214,9 @@ def read_line(line, taxDict, tempDict, taxID_sum, allEvals, e_value_included, fa
         e_value = line2list[2]
     if fasta_header_included:
         fasta_header = line2list[3]
-    #taxID, e_value
-    #taxID = "".join(list(filter(lambda i: i.isdigit(), taxID)))
     if taxID == "NA" or taxID == "":
         taxID = "1"
+
     if not (taxID in tempDict):
         taxID_sum += int(taxID)
         taxon = taxopy.Taxon(int(taxID), taxdb)
@@ -253,7 +241,7 @@ def read_line(line, taxDict, tempDict, taxID_sum, allEvals, e_value_included, fa
             else:
                 taxDict[name]["fastaHeaders"] = [None]
 
-        if not (name in flatten(taxDict[name]["lineageNames"])):
+        if len(dictlist) == 0 or not name in dictlist[-1]:
             taxDict[name]["lineageNames"].append([rank, name])
         tempDict[taxID] = name
     else:
