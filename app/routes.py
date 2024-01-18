@@ -156,6 +156,7 @@ def load_tsv_data():
         for i in range(0, len(lineage)-1):
             if allTaxaReduced[taxName]["unassignedCount"] > 0:
                 allTaxaReduced[lineage[i][1]]["descendants"].append(taxName)
+            # Removing now causes issues.
             if lineage[i][0] == lineage[i+1][0]:
                 del lineage[i]
 
@@ -217,13 +218,25 @@ def read_line(line, taxDict, tempDict, taxID_sum, allEvals, e_value_included, fa
     if taxID == "NA" or taxID == "":
         taxID = "1"
 
+    # taxID lineageNames unassignedCount rank totalCount names geneNames descendants [eValues, [fastaHeaders]]
+
     if not (taxID in tempDict):
         taxID_sum += int(taxID)
         taxon = taxopy.Taxon(int(taxID), taxdb)
         name = taxon.name
         rank = taxon.rank
         lineageNamesList = taxon.rank_name_dictionary
-        dictlist = [[k,v] for k,v in lineageNamesList.items()][::-1]
+        dictlist = []
+
+        prevRank = None
+        for r, n in lineageNamesList.items():
+            # Make sure no rank comes up twice in a lineage
+            if prevRank == r: 
+                continue
+            
+            dictlist = [[r, n]] + dictlist
+            prevRank = r
+
         if name in taxDict:
             name += " 1"
         taxDict[name] = {"taxID": taxID, "lineageNames": dictlist, "unassignedCount": 1, "rank": rank, "totalCount": 1, "names": [[name, 0]], "geneNames": [gene_name], "descendants": []}
