@@ -115,7 +115,7 @@ fieldset {
     padding-bottom: 2vh;
 }
 
-#uploadForm legend {
+legend {
     color: #800080; 
     font-weight: bold;
 }
@@ -125,7 +125,7 @@ fieldset {
     max-width: 100%;
 }
 
-#uploadForm input {
+#file, #fasta-file {
     display: inline; 
     max-width: 90%;
 }

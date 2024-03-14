@@ -14,24 +14,6 @@
     </head>
     <body id="body-1">
         <div id="interaction">
-            <input type="text" id="descendant-section">
-
-            <div>
-                <form id="uploadForm" action = "http://127.0.0.1:5000/load_tsv_data" method = "POST" enctype = "multipart/form-data">
-                    <fieldset>
-                        <legend>UPLOAD YOUR DATA</legend>
-                        <div>
-                            <input type="file" name="file" id="file"/>
-                            <span id="status" class="material-symbols-outlined"></span>
-                        </div>
-                        <div style="margin-top: 1vh;">
-                            <input type="file" name="fasta-file" id="fasta-file" disabled="disabled"/>
-                            <span id="fasta-status" class="material-symbols-outlined"></span>
-                        </div>
-                    </fieldset>
-                </form>
-            </div>
-
             <fieldset>
                 <legend style="color: #800080; font-weight: bold;">VIEWING MODES</legend>
                 <div id="input">

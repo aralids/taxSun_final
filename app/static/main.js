@@ -30,6 +30,61 @@ var ReactDOM = require("react-dom/client");
 var predefinedObjects_js_1 = require("./predefinedObjects.js");
 var helperFunctions_js_1 = require("./helperFunctions.js");
 /* ===== VARIABLE DECLARATIONS/DEFINITIONS - all of which will ideally become either a prop or a part of the state of PlotDrawing. ===== */
+var body1 = document.getElementById("body-1");
+var marriedDots = document.createElement("div");
+marriedDots.setAttribute("id", "married-pattern");
+marriedDots.style.top = body1.offsetTop;
+marriedDots.style.left = body1.offsetLeft;
+body1.prepend(marriedDots);
+var interaction = document.getElementById("interaction");
+//
+var interactionWrapperDiv = document.createElement("div");
+interaction.prepend(interactionWrapperDiv);
+//
+var interactionForm = document.createElement("form");
+interactionForm.setAttribute("id", "uploadForm");
+interactionForm.setAttribute("action", "http://127.0.0.1:5000/load_tsv_data");
+interactionForm.setAttribute("method", "POST");
+interactionForm.setAttribute("enctype", "multipart/form-data");
+interactionWrapperDiv.appendChild(interactionForm);
+//
+var interactionFieldset = document.createElement("fieldset");
+interactionForm.appendChild(interactionFieldset);
+//
+var interactionLegend = document.createElement("legend");
+interactionLegend.innerText = "UPLOAD YOUR DATA";
+interactionFieldset.appendChild(interactionLegend);
+//
+var interactionFieldsetDiv = document.createElement("div");
+interactionFieldset.appendChild(interactionFieldsetDiv);
+//
+var interactionInput = document.createElement("input");
+interactionInput.setAttribute("type", "file");
+interactionInput.setAttribute("name", "file");
+interactionInput.setAttribute("id", "file");
+interactionFieldsetDiv.appendChild(interactionInput);
+var interactionSpan = document.createElement("span");
+interactionSpan.setAttribute("id", "status");
+interactionSpan.setAttribute("class", "material-symbols-outlined");
+interactionFieldsetDiv.appendChild(interactionSpan);
+//
+var interactionFieldsetDiv2 = document.createElement("div");
+interactionFieldsetDiv2.style.marginTop = "1vh";
+interactionFieldset.appendChild(interactionFieldsetDiv2);
+var interactionInput2 = document.createElement("input");
+interactionInput2.setAttribute("type", "file");
+interactionInput2.setAttribute("name", "fasta-file");
+interactionInput2.setAttribute("id", "fasta-file");
+interactionInput2.setAttribute("disabled", "disabled");
+interactionFieldsetDiv2.appendChild(interactionInput2);
+var interactionSpan2 = document.createElement("span");
+interactionSpan2.setAttribute("id", "fasta-status");
+interactionSpan2.setAttribute("class", "material-symbols-outlined");
+interactionFieldsetDiv2.appendChild(interactionSpan2);
+var descendantSection = document.createElement("input");
+descendantSection.setAttribute("type", "text");
+descendantSection.setAttribute("id", "descendant-section");
+interaction.prepend(descendantSection);
 var fileName = "lessSpontaneous2.tsv";
 var taxonName = "Bacteria";
 var layerName = 1;
@@ -204,6 +259,7 @@ document.getElementById("download-all-seq").addEventListener("click", function (
     a.dispatchEvent(e);
 });
 (_a = document.getElementById("file")) === null || _a === void 0 ? void 0 : _a.addEventListener("change", function () {
+    console.log("YEAH");
     var fileInput = document.getElementById("file");
     fileName = fileInput.files[0].name;
     document.getElementById("status").innerHTML = "pending";
@@ -1597,12 +1653,6 @@ function LabelBackground(props) {
 }
 ;
 /* ===== DRAWING THE PLOT ===== */
-var body1 = document.getElementById("body-1");
-var marriedDots = document.createElement("div");
-marriedDots.setAttribute("id", "married-pattern");
-marriedDots.style.top = body1.offsetTop;
-marriedDots.style.left = body1.offsetLeft;
-body1.prepend(marriedDots);
 var domContainer = document.querySelector('#plot-container');
 var reactRoot = ReactDOM.createRoot(domContainer);
 reactRoot.render(React.createElement(PlotDrawing, { lineages: lineagesNames, ranks: lineagesRanks }));
