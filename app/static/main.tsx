@@ -557,6 +557,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         // Recalculate plot on window resize.
         addEventListener("resize", (event) => {
+            console.log(window.innerWidth / 2, window.innerHeight / 2);
+            let plotC:any = document.getElementById("plot-container")!;
+            console.log(plotC.offsetWidth / 2, plotC.offsetHeight / 2);
             var newViewportDimensions = getViewportDimensions();
             viewportDimensions = newViewportDimensions;
             this.setState({horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"], alteration:this.state.alteration}, () => this.cropLineages());

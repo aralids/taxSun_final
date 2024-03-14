@@ -596,6 +596,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.cropLineages();
         // Recalculate plot on window resize.
         addEventListener("resize", function (event) {
+            console.log(window.innerWidth / 2, window.innerHeight / 2);
+            var plotC = document.getElementById("plot-container");
+            console.log(plotC.offsetWidth / 2, plotC.offsetHeight / 2);
             var newViewportDimensions = (0, helperFunctions_js_1.getViewportDimensions)();
             viewportDimensions = newViewportDimensions;
             _this.setState({ horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"], alteration: _this.state.alteration }, function () { return _this.cropLineages(); });

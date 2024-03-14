@@ -111,10 +111,11 @@ function getFourCorners(top:number, bottom:number, left:number, right:number, cx
 }
 
 function getViewportDimensions():object {
+    let plotC:any = document.getElementById("plot-container")!;
     var dpmm:number = document.getElementById('dpmm')!.offsetWidth; // returns the div's width in px, thereby telling us how many px equal 1mm for our particular screen
-    var cx:number = window.innerWidth / 2;
-    var cy:number = window.innerHeight / 2;
-    var twoVMin:number = window.innerHeight < window.innerWidth ? window.innerHeight / 50 : window.innerWidth / 50;
+    var cx:number = plotC.offsetWidth / 2;
+    var cy:number = plotC.offsetHeight / 2;
+    var twoVMin:number = plotC.offsetHeight < plotC.offsetWidth ? plotC.offsetHeight / 50 : plotC.offsetWidth / 50;
     return {
         "cx": cx,
         "cy": cy,
