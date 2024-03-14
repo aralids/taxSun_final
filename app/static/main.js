@@ -219,6 +219,7 @@ document.getElementById("download-all-seq").addEventListener("click", function (
             lineagesNames = response["lineagesNames"];
             lineagesRanks = response["lineagesRanks"];
             allTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
+            console.log("allTaxaReduced: ", allTaxaReduced);
             originalAllTaxaReduced = JSON.parse(JSON.stringify(response["allTaxaReduced"]));
             rankPatternFull = response["rankPatternFull"];
             allTaxa = response["allTaxa"];

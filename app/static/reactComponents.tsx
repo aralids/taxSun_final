@@ -1,13 +1,26 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
+import { ln, lr, atr, at} from "./predefinedObjects.js";
 import { createPalette, round, sin, cos, handleMouseMove, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions, makeID, hoverHandler, onMouseOutHandler, getLayers} from "./helperFunctions.js";
 
-
-let viewportDimensions = getViewportDimensions();
+var viewportDimensions = getViewportDimensions();
 var colors:string[] = [];
 var colorOffset:number = 7; //84, 98, 31, 20, 1, 2
 colors = createPalette(colorOffset);
 var alreadyVisited:object = {};
+let lineagesNames:string[][] = ln;
+let lineagesRanks:string[][] = lr;
+var eThreshold:any = null;
+let taxonName = "Bacteria";
+let layerName = 1;
+let collapseName = "collapseFalse";
+let modeName = "allEqual";
+let allTaxaReduced:object = JSON.parse(JSON.stringify(atr));
+let originalAllTaxaReduced:object = JSON.parse(JSON.stringify(atr));
+let rankPatternFull:string[] = ["root","superkingdom","kingdom","subkingdom","superphylum","phylum","subphylum","superclass","class","subclass","superorder","order","suborder","superfamily","family","subfamily","supergenus","genus","subgenus","superspecies","species"];
+let newDataLoaded:boolean = false;
+var skeletonColor:string = "#800080";
+
 
 class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]}, {root:string, layer:number, collapse:boolean, horizontalShift:number, verticalShift:number, taxonSpecifics:object, croppedLineages:string[][], alignedCroppedLineages:string[][], croppedRanks:string[][], unassignedCounts:string[][], structureByDegrees:object, structureByTaxon: object, svgPaths:object, shapeComponents:object, shapeCenters:object, taxonLabels:object, taxonShapes:object, colors:string[], ancestors:string[], rankPattern:string[], alteration:string, totalUnassignedCount:number, numberOfLayers:number, layerWidth:number, count:number, abbreviateLabels:boolean, labelsPlaced:boolean, height:number, alreadyRepeated:boolean, plotEValue:boolean}> {
     constructor(props) {
@@ -1007,7 +1020,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
 
     render() {
-        currentState = this.state;
         var shapes:any = [];
         var labels:any = [];
         var ancestors:any = [];
@@ -1049,6 +1061,196 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     //<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>
 }
 
+let allTaxa:object = at;
+
+class AncestorSection extends React.Component<{ancestors:string[], root:string, layer:number, onClickArray:any, plotEValue:boolean}, {root:string, layer:number, rank:string, totalCount:number, unassignedCount:number, lines:string[], plotEValue:boolean, eThresholdHere:any}> {
+    constructor(props) {
+        super(props);
+        this.state = {
+            root: "",
+            layer: -1,
+            rank: "",
+            totalCount: 0,
+            unassignedCount: 0,
+            lines: [],
+            plotEValue: false,
+            eThresholdHere: eThreshold
+        }
+    }
+
+    componentDidUpdate() {
+        if ((this.props.root !== this.state.root) || (this.props.plotEValue !== this.state.plotEValue) || (eThreshold !== this.state.eThresholdHere) || newDataLoaded) {
+            newDataLoaded = false;
+            this.getCounts();
+        }
+
+    }
+
+    changeDiv(taxName) {
+        $.ajax({
+            url: '/fetchID',
+            data: {"taxName": taxName.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")},
+            type: 'GET',
+            success: function(response) {
+                let taxID = response["taxID"];
+                if (!allTaxaReduced[taxName]) {
+                    allTaxaReduced[taxName] = {}
+                }
+                allTaxaReduced[taxName]["taxID"] = taxID;
+                originalAllTaxaReduced[taxName]["taxID"] = taxID;
+                },
+            error: function (response) {
+                console.log("ERROR", response);
+                document.getElementById("status")!.innerHTML = "close";
+            }
+        }).then( 
+            () => {this.setState(this.state);}
+        );
+        
+    }
+
+    getCounts() {
+        let totalCount:number = 0;
+        let unassignedCount:number = 0;
+        let rank:string = "";
+        if (this.props.root.indexOf("&") > -1) {
+            let groupedTaxa:string[] = this.props.root.split(" & ");
+            for (let taxon of groupedTaxa) {
+                totalCount += allTaxaReduced[taxon]["totalCount"]
+            }
+            unassignedCount = 0;
+            rank = allTaxaReduced[groupedTaxa[0]]["rank"];
+        }
+        else {
+            totalCount = allTaxaReduced[this.props.root]["totalCount"];
+            unassignedCount = allTaxaReduced[this.props.root]["unassignedCount"];
+            rank = allTaxaReduced[this.props.root]["rank"];
+        };
+
+        let lines:string[] = this.props.ancestors.map(item => (`${round(totalCount * 100 / allTaxaReduced[item]["totalCount"], 2)}%`));
+
+        this.setState({totalCount: totalCount, unassignedCount: unassignedCount, root: this.props.root, layer: this.props.layer, lines: lines, rank: rank, plotEValue: this.props.plotEValue, eThresholdHere: eThreshold});
+    }
+
+    render() {
+        let filteredRoot:any = this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
+        let firstLine:any = <legend key={"legend"} style={{"color": "#800080", "fontWeight": "bold"}}>CURRENT LAYER</legend>;
+        let nameLine:any = <p key={"nameLine"} style={{"padding": 0, "margin": 0, "paddingBottom": "0vmin"}}>Taxon: <b>{this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>
+        let rankLine:any = <p key={"rankLine"} style={{"padding": 0, "margin": 0}}>Rank: <b>{this.state.rank}</b></p>;
+        let totalCountLine:any = <p key={"totalCountLine"} style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
+        let unassignedCountLine:any = <p key={"unassignedCountLine"} style={{"padding": 0, "margin": 0}}>Unspecified {this.state.root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: <b>{this.state.unassignedCount}</b></p>
+        //!!! rewrite v
+        let beforePreprocessing:number = allTaxa[this.state.root] ? allTaxa[this.state.root]["unassignedCount"] : 0;
+        let bPLine:any;
+        bPLine = <p key={"bPLine"} style={{"padding": 0, "margin": 0}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
+        
+        let id:string = allTaxaReduced[this.state.root] ? allTaxaReduced[this.state.root]["taxID"] : "1";
+        let taxIDline:any;
+        if (id) {
+            taxIDline = <div key={"taxIDline"} id="taxID-div" style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}><p style={{"padding": 0, "margin": 0}}>taxID: <a style={{"display": "inline"}} target="_blank" href={`https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=${id}&lvl=3&lin=f&keep=1&srchmode=1&unlock`}>{id}</a></p></div>
+        }
+        else {
+            taxIDline = <div key={"taxIDline"} id="taxID-div" style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}><p style={{"padding": 0, "margin": 0}}>taxID: <button onClick={() => this.changeDiv(this.state.root)}  id="fetch-id-button">FETCH</button></p></div>
+        }
+        
+        let ps:any = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine, taxIDline];
+        if (this.props.root.indexOf("&") > -1) {
+            bPLine = <p key={"bPLine"} style={{"padding": 0, "margin": 0, "paddingBottom": "2.5vh"}}>(raw file: <b>{beforePreprocessing}</b>)</p>;
+            ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine, bPLine];
+        }
+        else if (this.props.root === "root") {
+            ps.pop();
+        }
+        for (let i=0; i<this.props.ancestors.length; i++) {
+            ps.push(<p key={`ps-${i}`} style={{"padding": 0, "margin": 0, "cursor": "pointer", "wordBreak": "break-all"}} onClick={this.props.onClickArray[i]}>{this.state.lines[i]} of <b>{this.props.ancestors[i].replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}</b></p>)
+        }
+        return <fieldset>{ps}</fieldset>
+    }
+}
+
+class DescendantSection extends React.Component<{self:string, ancestor:string, layer:number, hovered:boolean}, {rank:string, totalCount:number, unassignedCount:number, percentage:number, self:string, layer:number, hovered:boolean}> {
+    constructor(props) {
+        super(props);
+        this.state = {
+            self: "",
+            layer: -1,
+            rank: "",
+            totalCount: 0,
+            unassignedCount: 0,
+            percentage: 0,
+            hovered: false
+        }
+    }
+
+    componentDidMount(): void {
+        document.getElementById("descendant-section")?.addEventListener("change", () => {
+            let el:any = document.getElementById("descendant-section")!;
+            let values:any[];
+            let self:string;
+            let layer:number;
+            let ancestor:string;
+            let hovered:boolean;
+            if (el.value.length === 0) {
+                self = "";
+                layer = 0;
+                ancestor = "";
+                hovered = false;
+            }
+            else {
+                values = el.value.split("*");
+                self = values[0];
+                layer = parseInt(values[1]);
+                ancestor = values[2];
+                hovered = true;
+            }
+            if (!(this.state.self === self)) {
+                this.calculateParams(self, layer, ancestor, hovered);
+            }
+        })
+    }
+
+    calculateParams(self, layer, ancestor, hovered) {
+        if (hovered) {
+            let totalCount:number = 0;
+            let unassignedCount:number = 0;
+            let rank:string;
+            if (self.indexOf("&") > -1) {
+                let groupedTaxa:string[] = self.split(" & ");
+                for (let taxon of groupedTaxa) {
+                    totalCount += allTaxaReduced[taxon]["totalCount"]
+                }
+                unassignedCount = 0;
+                rank = allTaxaReduced[groupedTaxa[0]]["rank"];
+            }
+            else {
+                totalCount = allTaxaReduced[self]["totalCount"];
+                unassignedCount = allTaxaReduced[self]["unassignedCount"];
+                rank = allTaxaReduced[self]["rank"];
+            }
+            let percentage:number = totalCount * 100 / allTaxaReduced[ancestor]["totalCount"];
+            this.setState({totalCount: totalCount, unassignedCount: unassignedCount, rank: rank, percentage: percentage, layer: layer, self: self, hovered: hovered});
+        }
+        else {
+            this.setState({totalCount: 0, unassignedCount: 0, rank: "", percentage: 0, self: "", layer: 0, hovered: hovered});
+        }
+    }
+
+    render() {
+        let ps:any[] = [];
+        if (this.state.hovered) {
+            let firstLine:any = <legend key={"firstLine"} style={{"color": "#800080", "fontWeight": "bold"}}>HOVERING OVER</legend>;
+            let noRanksName:string = this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
+            let nameLine:any = <p key={"nameLine"}style={{"padding": 0, "margin": 0, "paddingBottom": "0vmin"}}>Taxon: <b>{noRanksName}</b></p>
+            let rankLine:any = <p key={"rankLine"} style={{"padding": 0, "margin": 0}}>Rank: <b>{this.state.rank}</b></p>;
+            let totalCountLine:any = <p key={"totalCountLine"} style={{"padding": 0, "margin": 0}}>Total count: <b>{this.state.totalCount}</b></p>;
+            let unassignedCountLine:any = <p key={"unassignedCountLine"} style={{"padding": 0, "margin": 0}}>Unassigned {this.state.self.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"")}: <b>{this.state.unassignedCount}</b></p>
+            ps = [firstLine, nameLine, rankLine, totalCountLine, unassignedCountLine]
+            return <fieldset id="hovering-over">{ps}</fieldset>
+        }
+        return <div></div>
+    }
+}
+
 export { PlotDrawing }
 
 function TaxonShape(props) {
@@ -1066,3 +1268,55 @@ function LabelBackground(props) {
         return null
     }
 }
+
+function showContextMenu(e) {
+    e.preventDefault();
+    document.getElementById("context-menu")!.style.display = "block";
+    positionContextMenu(e);
+}
+
+// Get the position of the right click in window and returns the X and Y coordinates
+function getClickCoords(e) {
+    var posx = 0;
+    var posy = 0;
+  
+    if (!e) { var e:any = window.event; };
+  
+    if (e.pageX || e.pageY) {
+      posx = e.pageX;
+      posy = e.pageY;
+    } 
+    else if (e.clientX || e.clientY) {
+      posx = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+      posy = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+    };
+  
+    return { x: posx, y: posy };
+  }
+  
+  // Position the Context Menu in right position.
+  function positionContextMenu(e) {
+      let menu:any = document.getElementById("context-menu")!;
+      let clickCoords = getClickCoords(e);
+      let clickCoordsX = clickCoords.x;
+      let clickCoordsY = clickCoords.y;
+  
+      let menuWidth = menu.offsetWidth;
+      let menuHeight = menu.offsetHeight;
+      let windowWidth = window.innerWidth;
+      let windowHeight = window.innerHeight;
+  
+      if (windowWidth - clickCoordsX < menuWidth) {
+          menu.style.left = windowWidth - menuWidth + "px";
+      } else {
+          menu.style.left = clickCoordsX + "px";
+      }
+  
+      if (windowHeight - clickCoordsY < menuHeight) {
+          menu.style.top = windowHeight - menuHeight + "px";
+      } else {
+          menu.style.top = clickCoordsY - menuHeight + "px";
+      }
+  
+      menu.setAttribute("taxon", e.target["id"]);
+  }
