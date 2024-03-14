@@ -1572,4 +1572,7 @@ let domContainer:any = document.querySelector('#plot-container');
 let reactRoot = ReactDOM.createRoot(domContainer);
 reactRoot.render(<PlotDrawing lineages={lineagesNames} ranks={lineagesRanks}/>);
 
+let plotContainerParent:any = domContainer.parentElement;
+console.log(plotContainerParent, domContainer.offsetHeight)
+
 //addEventListener("mousemove", (event) => handleMouseMove(event));

@@ -78,6 +78,35 @@ fieldset {
     padding-bottom: 2.5vh;
 }
 
+#body-1 {
+    height: 100%;
+    width: 100%; 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+    border: none; 
+}
+
+#married-pattern {
+    position: absolute; 
+    height: 100%; 
+    width: 100%; 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+    border: none; 
+    background-image: radial-gradient(circle at 1px 1px, #800080 1px, transparent 0); 
+    background-size: 5px 5px; 
+    z-index: 100; 
+    pointer-events: none; 
+    clip-path: url(#mask); 
+    opacity: 0.5;
+}
+
+#descendant-section {
+    
+}
+
 @media (hover: none) {
     #hovering-over {
         display: none;

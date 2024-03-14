@@ -1600,4 +1600,6 @@ function LabelBackground(props) {
 var domContainer = document.querySelector('#plot-container');
 var reactRoot = ReactDOM.createRoot(domContainer);
 reactRoot.render(React.createElement(PlotDrawing, { lineages: lineagesNames, ranks: lineagesRanks }));
+var plotContainerParent = domContainer.parentElement;
+console.log(plotContainerParent, domContainer.offsetHeight);
 //addEventListener("mousemove", (event) => handleMouseMove(event));
