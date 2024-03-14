@@ -88,7 +88,7 @@ fieldset {
 }
 
 #married-pattern {
-    position: absolute; 
+    position: fixed; 
     height: 100%; 
     width: 100%; 
     margin: 0; 
@@ -104,7 +104,35 @@ fieldset {
 }
 
 #descendant-section {
-    
+    display: flex; 
+    position: fixed; 
+    top: 0vmin; 
+    left: 50%; 
+    visibility: hidden;
+}
+
+#uploadForm > fieldset {
+    padding-bottom: 2vh;
+}
+
+#uploadForm legend {
+    color: #800080; 
+    font-weight: bold;
+}
+
+#uploadForm div {
+    display: flex; 
+    max-width: 100%;
+}
+
+#uploadForm input {
+    display: inline; 
+    max-width: 90%;
+}
+
+#uploadForm span {
+    display: inline; 
+    right: 2vmin;
 }
 
 @media (hover: none) {

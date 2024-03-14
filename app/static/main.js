@@ -1597,6 +1597,12 @@ function LabelBackground(props) {
 }
 ;
 /* ===== DRAWING THE PLOT ===== */
+var body1 = document.getElementById("body-1");
+var marriedDots = document.createElement("div");
+marriedDots.setAttribute("id", "married-pattern");
+marriedDots.style.top = body1.offsetTop;
+marriedDots.style.left = body1.offsetLeft;
+body1.prepend(marriedDots);
 var domContainer = document.querySelector('#plot-container');
 var reactRoot = ReactDOM.createRoot(domContainer);
 reactRoot.render(React.createElement(PlotDrawing, { lineages: lineagesNames, ranks: lineagesRanks }));

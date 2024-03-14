@@ -1568,6 +1568,13 @@ function LabelBackground(props) {
 };
 
 /* ===== DRAWING THE PLOT ===== */
+let body1:any = document.getElementById("body-1")!;
+let marriedDots = document.createElement("div");
+marriedDots.setAttribute("id", "married-pattern");
+marriedDots.style.top = body1.offsetTop;
+marriedDots.style.left = body1.offsetLeft;
+body1.prepend(marriedDots);
+
 let domContainer:any = document.querySelector('#plot-container');
 let reactRoot = ReactDOM.createRoot(domContainer);
 reactRoot.render(<PlotDrawing lineages={lineagesNames} ranks={lineagesRanks}/>);
