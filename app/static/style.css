@@ -135,6 +135,42 @@ legend {
     right: 2vmin;
 }
 
+#wrapper-fieldset > fieldset {
+    display: flex; 
+    flex-direction: column; 
+    border: none; 
+    margin-top: 0; 
+    padding: 0;
+}
+
+#wrapper-fieldset input {
+    accent-color: #800080;
+}
+
+#input1 {
+    padding-bottom: 2vh;
+}
+
+#e-label {
+    color: grey;
+}
+
+#new-data-input {
+    display: none;
+}
+
+#e-text {
+    max-width: 20%;
+}
+
+#radio-input > div {
+    display:flex
+}
+
+#interaction-last-fieldset {
+    padding-bottom: 2vh;
+}
+
 @media (hover: none) {
     #hovering-over {
         display: none;

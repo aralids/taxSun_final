@@ -14,54 +14,18 @@
     </head>
     <body id="body-1">
         <div id="interaction">
-            <fieldset>
-                <legend style="color: #800080; font-weight: bold;">VIEWING MODES</legend>
-                <div id="input">
-                    <input type="checkbox" id="checkbox-input" name="collapse" style="accent-color: #800080;">
-                    <label for="collapse">Collapse</label>
-                </div>
-                <div id="input1" style="padding-bottom: 2vh;">
-                    <!--disable next line-->
-                    <input type="checkbox" id="e-input" disabled="disabled" name="e-value" style="accent-color: #800080;">
-                    <label for="e-value" id="e-label" style="color: grey;">Filter by e-value: </label>
-                    <!--disable next line and remove value attr-->
-                    <input type="text" id="e-text" disabled="disabled" style="max-width: 20%;">
-                </div>
-                <fieldset id="radio-input" style="display: flex; flex-direction: column; border: none; margin-top: 0; padding: 0;">
-                    <div style="display:flex">
-                        <input type="radio" id="unaltered" name="radio" style="accent-color: #800080;">
-                        <label for="unaltered">Unaltered</label>
-                    </div>
-                    <div style="display:flex">
-                        <input type="radio" id="marriedTaxaI" name="radio" style="accent-color: #800080;">
-                        <label for="married-taxa-i">Married taxa I</label>
-                    </div>
-                    <div style="display:flex">
-                        <input type="radio" id="marriedTaxaII" name="radio" style="accent-color: #800080;">
-                        <label for="married-taxa-ii">Married taxa II</label>
-                    </div>
-                    <div style="display:flex">
-                        <input type="radio" id="allEqual" name="radio" style="accent-color: #800080;" checked>
-                        <label for="all-equal">All equal</label>
-                    </div>
-                </fieldset>
-                <div id="new-data-input" style="display: none">
-                    <input type="checkbox" id="new-data" name="new-data" style="accent-color: #800080;">
-                    <label for="new-data">New Data: Yes or No</label>
-                </div>
-            </fieldset>
-
-            <fieldset style="padding-bottom: 2vh;">
-                <legend style="color: #800080; font-weight: bold;">DOWNLOAD</legend>
+            <fieldset id="interaction-last-fieldset">
+                <legend>DOWNLOAD</legend>
                 <button id="download">Download SVG</button>
             </fieldset>
         </div>
 
         <div id="plot-container-parent" style="height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; z-index: 1;">
             <div id="dpmm" style="height: 1mm; width: 1mm; left: 100%; position: fixed; top: 100%;"></div>
-            <div style="position: fixed; height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; " id="plot-container"></div>
+            <div id="plot-container" style="position: fixed; height: 100%; width: 100%; margin: 0; padding: 0; box-sizing: border-box; border: none; "></div>
             <div id="labels" style="float: right;"></div>
         </div>
+
         <div id="context-menu" style="width: 15%;">
             <button id="copy">Copy own seq IDs to clipboard</button>
             <button id="copy-all">Copy all seq IDs to clipboard</button>
