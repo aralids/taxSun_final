@@ -12,14 +12,21 @@ import {getViewportDimensions, handleMouseMove,
 
 /* ===== VARIABLE DECLARATIONS/DEFINITIONS - all of which will ideally become either a prop or a part of the state of PlotDrawing. ===== */
 let body1:any = document.getElementById("body-1")!;
-let marriedDots = document.createElement("div");
-marriedDots.setAttribute("id", "married-pattern");
-marriedDots.style.top = body1.offsetTop;
-marriedDots.style.left = body1.offsetLeft;
-body1.prepend(marriedDots);
-
-let interaction:any = document.getElementById("interaction")!;
+let interaction = document.createElement("div");
+interaction.setAttribute("id", "interaction");
+body1.prepend(interaction);
 ////
+let lastFieldset = document.createElement("fieldset");
+lastFieldset.setAttribute("id", "interaction-last-fieldset");
+interaction.prepend(lastFieldset);
+let lastFieldsetLegend = document.createElement("legend");
+lastFieldsetLegend.innerText = "DOWNLOAD";
+lastFieldset.appendChild(lastFieldsetLegend);
+let lastFieldsetButton = document.createElement("button");
+lastFieldsetButton.setAttribute("id", "download");
+lastFieldsetButton.innerText = "Download SVG";
+lastFieldset.appendChild(lastFieldsetButton);
+
 let wrapperFieldset = document.createElement("fieldset");
 wrapperFieldset.setAttribute("id", "wrapper-fieldset");
 interaction.prepend(wrapperFieldset);
@@ -170,7 +177,32 @@ let descendantSection = document.createElement("input");
 descendantSection.setAttribute("type", "text");
 descendantSection.setAttribute("id", "descendant-section");
 interaction.prepend(descendantSection);
+//////
+let marriedDots = document.createElement("div");
+marriedDots.setAttribute("id", "married-pattern");
+marriedDots.style.top = body1.offsetTop;
+marriedDots.style.left = body1.offsetLeft;
+body1.prepend(marriedDots);
 
+let contextMenu = document.createElement("div");
+contextMenu.setAttribute("id", "context-menu");
+body1.appendChild(contextMenu);
+let copyButton = document.createElement("button");
+copyButton.setAttribute("id", "copy");
+copyButton.innerText = "Copy own seq IDs to clipboard";
+contextMenu.appendChild(copyButton);
+let copyAllButton = document.createElement("button");
+copyAllButton.setAttribute("id", "copy-all");
+copyAllButton.innerText = "Copy all seq IDs to clipboard";
+contextMenu.appendChild(copyAllButton);
+let downloadSeqButton = document.createElement("button");
+downloadSeqButton.setAttribute("id", "download-seq");
+downloadSeqButton.innerText = "Download own sequences";
+contextMenu.appendChild(downloadSeqButton);
+let downloadAllSeqButton = document.createElement("button");
+downloadAllSeqButton.setAttribute("id", "download-all-seq");
+downloadAllSeqButton.innerText = "Download all sequences";
+contextMenu.appendChild(downloadAllSeqButton);
 
 let fileName = "lessSpontaneous2.tsv";
 let taxonName = "Bacteria";

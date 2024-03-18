@@ -171,6 +171,10 @@ legend {
     padding-bottom: 2vh;
 }
 
+#context-menu {
+    width: 15%;
+}
+
 @media (hover: none) {
     #hovering-over {
         display: none;
