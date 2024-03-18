@@ -12,6 +12,15 @@ import {getViewportDimensions, handleMouseMove,
 
 /* ===== VARIABLE DECLARATIONS/DEFINITIONS - all of which will ideally become either a prop or a part of the state of PlotDrawing. ===== */
 let body1:any = document.getElementById("body-1")!;
+let plotContainerParentDiv:any = document.getElementById("plot-container-parent")!;
+
+let dpmmDiv = document.createElement("div");
+dpmmDiv.setAttribute("id", "dpmm");
+plotContainerParentDiv.prepend(dpmmDiv);
+let labelsDiv = document.createElement("div");
+labelsDiv.setAttribute("id", "labels");
+plotContainerParentDiv.prepend(labelsDiv);
+
 let interaction = document.createElement("div");
 interaction.setAttribute("id", "interaction");
 body1.prepend(interaction);

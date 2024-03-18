@@ -1,6 +1,9 @@
 svg {
     position: fixed;
-    top: 0;
+    top: inherit;
+    left: inherit;
+    width: inherit;
+    height: inherit;
     z-index: 100;
 }
 
@@ -78,7 +81,7 @@ fieldset {
     padding-bottom: 2.5vh;
 }
 
-#body-1 {
+body, #body-1 {
     height: 100%;
     width: 100%; 
     margin: 0; 
@@ -173,6 +176,39 @@ legend {
 
 #context-menu {
     width: 15%;
+}
+
+#plot-container-parent {
+    height: 100%; 
+    width: 100%; 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+    border: none; 
+    z-index: 1;
+}
+
+#dpmm {
+    height: 1mm; 
+    width: 1mm; 
+    left: 100%; 
+    position: fixed; 
+    top: 100%;
+}
+
+#plot-container {
+    position: fixed; 
+    height: 100%; 
+    width: 100%; 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: 
+    border-box; 
+    border: none;
+}
+
+#labels {
+    float: right;
 }
 
 @media (hover: none) {

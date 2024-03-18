@@ -31,6 +31,13 @@ var predefinedObjects_js_1 = require("./predefinedObjects.js");
 var helperFunctions_js_1 = require("./helperFunctions.js");
 /* ===== VARIABLE DECLARATIONS/DEFINITIONS - all of which will ideally become either a prop or a part of the state of PlotDrawing. ===== */
 var body1 = document.getElementById("body-1");
+var plotContainerParentDiv = document.getElementById("plot-container-parent");
+var dpmmDiv = document.createElement("div");
+dpmmDiv.setAttribute("id", "dpmm");
+plotContainerParentDiv.prepend(dpmmDiv);
+var labelsDiv = document.createElement("div");
+labelsDiv.setAttribute("id", "labels");
+plotContainerParentDiv.prepend(labelsDiv);
 var interaction = document.createElement("div");
 interaction.setAttribute("id", "interaction");
 body1.prepend(interaction);
