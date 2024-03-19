@@ -30,8 +30,15 @@ var ReactDOM = require("react-dom/client");
 var predefinedObjects_js_1 = require("./predefinedObjects.js");
 var helperFunctions_js_1 = require("./helperFunctions.js");
 /* ===== VARIABLE DECLARATIONS/DEFINITIONS - all of which will ideally become either a prop or a part of the state of PlotDrawing. ===== */
-var body1 = document.getElementById("body-1");
-var plotContainerParentDiv = document.getElementById("plot-container-parent");
+var newContainerParent = document.createElement("div");
+newContainerParent.setAttribute("id", "body-1");
+var plotContainerParentDiv = document.createElement("div");
+plotContainerParentDiv.setAttribute("id", "plot-container-parent");
+newContainerParent.appendChild(plotContainerParentDiv);
+var currContainerParent = document.getElementById("plot-container").parentElement;
+var container = document.getElementById("plot-container");
+currContainerParent.replaceChild(newContainerParent, container);
+plotContainerParentDiv.appendChild(container);
 var dpmmDiv = document.createElement("div");
 dpmmDiv.setAttribute("id", "dpmm");
 plotContainerParentDiv.prepend(dpmmDiv);
@@ -40,7 +47,7 @@ labelsDiv.setAttribute("id", "labels");
 plotContainerParentDiv.prepend(labelsDiv);
 var interaction = document.createElement("div");
 interaction.setAttribute("id", "interaction");
-body1.prepend(interaction);
+newContainerParent.prepend(interaction);
 ////
 var lastFieldset = document.createElement("fieldset");
 lastFieldset.setAttribute("id", "interaction-last-fieldset");
@@ -200,12 +207,12 @@ interaction.prepend(descendantSection);
 //////
 var marriedDots = document.createElement("div");
 marriedDots.setAttribute("id", "married-pattern");
-marriedDots.style.top = body1.offsetTop;
-marriedDots.style.left = body1.offsetLeft;
-body1.prepend(marriedDots);
+marriedDots.style.top = newContainerParent.offsetTop;
+marriedDots.style.left = newContainerParent.offsetLeft;
+newContainerParent.prepend(marriedDots);
 var contextMenu = document.createElement("div");
 contextMenu.setAttribute("id", "context-menu");
-body1.appendChild(contextMenu);
+newContainerParent.appendChild(contextMenu);
 var copyButton = document.createElement("button");
 copyButton.setAttribute("id", "copy");
 copyButton.innerText = "Copy own seq IDs to clipboard";
@@ -1761,7 +1768,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             _loop_11(item);
         }
         var anc = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
-        return [React.createElement("svg", { key: "svg", xmlns: "http://www.w3.org/2000/svg", style: { "height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none" }, id: "shapes" },
+        return [React.createElement("svg", { key: "svg", xmlns: "http://www.w3.org/2000/svg", style: { "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none" }, id: "shapes" },
                 shapes,
                 " ",
                 labels,

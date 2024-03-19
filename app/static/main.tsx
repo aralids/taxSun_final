@@ -11,8 +11,15 @@ import {getViewportDimensions, handleMouseMove,
 
 
 /* ===== VARIABLE DECLARATIONS/DEFINITIONS - all of which will ideally become either a prop or a part of the state of PlotDrawing. ===== */
-let body1:any = document.getElementById("body-1")!;
-let plotContainerParentDiv:any = document.getElementById("plot-container-parent")!;
+let newContainerParent:any = document.createElement("div");
+newContainerParent.setAttribute("id", "body-1");
+let plotContainerParentDiv = document.createElement("div");
+plotContainerParentDiv.setAttribute("id", "plot-container-parent");
+newContainerParent.appendChild(plotContainerParentDiv);
+let currContainerParent = document.getElementById("plot-container")!.parentElement!;
+let container = document.getElementById("plot-container")!;
+currContainerParent.replaceChild(newContainerParent, container);
+plotContainerParentDiv.appendChild(container);
 
 let dpmmDiv = document.createElement("div");
 dpmmDiv.setAttribute("id", "dpmm");
@@ -23,7 +30,7 @@ plotContainerParentDiv.prepend(labelsDiv);
 
 let interaction = document.createElement("div");
 interaction.setAttribute("id", "interaction");
-body1.prepend(interaction);
+newContainerParent.prepend(interaction);
 ////
 let lastFieldset = document.createElement("fieldset");
 lastFieldset.setAttribute("id", "interaction-last-fieldset");
@@ -189,13 +196,13 @@ interaction.prepend(descendantSection);
 //////
 let marriedDots = document.createElement("div");
 marriedDots.setAttribute("id", "married-pattern");
-marriedDots.style.top = body1.offsetTop;
-marriedDots.style.left = body1.offsetLeft;
-body1.prepend(marriedDots);
+marriedDots.style.top = newContainerParent.offsetTop;
+marriedDots.style.left = newContainerParent.offsetLeft;
+newContainerParent.prepend(marriedDots);
 
 let contextMenu = document.createElement("div");
 contextMenu.setAttribute("id", "context-menu");
-body1.appendChild(contextMenu);
+newContainerParent.appendChild(contextMenu);
 let copyButton = document.createElement("button");
 copyButton.setAttribute("id", "copy");
 copyButton.innerText = "Copy own seq IDs to clipboard";
@@ -1751,7 +1758,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         let anc:any[] = JSON.parse(JSON.stringify(this.state.ancestors)).reverse();
 
-        return [<svg key={"svg"} xmlns="http://www.w3.org/2000/svg" style={{"height": "100%", "width": "100%", "margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath key={"clipPath"} id="mask">{clipPaths}</clipPath></svg>,<div key={"div-ancestors"} id="ancestors">{ancestors}</div>,<div key={"left-column"} id="left-column"><AncestorSection key={"ancestor-section"} ancestors={anc} root={this.state.root} layer={this.state.layer} plotEValue={this.state.plotEValue} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection key={"descendant-section"} self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
+        return [<svg key={"svg"} xmlns="http://www.w3.org/2000/svg" style={{"margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath key={"clipPath"} id="mask">{clipPaths}</clipPath></svg>,<div key={"div-ancestors"} id="ancestors">{ancestors}</div>,<div key={"left-column"} id="left-column"><AncestorSection key={"ancestor-section"} ancestors={anc} root={this.state.root} layer={this.state.layer} plotEValue={this.state.plotEValue} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection key={"descendant-section"} self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
     }
     //<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>
 }

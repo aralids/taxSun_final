@@ -1,9 +1,17 @@
+:root {
+    --container-position: fixed;
+    --container-top: 0%;
+    --container-left: 0%;
+    --container-width: 100%;
+    --container-height: 100%;
+}
+
 svg {
     position: fixed;
-    top: inherit;
-    left: inherit;
-    width: inherit;
-    height: inherit;
+    top: var(--container-top);
+    left: var(--container-left);
+    width: var(--container-width);
+    height: var(--container-height);;
     z-index: 100;
 }
 
@@ -11,17 +19,19 @@ svg {
     display: flex; 
     flex-direction: column; 
     position: fixed; 
-    top: 0;
-    width: 20%;
+    top: var(--container-top);
+    width: calc(var(--container-width) / 5);
     z-index: 200;
 }
 
 #left-column {
-    left: 2vmin;
+    left: var(--container-left);
+    margin-left: 2vmin;
 }
 
 #interaction {
-    right: 2vmin;
+    left: calc(var(--container-top) + var(--container-width) * 0.8 - 2vmin);
+    margin-right: 2vmin;
 }
 
 fieldset {
@@ -88,6 +98,14 @@ body, #body-1 {
     padding: 0; 
     box-sizing: border-box; 
     border: none; 
+}
+
+#body-1 {
+    position: var(--container-position);
+    top: var(--container-top);
+    left: var(--container-left);
+    width: var(--container-width);
+    height: var(--container-height);
 }
 
 #married-pattern {
@@ -197,9 +215,9 @@ legend {
 }
 
 #plot-container {
-    position: fixed; 
-    height: 100%; 
-    width: 100%; 
+    position: var(--container-position);
+    height: var(--container-height);
+    width: var(--container-width);
     margin: 0; 
     padding: 0; 
     box-sizing: 
