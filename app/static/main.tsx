@@ -1,7 +1,10 @@
+console.log("main.tsx start")
+
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import {ln, lr} from "./predefinedObjects.js";
 
+var apple = "apple"
 let newContainerParent:any = document.createElement("div");
 newContainerParent.setAttribute("id", "body-1");
 let plotContainerParentDiv = document.createElement("div");
@@ -211,12 +214,12 @@ downloadAllSeqButton.setAttribute("id", "download-all-seq");
 downloadAllSeqButton.innerText = "Download all sequences";
 contextMenu.appendChild(downloadAllSeqButton);
 
-console.log("Hier")
-
-import {PlotDrawing} from "./components.js";
+import {PlotDrawing, extClick} from "./components.js";
 let domContainer:any = document.querySelector('#plot-container');
 let reactRoot = ReactDOM.createRoot(domContainer);
 reactRoot.render(<PlotDrawing lineages={ln} ranks={lr}/>);
 
 let plotContainerParent:any = domContainer.parentElement;
 console.log(plotContainerParent, domContainer.offsetHeight)
+
+console.log("main.tsx end", window)

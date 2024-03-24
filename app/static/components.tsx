@@ -1,3 +1,5 @@
+console.log("components.tsx start")
+
 import * as React from "react";
 import {ln, lr, atr, at} from "./predefinedObjects.js";
 import {getViewportDimensions, handleMouseMove,
@@ -557,6 +559,11 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         // Once everything is initialized, calculate plot.
         this.cropLineages();
 
+        // On (external) click.
+        addEventListener("mouseup", (event) => {
+            console.log("ext mouseup: ", event.detail);
+        })
+
         // Recalculate plot on window resize.
         addEventListener("resize", (event) => {
             console.log(window.innerWidth / 2, window.innerHeight / 2);
@@ -569,6 +576,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input")!.addEventListener("change", () => {
+            console.log("radio")
             let alteration:any = document.querySelector('input[name="radio"]:checked')!.getAttribute("id");
             let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
             if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
@@ -1327,6 +1335,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     handleClick(shapeId):void {
+        console.log("shapeId: ", shapeId)
         var taxon:string = shapeId.match(/.+?(?=_)/)[0];
         var currLayer:number = parseInt(shapeId.match(/-?\d+/)[0]);
         var nextLayer;
@@ -1341,6 +1350,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
         }
+        (window as any).taxSunClick(taxon);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     }
 
@@ -1574,8 +1584,19 @@ function LabelBackground(props) {
     else { return null; };
 };
 
+function extClick(shapeId) {
+    let el:any = document.getElementById("Gammaproteobacteria_-_2");
+    console.log("shapeId: ", el, document)
+    let evt = new CustomEvent('click');
+    el.dispatchEvent(evt);
+}
+
+//extClick("Gammaproteobacteria_-_2");
+
 /* ===== DRAWING THE PLOT ===== */
 
 //addEventListener("mousemove", (event) => handleMouseMove(event));
 
-export {PlotDrawing}
+export {PlotDrawing, extClick}
+
+console.log("components.tsx end")

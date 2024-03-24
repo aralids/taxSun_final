@@ -25,7 +25,8 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 var _a, _b;
 exports.__esModule = true;
-exports.PlotDrawing = void 0;
+exports.extClick = exports.PlotDrawing = void 0;
+console.log("components.tsx start");
 var React = require("react");
 var predefinedObjects_js_1 = require("./predefinedObjects.js");
 var helperFunctions_js_1 = require("./helperFunctions.js");
@@ -595,6 +596,10 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _this = this;
         // Once everything is initialized, calculate plot.
         this.cropLineages();
+        // On (external) click.
+        addEventListener("mouseup", function (event) {
+            console.log("ext mouseup: ", event.detail);
+        });
         // Recalculate plot on window resize.
         addEventListener("resize", function (event) {
             console.log(window.innerWidth / 2, window.innerHeight / 2);
@@ -606,6 +611,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         });
         // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input").addEventListener("change", function () {
+            console.log("radio");
             var alteration = document.querySelector('input[name="radio"]:checked').getAttribute("id");
             var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth) + eThreshold;
             if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
@@ -1361,6 +1367,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.getTaxonShapes({ "colors": newPalette });
     };
     PlotDrawing.prototype.handleClick = function (shapeId) {
+        console.log("shapeId: ", shapeId);
         var taxon = shapeId.match(/.+?(?=_)/)[0];
         var currLayer = parseInt(shapeId.match(/-?\d+/)[0]);
         var nextLayer;
@@ -1375,6 +1382,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
         }
+        window.taxSunClick(taxon);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     };
     PlotDrawing.prototype.placeLabels = function (alreadyRepeated) {
@@ -1603,3 +1611,11 @@ function LabelBackground(props) {
     ;
 }
 ;
+function extClick(shapeId) {
+    var el = document.getElementById("Gammaproteobacteria_-_2");
+    console.log("shapeId: ", el, document);
+    var evt = new CustomEvent('click');
+    el.dispatchEvent(evt);
+}
+exports.extClick = extClick;
+console.log("components.tsx end");

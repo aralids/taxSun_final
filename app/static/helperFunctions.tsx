@@ -1,3 +1,5 @@
+console.log("helperFunctions.tsx start")
+
 function createPalette(colorOffset:number = 7):string[] {
     let newColors:string[] = []
     for (let i=0; i<7; i++) {
@@ -254,6 +256,7 @@ function hoverHandler(id:string, fullLabel:string, root:string):void {
         var labelBackground = id + "-labelBackground";
     }
 
+    (window as any).taxSunHover(shape.split("_-_")[0]);
     document.getElementById(shape)!.style.strokeWidth = "0.4vmin";
     document.getElementById(hoverLabel)!.style.display = "unset";
     document.getElementById(label)!.style.display = "none";
@@ -312,3 +315,5 @@ function getLayers(lineagesCopy:string[][], unique:boolean=false):string[][] {
 }
 
 export {createPalette, radians, round, sin, cos, handleMouseMove, hexToRGB, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions, makeID, enableEValue, disableEValue, showContextMenu, hideContextMenu, findRealName, downloadSVGasTextFile, hoverHandler, onMouseOutHandler, getLayers};
+
+console.log("helperFunctions.tsx end")
