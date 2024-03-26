@@ -558,16 +558,15 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         // Recalculate plot on window resize.
         addEventListener("resize", () => {
-            var newViewportDimensions = getViewportDimensions();
-            viewportDimensions = newViewportDimensions;
-            this.setState({horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"], alteration:this.state.alteration}, () => this.cropLineages());
-        })
+            viewportDimensions = getViewportDimensions();
+            this.cropLineages();
+        });
 
         // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input")!.addEventListener("change", () => {
             let alteration:any = document.querySelector('input[name="radio"]:checked')!.getAttribute("id");
             this.cropLineages(this.state.root, this.state.layer, alteration, this.state.collapse);
-        })
+        });
         document.getElementById("checkbox-input")!.addEventListener("change", () => {
             let element:any =  document.getElementById("checkbox-input")!;
             let checked:boolean = element.checked;
@@ -577,7 +576,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let element:any =  document.getElementById("e-input")!;
             let checked:boolean = element.checked;
             this.cropLineages(this.state.root, this.state.layer, this.state.alteration, this.state.collapse, checked);
-        })
+        });
         document.getElementById("new-data")!.addEventListener("change", () => {
             let newData:any = document.getElementById("new-data")!
             let collapsed:any = document.getElementById("checkbox-input")!
@@ -590,9 +589,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             allEqual.checked = true;
             eFilter.checked = false;
             colors = createPalette(colorOffset);
-
             this.cropLineages("root", 0, "allEqual", false, false, lineagesNames, lineagesRanks);
-        })
+        });
         document.getElementById("e-text")!.addEventListener("keyup", ({key}) => {
             let eInput:any = document.getElementById("e-input")!
             if (key === "Enter") {
@@ -602,12 +600,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     eThreshold = value;
                     this.cropLineages();
                 }
-                else {
-                    eThreshold = value;
-                }
-            }
-        })
-    }
+                else { eThreshold = value; };
+            };
+        });
+    };
 
     componentDidUpdate() {
         if (!this.state.labelsPlaced) {
@@ -625,7 +621,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
             console.log("NO RECALCULATING")
             this.setState(alreadyVisited[currPlotId]);
-            //return;
+            return;
         }
 
         console.log("RECALCULATING")
@@ -1081,10 +1077,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
     calculateArcEndpoints(layer:number, layerWidthInPx:number, deg1:number, deg2:number):object {
         var radius:number = layer * layerWidthInPx; // in px
-        var x1:number = round(radius * cos(deg1) + this.state.horizontalShift);
-        var y1:number = round(- radius * sin(deg1) + this.state.verticalShift);
-        var x2:number = round(radius * cos(deg2) + this.state.horizontalShift);
-        var y2:number = round(- radius * sin(deg2) + this.state.verticalShift);
+        var x1:number = round(radius * cos(deg1) + viewportDimensions["cx"]);
+        var y1:number = round(- radius * sin(deg1) + viewportDimensions["cy"]);
+        var x2:number = round(radius * cos(deg2) + viewportDimensions["cx"]);
+        var y2:number = round(- radius * sin(deg2) + viewportDimensions["cy"]);
     
         return {x1: x1, y1: y1, x2: x2, y2: y2, radius:round(radius)};
     }
@@ -1095,9 +1091,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var dpmm:number = viewportDimensions["dpmm"];
         // Redundancy v
         var numberOfLayers:number = alignedCroppedLineages[0].length;
-        var smallerDimension:number = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
+        var smallerDimension:number = Math.min(viewportDimensions["cx"] * 0.6, viewportDimensions["cy"]);
         var layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
-        //var smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
+        //var smallerDimension:number = Math.min(viewportDimensions["cx"], viewportDimensions["cy"]);
         //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
 
         var firstLayer = (key) => {return taxonSpecifics[key]["layers"][0]};
@@ -1109,16 +1105,16 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (var key of Object.keys(taxonSpecifics)) {
             var firstLayerRadius:number = round(firstLayer(key)*layerWidth);
             if (taxonSpecifics[key]["layers"][0] === 0) { // If the shape to be drawn is the center of the plot (1 circle).
-                taxonSpecifics[key]["svgPath"] = `M ${this.state.horizontalShift}, ${this.state.verticalShift} m -${layerWidth}, 0 a ${layerWidth},${layerWidth} 0 1,0 ${(layerWidth)* 2},0 a ${layerWidth},${layerWidth} 0 1,0 -${(layerWidth)* 2},0`;
+                taxonSpecifics[key]["svgPath"] = `M ${viewportDimensions["cx"]}, ${viewportDimensions["cy"]} m -${layerWidth}, 0 a ${layerWidth},${layerWidth} 0 1,0 ${(layerWidth)* 2},0 a ${layerWidth},${layerWidth} 0 1,0 -${(layerWidth)* 2},0`;
             } else { // If the shape to be drawn is NOT the center of the plot, but a complex shape, add:
                 var subpaths:string[] = [];
                 if (round(endDeg(key) - startDeg(key)) === 360) { // If the shape to be drawn completes a full circle:
                     var innerArc:object = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
-                    var innerArcPath:string = `M ${this.state.horizontalShift}, ${this.state.verticalShift} m -${firstLayerRadius}, 0 a ${firstLayerRadius},${firstLayerRadius} 0 1,0 ${(firstLayerRadius)* 2},0 a ${firstLayerRadius},${firstLayerRadius} 0 1,0 -${(firstLayerRadius)* 2},0`;
+                    var innerArcPath:string = `M ${viewportDimensions["cx"]}, ${viewportDimensions["cy"]} m -${firstLayerRadius}, 0 a ${firstLayerRadius},${firstLayerRadius} 0 1,0 ${(firstLayerRadius)* 2},0 a ${firstLayerRadius},${firstLayerRadius} 0 1,0 -${(firstLayerRadius)* 2},0`;
                     subpaths = [innerArcPath];
 
                     if (taxonSpecifics[key]["layers"].length === 2) { // If the shape to be drawm completes a full circle AND consists simply of two concentric circles.
-                        var midArcPath:string = `M ${this.state.horizontalShift}, ${this.state.verticalShift} m -${secondLayer(key)*layerWidth}, 0 a ${secondLayer(key)*layerWidth},${secondLayer(key)*layerWidth} 0 1,0 ${(secondLayer(key)*layerWidth)* 2},0 a ${secondLayer(key)*layerWidth},${secondLayer(key)*layerWidth} 0 1,0 -${(secondLayer(key)*layerWidth)* 2},0`;
+                        var midArcPath:string = `M ${viewportDimensions["cx"]}, ${viewportDimensions["cy"]} m -${secondLayer(key)*layerWidth}, 0 a ${secondLayer(key)*layerWidth},${secondLayer(key)*layerWidth} 0 1,0 ${(secondLayer(key)*layerWidth)* 2},0 a ${secondLayer(key)*layerWidth},${secondLayer(key)*layerWidth} 0 1,0 -${(secondLayer(key)*layerWidth)* 2},0`;
                         subpaths.push(midArcPath);
                     }
                     else { // If the shape to be drawm completes a full circle AND is of irregular shape.
@@ -1134,7 +1130,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                             };
                             subpaths.push(midArcPath);
                         }
-                        var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${this.state.horizontalShift},${this.state.verticalShift + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length-1]*layerWidth}`;
+                        var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${viewportDimensions["cx"]},${viewportDimensions["cy"] + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length-1]*layerWidth}`;
                         subpaths.push(lineInnertoOuter);
                     }
                     
@@ -1179,8 +1175,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var root:string = newState["root"] ? newState["root"] : this.state.root;
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
         var numberOfLayers:number = alignedCroppedLineages[0].length;
-        var cx:number = this.state.horizontalShift;
-        var cy:number = this.state.verticalShift;
+        var cx:number = viewportDimensions["cx"];
+        var cy:number = viewportDimensions["cy"];
         var layerWidthInPx:number = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers , viewportDimensions["dpmm"] * 1);
         //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
         var startDeg = (key) => {return taxonSpecifics[key]["degrees"][0]};
@@ -1380,8 +1376,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     radialAngle = 360 - (270 - radialAngle);
                     
                     // (1)
-                    leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
-                    rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
+                    leftIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
+                    rightIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
                 }
                 else if (centerDegree >= 0 && centerDegree <= 180) {
                     radialLeft = newTaxonSpecifics[key]["center"][0] - width;
@@ -1389,8 +1385,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     radialAngle = 270 - radialAngle;
 
                     // (1)
-                    leftIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
-                    rightIntersect = lineIntersect(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
+                    leftIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
+                    rightIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
                 }
 
                 // (1)
@@ -1429,7 +1425,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
             // Calculations for root shape in the center.
             else {
-                top = this.state.verticalShift + height/2;
+                top = viewportDimensions["cy"] + height/2;
                 left = newTaxonSpecifics[key]["center"][0] - width/2;
                 hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth/2;
                 transformOrigin = "";

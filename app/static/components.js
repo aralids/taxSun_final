@@ -596,9 +596,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.cropLineages();
         // Recalculate plot on window resize.
         addEventListener("resize", function () {
-            var newViewportDimensions = (0, helperFunctions_js_1.getViewportDimensions)();
-            viewportDimensions = newViewportDimensions;
-            _this.setState({ horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"], alteration: _this.state.alteration }, function () { return _this.cropLineages(); });
+            viewportDimensions = (0, helperFunctions_js_1.getViewportDimensions)();
+            _this.cropLineages();
         });
         // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input").addEventListener("change", function () {
@@ -642,9 +641,12 @@ var PlotDrawing = /** @class */ (function (_super) {
                 else {
                     eThreshold = value;
                 }
+                ;
             }
+            ;
         });
     };
+    ;
     PlotDrawing.prototype.componentDidUpdate = function () {
         if (!this.state.labelsPlaced) {
             this.placeLabels();
@@ -666,7 +668,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
             console.log("NO RECALCULATING");
             this.setState(alreadyVisited[currPlotId]);
-            //return;
+            return;
         }
         console.log("RECALCULATING");
         // Reset the object with all taxon data.
@@ -1140,10 +1142,10 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     PlotDrawing.prototype.calculateArcEndpoints = function (layer, layerWidthInPx, deg1, deg2) {
         var radius = layer * layerWidthInPx; // in px
-        var x1 = (0, helperFunctions_js_1.round)(radius * (0, helperFunctions_js_1.cos)(deg1) + this.state.horizontalShift);
-        var y1 = (0, helperFunctions_js_1.round)(-radius * (0, helperFunctions_js_1.sin)(deg1) + this.state.verticalShift);
-        var x2 = (0, helperFunctions_js_1.round)(radius * (0, helperFunctions_js_1.cos)(deg2) + this.state.horizontalShift);
-        var y2 = (0, helperFunctions_js_1.round)(-radius * (0, helperFunctions_js_1.sin)(deg2) + this.state.verticalShift);
+        var x1 = (0, helperFunctions_js_1.round)(radius * (0, helperFunctions_js_1.cos)(deg1) + viewportDimensions["cx"]);
+        var y1 = (0, helperFunctions_js_1.round)(-radius * (0, helperFunctions_js_1.sin)(deg1) + viewportDimensions["cy"]);
+        var x2 = (0, helperFunctions_js_1.round)(radius * (0, helperFunctions_js_1.cos)(deg2) + viewportDimensions["cx"]);
+        var y2 = (0, helperFunctions_js_1.round)(-radius * (0, helperFunctions_js_1.sin)(deg2) + viewportDimensions["cy"]);
         return { x1: x1, y1: y1, x2: x2, y2: y2, radius: (0, helperFunctions_js_1.round)(radius) };
     };
     PlotDrawing.prototype.calculateSVGPaths = function (newState) {
@@ -1152,9 +1154,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         var dpmm = viewportDimensions["dpmm"];
         // Redundancy v
         var numberOfLayers = alignedCroppedLineages[0].length;
-        var smallerDimension = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
+        var smallerDimension = Math.min(viewportDimensions["cx"] * 0.6, viewportDimensions["cy"]);
         var layerWidth = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
-        //var smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
+        //var smallerDimension:number = Math.min(viewportDimensions["cx"], viewportDimensions["cy"]);
         //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
         var firstLayer = function (key) { return taxonSpecifics[key]["layers"][0]; };
         var secondLayer = function (key) { return taxonSpecifics[key]["layers"][1]; };
@@ -1164,16 +1166,16 @@ var PlotDrawing = /** @class */ (function (_super) {
             var key = _a[_i];
             var firstLayerRadius = (0, helperFunctions_js_1.round)(firstLayer(key) * layerWidth);
             if (taxonSpecifics[key]["layers"][0] === 0) { // If the shape to be drawn is the center of the plot (1 circle).
-                taxonSpecifics[key]["svgPath"] = "M ".concat(this.state.horizontalShift, ", ").concat(this.state.verticalShift, " m -").concat(layerWidth, ", 0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 ").concat((layerWidth) * 2, ",0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 -").concat((layerWidth) * 2, ",0");
+                taxonSpecifics[key]["svgPath"] = "M ".concat(viewportDimensions["cx"], ", ").concat(viewportDimensions["cy"], " m -").concat(layerWidth, ", 0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 ").concat((layerWidth) * 2, ",0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 -").concat((layerWidth) * 2, ",0");
             }
             else { // If the shape to be drawn is NOT the center of the plot, but a complex shape, add:
                 var subpaths = [];
                 if ((0, helperFunctions_js_1.round)(endDeg(key) - startDeg(key)) === 360) { // If the shape to be drawn completes a full circle:
                     var innerArc = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
-                    var innerArcPath = "M ".concat(this.state.horizontalShift, ", ").concat(this.state.verticalShift, " m -").concat(firstLayerRadius, ", 0 a ").concat(firstLayerRadius, ",").concat(firstLayerRadius, " 0 1,0 ").concat((firstLayerRadius) * 2, ",0 a ").concat(firstLayerRadius, ",").concat(firstLayerRadius, " 0 1,0 -").concat((firstLayerRadius) * 2, ",0");
+                    var innerArcPath = "M ".concat(viewportDimensions["cx"], ", ").concat(viewportDimensions["cy"], " m -").concat(firstLayerRadius, ", 0 a ").concat(firstLayerRadius, ",").concat(firstLayerRadius, " 0 1,0 ").concat((firstLayerRadius) * 2, ",0 a ").concat(firstLayerRadius, ",").concat(firstLayerRadius, " 0 1,0 -").concat((firstLayerRadius) * 2, ",0");
                     subpaths = [innerArcPath];
                     if (taxonSpecifics[key]["layers"].length === 2) { // If the shape to be drawm completes a full circle AND consists simply of two concentric circles.
-                        var midArcPath = "M ".concat(this.state.horizontalShift, ", ").concat(this.state.verticalShift, " m -").concat(secondLayer(key) * layerWidth, ", 0 a ").concat(secondLayer(key) * layerWidth, ",").concat(secondLayer(key) * layerWidth, " 0 1,0 ").concat((secondLayer(key) * layerWidth) * 2, ",0 a ").concat(secondLayer(key) * layerWidth, ",").concat(secondLayer(key) * layerWidth, " 0 1,0 -").concat((secondLayer(key) * layerWidth) * 2, ",0");
+                        var midArcPath = "M ".concat(viewportDimensions["cx"], ", ").concat(viewportDimensions["cy"], " m -").concat(secondLayer(key) * layerWidth, ", 0 a ").concat(secondLayer(key) * layerWidth, ",").concat(secondLayer(key) * layerWidth, " 0 1,0 ").concat((secondLayer(key) * layerWidth) * 2, ",0 a ").concat(secondLayer(key) * layerWidth, ",").concat(secondLayer(key) * layerWidth, " 0 1,0 -").concat((secondLayer(key) * layerWidth) * 2, ",0");
                         subpaths.push(midArcPath);
                     }
                     else { // If the shape to be drawm completes a full circle AND is of irregular shape.
@@ -1190,7 +1192,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                             ;
                             subpaths.push(midArcPath);
                         }
-                        var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(this.state.horizontalShift, ",").concat(this.state.verticalShift + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length - 1] * layerWidth);
+                        var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(viewportDimensions["cx"], ",").concat(viewportDimensions["cy"] + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length - 1] * layerWidth);
                         subpaths.push(lineInnertoOuter);
                     }
                     var d = subpaths.join(" ");
@@ -1234,8 +1236,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         var root = newState["root"] ? newState["root"] : this.state.root;
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
         var numberOfLayers = alignedCroppedLineages[0].length;
-        var cx = this.state.horizontalShift;
-        var cy = this.state.verticalShift;
+        var cx = viewportDimensions["cx"];
+        var cy = viewportDimensions["cy"];
         var layerWidthInPx = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers, viewportDimensions["dpmm"] * 1);
         //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
         var startDeg = function (key) { return taxonSpecifics[key]["degrees"][0]; };
@@ -1427,16 +1429,16 @@ var PlotDrawing = /** @class */ (function (_super) {
                     radialLeft = hoverRadialLeft = newTaxonSpecifics[key]["center"][0];
                     radialAngle = 360 - (270 - radialAngle);
                     // (1)
-                    leftIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
-                    rightIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
+                    leftIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
+                    rightIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
                 }
                 else if (centerDegree >= 0 && centerDegree <= 180) {
                     radialLeft = newTaxonSpecifics[key]["center"][0] - width;
                     hoverRadialLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
                     radialAngle = 270 - radialAngle;
                     // (1)
-                    leftIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
-                    rightIntersect = (0, helperFunctions_js_1.lineIntersect)(this.state.horizontalShift, this.state.verticalShift, newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
+                    leftIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
+                    rightIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
                 }
                 // (1)
                 if (leftIntersect === null || rightIntersect === null) {
@@ -1470,7 +1472,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             }
             // Calculations for root shape in the center.
             else {
-                top_1 = this.state.verticalShift + height / 2;
+                top_1 = viewportDimensions["cy"] + height / 2;
                 left = newTaxonSpecifics[key]["center"][0] - width / 2;
                 hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth / 2;
                 transformOrigin = "";
