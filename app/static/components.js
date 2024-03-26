@@ -663,21 +663,20 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (plotEValue === void 0) { plotEValue = this.state.plotEValue; }
         if (lineages === void 0) { lineages = lineagesNames; }
         if (ranks === void 0) { ranks = lineagesRanks; }
-        // If this plot has been calculated before, retrieve it from storage.
-        var currPlotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + viewportDimensions["cx"] + viewportDimensions["cy"];
-        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
-            console.log("NO RECALCULATING");
-            this.setState(alreadyVisited[currPlotId]);
-            return;
-        }
-        console.log("RECALCULATING");
-        // Reset the object with all taxon data.
-        allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
         // Change some variables, so that if the plot is dowlnoaded as SVG, the file name reflects all settings.
         taxonName = root.slice(0, 10);
         layerName = layer;
         modeName = alteration;
         collapseName = "collapse" + collapse;
+        // If this plot has been calculated before, retrieve it from storage.
+        var currPlotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + viewportDimensions["cx"] + viewportDimensions["cy"];
+        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
+            this.setState(alreadyVisited[currPlotId]);
+            return;
+        }
+        ;
+        // Reset the object with all taxon data.
+        allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
         // Get only relevant lineages.
         // Iterate over all lineages and filter out the ones that do not contain any of the root taxa.
         var rootTaxa = root.split(" & ");
@@ -744,7 +743,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         ;
         // Align cropped lineages by adding null as placeholder for missing ranks.
-        var alignedCropppedLineages = [];
+        var alignedCroppedLineages = [];
         var alignedCropppedRanks = [];
         for (var i = 0; i < croppedLineages.length; i++) {
             var alignedLineage = new Array(rankPattern.length).fill(null);
@@ -758,7 +757,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 ;
             }
             ;
-            alignedCropppedLineages.push(alignedLineage);
+            alignedCroppedLineages.push(alignedLineage);
             alignedCropppedRanks.push(alignedRank);
         }
         ;
@@ -769,9 +768,9 @@ var PlotDrawing = /** @class */ (function (_super) {
             taxonSpecifics[taxName] = {};
             taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length - 1];
             taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
-            taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
+            taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCroppedLineages[i];
             taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
-            taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
+            taxonSpecifics[taxName]["firstLayerAligned"] = alignedCroppedLineages[i].indexOf(taxName);
             if (changedLineages[i] || taxName.includes("&")) {
                 var taxa = taxName.split(" & ");
                 var unassignedCount = taxa.map(function (item) { return allTaxaReduced[item]["totalCount"]; }).reduce(function (accumulator, value) { return accumulator + value; }, 0);
@@ -815,8 +814,8 @@ var PlotDrawing = /** @class */ (function (_super) {
                     taxonSpecifics[croppedLineages[i][j]] = {};
                     taxonSpecifics[croppedLineages[i][j]]["rank"] = croppedRanks[i][j];
                     taxonSpecifics[croppedLineages[i][j]]["croppedLineage"] = croppedLineages[i].slice(0, j + 1);
-                    var index = alignedCropppedLineages[i].indexOf(croppedLineages[i][j]);
-                    taxonSpecifics[croppedLineages[i][j]]["alignedCroppedLineage"] = alignedCropppedLineages[i].slice(0, index + 1);
+                    var index = alignedCroppedLineages[i].indexOf(croppedLineages[i][j]);
+                    taxonSpecifics[croppedLineages[i][j]]["alignedCroppedLineage"] = alignedCroppedLineages[i].slice(0, index + 1);
                     taxonSpecifics[croppedLineages[i][j]]["unassignedCount"] = 0;
                     taxonSpecifics[croppedLineages[i][j]]["totalCount"] = allTaxaReduced[croppedLineages[i][j]]["totalCount"];
                     taxonSpecifics[croppedLineages[i][j]]["firstLayerUnaligned"] = j;
@@ -831,7 +830,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (croppedLineages.length >= 1) {
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern,
                 "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages,
-                "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors,
+                "alignedCroppedLineages": alignedCroppedLineages, "ancestors": ancestors,
                 "alteration": alteration, "collapse": collapse,
                 "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true,
                 "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue });
@@ -861,16 +860,20 @@ var PlotDrawing = /** @class */ (function (_super) {
             if (lastTaxon !== "root") {
                 allTaxaReduced[lastTaxon]["unassignedCount"] = newUnassignedCount;
             }
+            ;
             for (var _i = 0, lineage_2 = lineage; _i < lineage_2.length; _i++) {
                 var taxon = lineage_2[_i];
                 if (!(taxon === lastTaxon && lastTaxon === "root")) {
                     allTaxaReduced[taxon]["totalCount"] -= diff;
                 }
+                ;
             }
+            ;
             if (newUnassignedCount === 0) {
                 newCroppedLineages.splice(i, 1);
                 newCroppedRanks.splice(i, 1);
             }
+            ;
         };
         for (var i = croppedLineages.length - 1; i >= 0; i--) {
             _loop_3(i);

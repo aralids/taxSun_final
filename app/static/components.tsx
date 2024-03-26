@@ -616,30 +616,28 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         alteration=this.state.alteration, collapse=this.state.collapse, 
         plotEValue=this.state.plotEValue, lineages=lineagesNames, ranks=lineagesRanks):void {
 
-        // If this plot has been calculated before, retrieve it from storage.
-        let currPlotId:string = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + viewportDimensions["cx"] + viewportDimensions["cy"];
-        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
-            console.log("NO RECALCULATING")
-            this.setState(alreadyVisited[currPlotId]);
-            return;
-        }
-
-        console.log("RECALCULATING")
-        // Reset the object with all taxon data.
-        allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
-
         // Change some variables, so that if the plot is dowlnoaded as SVG, the file name reflects all settings.
         taxonName = root.slice(0, 10);
         layerName = layer;
         modeName = alteration;
         collapseName = "collapse" + collapse;
 
+        // If this plot has been calculated before, retrieve it from storage.
+        let currPlotId:string = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + viewportDimensions["cx"] + viewportDimensions["cy"];
+        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
+            this.setState(alreadyVisited[currPlotId]);
+            return;
+        };
+
+        // Reset the object with all taxon data.
+        allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
+
         // Get only relevant lineages.
         // Iterate over all lineages and filter out the ones that do not contain any of the root taxa.
         let rootTaxa:string[] = root.split(" & ");
         let croppedLineages:string[][] = [];
         let croppedRanks:string[][] = [];
-        for (let i=0; i<lineages.length; i++) {
+        for (let i = 0; i < lineages.length; i++) {
             if (rootTaxa.indexOf(lineages[i][layer]) > -1) {
                 croppedLineages.push(lineages[i]);
                 croppedRanks.push(ranks[i]);
@@ -700,9 +698,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         };
         
         // Align cropped lineages by adding null as placeholder for missing ranks.
-        let alignedCropppedLineages:string[][] = [];
+        let alignedCroppedLineages:string[][] = [];
         let alignedCropppedRanks:string[][] = [];
-        for (let i=0; i<croppedLineages.length; i++) {
+        for (let i = 0; i < croppedLineages.length; i++) {
             let alignedLineage:any = new Array(rankPattern.length).fill(null);
             let alignedRank:any = new Array(rankPattern.length).fill(null);
             for (let j=0; j<croppedRanks[i].length; j++) {
@@ -712,20 +710,20 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     alignedRank.splice(index, 1, croppedRanks[i][j]);
                 };
             };
-            alignedCropppedLineages.push(alignedLineage);
+            alignedCroppedLineages.push(alignedLineage);
             alignedCropppedRanks.push(alignedRank);
         };
 
         // Save in state object taxonSpecifics.
         let taxonSpecifics:object = {};
-        for (let i=0; i<croppedLineages.length; i++) {
+        for (let i = 0; i < croppedLineages.length; i++) {
             let taxName:string = croppedLineages[i][croppedLineages[i].length-1];
             taxonSpecifics[taxName] = {};
             taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length-1];
             taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
-            taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
+            taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCroppedLineages[i];
             taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length-1;
-            taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
+            taxonSpecifics[taxName]["firstLayerAligned"] = alignedCroppedLineages[i].indexOf(taxName);
             if (changedLineages[i] || taxName.includes("&")) {
                 let taxa:string[] = taxName.split(" & ");
                 let unassignedCount:number = taxa.map(item => allTaxaReduced[item]["totalCount"]).reduce((accumulator, value) => accumulator + value, 0);
@@ -747,9 +745,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             };
             allTaxaReduced[root] = totalUnassignedCount;
         }
-        else {
-            totalUnassignedCount = allTaxaReduced[root]["totalCount"];
-        };
+        else { totalUnassignedCount = allTaxaReduced[root]["totalCount"]; };
         
         // Make all lineages take up the same amount of degrees in the plot if necessary.
         if (alteration === "allEqual") {
@@ -757,14 +753,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 taxonSpecifics[taxName]["unassignedCount"] = 1;
             };
         };
-        for (let i=0; i<croppedLineages.length; i++) {
-            for (let j=croppedLineages[i].length-2; j>=0; j--) {
+        for (let i = 0; i < croppedLineages.length; i++) {
+            for (let j = croppedLineages[i].length - 2; j >= 0; j--) {
                 if (!taxonSpecifics[croppedLineages[i][j]]) {
                     taxonSpecifics[croppedLineages[i][j]] = {};
                     taxonSpecifics[croppedLineages[i][j]]["rank"] = croppedRanks[i][j];
                     taxonSpecifics[croppedLineages[i][j]]["croppedLineage"] = croppedLineages[i].slice(0, j+1);
-                    let index = alignedCropppedLineages[i].indexOf(croppedLineages[i][j]);
-                    taxonSpecifics[croppedLineages[i][j]]["alignedCroppedLineage"] = alignedCropppedLineages[i].slice(0, index+1);
+                    let index = alignedCroppedLineages[i].indexOf(croppedLineages[i][j]);
+                    taxonSpecifics[croppedLineages[i][j]]["alignedCroppedLineage"] = alignedCroppedLineages[i].slice(0, index+1);
                     taxonSpecifics[croppedLineages[i][j]]["unassignedCount"] = 0;
                     taxonSpecifics[croppedLineages[i][j]]["totalCount"] = allTaxaReduced[croppedLineages[i][j]]["totalCount"];
                     taxonSpecifics[croppedLineages[i][j]]["firstLayerUnaligned"] = j;
@@ -777,7 +773,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         if (croppedLineages.length >= 1) {
             this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, 
                                 "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, 
-                                "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, 
+                                "alignedCroppedLineages": alignedCroppedLineages, "ancestors": ancestors, 
                                 "alteration": alteration, "collapse": collapse, 
                                 "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, 
                                 "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue});
@@ -797,7 +793,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 if (item <= eThreshold) {
                     successfulIndices.push(index);
                 }
-                return item <= eThreshold!
+                return item <= eThreshold!;
             });
             allTaxaReduced[lastTaxon]["successfulIndices"] = successfulIndices;
             let newUnassignedCount:number = eValues.length;
@@ -807,17 +803,18 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             
             if (lastTaxon !== "root") {
                 allTaxaReduced[lastTaxon]["unassignedCount"] = newUnassignedCount;
-            }
+            };
+
             for (let taxon of lineage) {
                 if (!(taxon === lastTaxon && lastTaxon === "root")) {
                     allTaxaReduced[taxon]["totalCount"] -= diff;
-                }
-            }
+                };
+            };
 
             if (newUnassignedCount === 0) {
                 newCroppedLineages.splice(i, 1);
                 newCroppedRanks.splice(i, 1);
-            }
+            };
         }
         let minEValue:number = allEValues.sort(function(a, b){return a-b})[0];
         return [newCroppedLineages, newCroppedRanks, minEValue];
