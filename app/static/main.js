@@ -1,6 +1,5 @@
 "use strict";
 exports.__esModule = true;
-console.log("main.tsx start");
 var React = require("react");
 var ReactDOM = require("react-dom/client");
 var predefinedObjects_js_1 = require("./predefinedObjects.js");
@@ -209,5 +208,3 @@ var domContainer = document.querySelector('#plot-container');
 var reactRoot = ReactDOM.createRoot(domContainer);
 reactRoot.render(React.createElement(components_js_1.PlotDrawing, { lineages: predefinedObjects_js_1.ln, ranks: predefinedObjects_js_1.lr }));
 var plotContainerParent = domContainer.parentElement;
-console.log(plotContainerParent, domContainer.offsetHeight);
-console.log("main.tsx end", window);

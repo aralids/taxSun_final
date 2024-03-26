@@ -1,7 +1,6 @@
 "use strict";
 exports.__esModule = true;
 exports.getLayers = exports.onMouseOutHandler = exports.hoverHandler = exports.downloadSVGasTextFile = exports.findRealName = exports.hideContextMenu = exports.showContextMenu = exports.disableEValue = exports.enableEValue = exports.makeID = exports.getViewportDimensions = exports.getFourCorners = exports.lineLength = exports.lineIntersect = exports.tintify = exports.midColor = exports.hexToRGB = exports.handleMouseMove = exports.cos = exports.sin = exports.round = exports.radians = exports.createPalette = void 0;
-console.log("helperFunctions.tsx start");
 function createPalette(colorOffset) {
     if (colorOffset === void 0) { colorOffset = 7; }
     var newColors = [];
@@ -314,4 +313,3 @@ function getLayers(lineagesCopy, unique) {
     return layers;
 }
 exports.getLayers = getLayers;
-console.log("helperFunctions.tsx end");

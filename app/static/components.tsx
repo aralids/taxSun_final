@@ -1,5 +1,3 @@
-console.log("components.tsx start")
-
 import * as React from "react";
 import {ln, lr, atr, at} from "./predefinedObjects.js";
 import {getViewportDimensions, handleMouseMove,
@@ -520,7 +518,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     constructor(props) {
         super(props);
         this.state = {
-            root: "Bacteria",
+            root: "root",
             layer: 1,
             collapse: false,
             horizontalShift: viewportDimensions["cx"],
@@ -568,31 +566,16 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input")!.addEventListener("change", () => {
             let alteration:any = document.querySelector('input[name="radio"]:checked')!.getAttribute("id");
-            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
-            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
-                alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
-                alreadyVisited[plotId]["abbreviateLabels"] = false;
-            }
             this.cropLineages(this.state.root, this.state.layer, alteration, this.state.collapse);
         })
         document.getElementById("checkbox-input")!.addEventListener("change", () => {
             let element:any =  document.getElementById("checkbox-input")!;
             let checked:boolean = element.checked;
-            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
-            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
-                alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
-                alreadyVisited[plotId]["abbreviateLabels"] = false;
-            }
             this.cropLineages(this.state.root, this.state.layer, this.state.alteration, checked);
-        })
+        });
         document.getElementById("e-input")!.addEventListener("change", () => {
             let element:any =  document.getElementById("e-input")!;
             let checked:boolean = element.checked;
-            let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
-            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
-                alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
-                alreadyVisited[plotId]["abbreviateLabels"] = false;
-            }
             this.cropLineages(this.state.root, this.state.layer, this.state.alteration, this.state.collapse, checked);
         })
         document.getElementById("new-data")!.addEventListener("change", () => {
@@ -616,11 +599,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 let el:any = document.getElementById("e-text")!
                 let value:number = parseFloat(el.value);
                 if (eInput.checked) {
-                    let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
-                    if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
-                        alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
-                        alreadyVisited[plotId]["abbreviateLabels"] = false;
-                    }
                     eThreshold = value;
                     this.cropLineages();
                 }
@@ -634,13 +612,25 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     componentDidUpdate() {
         if (!this.state.labelsPlaced) {
             this.placeLabels();
-        }
-    }
+        };
+    };
 
     // Leave only relevant lineages and crop them if necessary.
-    cropLineages(root=this.state.root, layer=this.state.layer, 
+    cropLineages(root="Bacteria", layer=this.state.layer, 
         alteration=this.state.alteration, collapse=this.state.collapse, 
         plotEValue=this.state.plotEValue, lineages=lineagesNames, ranks=lineagesRanks):void {
+
+        // If this plot has been calculated before, retrieve it from storage.
+        let currPlotId:string = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + viewportDimensions["cx"] + viewportDimensions["cy"];
+        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
+            console.log("NO RECALCULATING")
+            this.setState(alreadyVisited[currPlotId]);
+            //return;
+        }
+
+        console.log("RECALCULATING")
+        // Reset the object with all taxon data.
+        allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
 
         // Change some variables, so that if the plot is dowlnoaded as SVG, the file name reflects all settings.
         taxonName = root.slice(0, 10);
@@ -657,7 +647,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             if (rootTaxa.indexOf(lineages[i][layer]) > -1) {
                 croppedLineages.push(lineages[i]);
                 croppedRanks.push(ranks[i]);
-            }
+            };
         };
 
         // Remember the common ancestors of all relevant lineages.
@@ -676,14 +666,11 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             croppedRanks = croppedRanks.map(item => item.slice(layer));
         };
 
-        allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
-
         // Filter by e-value if required.
         if (plotEValue) {
             let modified = this.filterByEValue(croppedLineages, croppedRanks);
             let minEValue = modified[2];
             if (eThreshold < minEValue) {
-                allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
                 eThreshold = minEValue;
                 let eText:any = document.getElementById("e-text")!
                 eText.value = minEValue;
@@ -714,7 +701,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let arr:any = this.collapse(croppedLineages, croppedRanks);
             croppedLineages = arr[0];
             croppedRanks = arr[1];
-        }
+        };
         
         // Align cropped lineages by adding null as placeholder for missing ranks.
         let alignedCropppedLineages:string[][] = [];
@@ -789,20 +776,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 };
             };
         };
-
-        // Calculate some parameters needed by the next functions.
-        let dpmm:number = viewportDimensions["dpmm"];
-        let numberOfLayers:number = alignedCropppedLineages[0] ? alignedCropppedLineages[0].length : 0;
-        let smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        let layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
-
-        // If this plot has been calculated before, retrieve it from storage.
-        // Continue if more than one lineage fulfilling the criteria was found.
-        let currPlotId:string = root + layer + collapse + alteration + plotEValue + round(layerWidth) + eThreshold;
-        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1 && newDataLoaded) {
-            this.setState(alreadyVisited[currPlotId]);
-        } 
-        else if (croppedLineages.length >= 1) {
+        
+        // Continue onto the next step if one or more lineages fulfill the criteria.
+        if (croppedLineages.length >= 1) {
             this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, 
                                 "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, 
                                 "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, 
@@ -1119,10 +1095,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var dpmm:number = viewportDimensions["dpmm"];
         // Redundancy v
         var numberOfLayers:number = alignedCroppedLineages[0].length;
-        //var smallerDimension:number = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
-        //var layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
-        var smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
+        var smallerDimension:number = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
+        var layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
+        //var smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
+        //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
 
         var firstLayer = (key) => {return taxonSpecifics[key]["layers"][0]};
         var secondLayer = (key) => {return taxonSpecifics[key]["layers"][1]};
@@ -1205,8 +1181,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var numberOfLayers:number = alignedCroppedLineages[0].length;
         var cx:number = this.state.horizontalShift;
         var cy:number = this.state.verticalShift;
-        //var layerWidthInPx:number = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers , viewportDimensions["dpmm"] * 1);
-        var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
+        var layerWidthInPx:number = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers , viewportDimensions["dpmm"] * 1);
+        //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
         var startDeg = (key) => {return taxonSpecifics[key]["degrees"][0]};
         var endDeg = (key) => {return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1]};
 
@@ -1345,11 +1321,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
         else {
             nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length-1;
-        }
-        let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
-        if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
-            alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
-            alreadyVisited[plotId]["abbreviateLabels"] = false;
         }
         (window as any).taxSunClick(taxon);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
@@ -1529,6 +1500,12 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
 
     render() {
+        let plotId:string = fileName + originalAllTaxaReduced["root"]["totalCount"] + this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + viewportDimensions["cx"] + viewportDimensions["cy"];
+        if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
+            alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
+            alreadyVisited[plotId]["abbreviateLabels"] = false;
+        }
+
         var shapes:any = [];
         var labels:any = [];
         var ancestors:any = [];
@@ -1592,5 +1569,3 @@ function LabelBackground(props) {
 //addEventListener("mousemove", (event) => handleMouseMove(event));
 
 export {PlotDrawing}
-
-console.log("components.tsx end")

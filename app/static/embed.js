@@ -1,6 +1,3 @@
-console.log("embed.js start")
-console.log(document.getElementById("Gammaproteobacteria_-_2"));
-
 function taxSunClick(name, rank, id) {
     //console.log("taxSunClick!", name);
 };
@@ -51,10 +48,8 @@ function simulateMouseOut(element){
 }
 
 window.addEventListener('load', function() {
-    console.log("embed.js end")
     var element = document.getElementById("Gammaproteobacteria_-_2");
     // simulateMouseClick(element);
     //simulateMouseOver(element);
     //setTimeout(() => {simulateMouseOut(element)}, 3000);
-    console.log("embed.js end 2")
 })

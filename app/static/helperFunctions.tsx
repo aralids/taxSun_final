@@ -1,5 +1,3 @@
-console.log("helperFunctions.tsx start")
-
 function createPalette(colorOffset:number = 7):string[] {
     let newColors:string[] = []
     for (let i=0; i<7; i++) {
@@ -315,5 +313,3 @@ function getLayers(lineagesCopy:string[][], unique:boolean=false):string[][] {
 }
 
 export {createPalette, radians, round, sin, cos, handleMouseMove, hexToRGB, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions, makeID, enableEValue, disableEValue, showContextMenu, hideContextMenu, findRealName, downloadSVGasTextFile, hoverHandler, onMouseOutHandler, getLayers};
-
-console.log("helperFunctions.tsx end")

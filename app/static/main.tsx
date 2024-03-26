@@ -1,5 +1,3 @@
-console.log("main.tsx start")
-
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import {ln, lr} from "./predefinedObjects.js";
@@ -220,6 +218,3 @@ let reactRoot = ReactDOM.createRoot(domContainer);
 reactRoot.render(<PlotDrawing lineages={ln} ranks={lr}/>);
 
 let plotContainerParent:any = domContainer.parentElement;
-console.log(plotContainerParent, domContainer.offsetHeight)
-
-console.log("main.tsx end", window)

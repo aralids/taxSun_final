@@ -26,7 +26,6 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 var _a, _b;
 exports.__esModule = true;
 exports.PlotDrawing = void 0;
-console.log("components.tsx start");
 var React = require("react");
 var predefinedObjects_js_1 = require("./predefinedObjects.js");
 var helperFunctions_js_1 = require("./helperFunctions.js");
@@ -558,7 +557,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     function PlotDrawing(props) {
         var _this = _super.call(this, props) || this;
         _this.state = {
-            root: "Bacteria",
+            root: "root",
             layer: 1,
             collapse: false,
             horizontalShift: viewportDimensions["cx"],
@@ -604,31 +603,16 @@ var PlotDrawing = /** @class */ (function (_super) {
         // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input").addEventListener("change", function () {
             var alteration = document.querySelector('input[name="radio"]:checked').getAttribute("id");
-            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth) + eThreshold;
-            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
-                alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
-                alreadyVisited[plotId]["abbreviateLabels"] = false;
-            }
             _this.cropLineages(_this.state.root, _this.state.layer, alteration, _this.state.collapse);
         });
         document.getElementById("checkbox-input").addEventListener("change", function () {
             var element = document.getElementById("checkbox-input");
             var checked = element.checked;
-            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth) + eThreshold;
-            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
-                alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
-                alreadyVisited[plotId]["abbreviateLabels"] = false;
-            }
             _this.cropLineages(_this.state.root, _this.state.layer, _this.state.alteration, checked);
         });
         document.getElementById("e-input").addEventListener("change", function () {
             var element = document.getElementById("e-input");
             var checked = element.checked;
-            var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth) + eThreshold;
-            if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
-                alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
-                alreadyVisited[plotId]["abbreviateLabels"] = false;
-            }
             _this.cropLineages(_this.state.root, _this.state.layer, _this.state.alteration, _this.state.collapse, checked);
         });
         document.getElementById("new-data").addEventListener("change", function () {
@@ -652,11 +636,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var el = document.getElementById("e-text");
                 var value = parseFloat(el.value);
                 if (eInput.checked) {
-                    var plotId = _this.state.root + _this.state.layer + _this.state.collapse + _this.state.alteration + _this.state.plotEValue + (0, helperFunctions_js_1.round)(_this.state.layerWidth) + eThreshold;
-                    if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
-                        alreadyVisited[plotId] = JSON.parse(JSON.stringify(_this.state));
-                        alreadyVisited[plotId]["abbreviateLabels"] = false;
-                    }
                     eThreshold = value;
                     _this.cropLineages();
                 }
@@ -670,16 +649,28 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (!this.state.labelsPlaced) {
             this.placeLabels();
         }
+        ;
     };
+    ;
     // Leave only relevant lineages and crop them if necessary.
     PlotDrawing.prototype.cropLineages = function (root, layer, alteration, collapse, plotEValue, lineages, ranks) {
-        if (root === void 0) { root = this.state.root; }
+        if (root === void 0) { root = "Bacteria"; }
         if (layer === void 0) { layer = this.state.layer; }
         if (alteration === void 0) { alteration = this.state.alteration; }
         if (collapse === void 0) { collapse = this.state.collapse; }
         if (plotEValue === void 0) { plotEValue = this.state.plotEValue; }
         if (lineages === void 0) { lineages = lineagesNames; }
         if (ranks === void 0) { ranks = lineagesRanks; }
+        // If this plot has been calculated before, retrieve it from storage.
+        var currPlotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + viewportDimensions["cx"] + viewportDimensions["cy"];
+        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
+            console.log("NO RECALCULATING");
+            this.setState(alreadyVisited[currPlotId]);
+            //return;
+        }
+        console.log("RECALCULATING");
+        // Reset the object with all taxon data.
+        allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
         // Change some variables, so that if the plot is dowlnoaded as SVG, the file name reflects all settings.
         taxonName = root.slice(0, 10);
         layerName = layer;
@@ -695,6 +686,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 croppedLineages.push(lineages[i]);
                 croppedRanks.push(ranks[i]);
             }
+            ;
         }
         ;
         // Remember the common ancestors of all relevant lineages.
@@ -713,13 +705,11 @@ var PlotDrawing = /** @class */ (function (_super) {
             croppedRanks = croppedRanks.map(function (item) { return item.slice(layer); });
         }
         ;
-        allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
         // Filter by e-value if required.
         if (plotEValue) {
             var modified = this.filterByEValue(croppedLineages, croppedRanks);
             var minEValue = modified[2];
             if (eThreshold < minEValue) {
-                allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
                 eThreshold = minEValue;
                 var eText = document.getElementById("e-text");
                 eText.value = minEValue;
@@ -730,9 +720,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         ;
         // Get minimal rank pattern for this particular plot to prepare for alignment.
-        var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []); // Create an array of all ranks of all cropped lineages. Not unique yet.
-        ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; }); // Uniquify.
-        var rankPattern = rankPatternFull.filter(function (item) { return ranksUnique.indexOf(item) > -1; }); // Match the uniquified array to the fixed rank pattern to keep hierarchical order.
+        var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []);
+        ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; });
+        var rankPattern = rankPatternFull.filter(function (item) { return ranksUnique.indexOf(item) > -1; });
         // Mary taxa if necessary.
         var changedLineages = [];
         if (alteration.startsWith("marriedTaxa")) {
@@ -742,13 +732,15 @@ var PlotDrawing = /** @class */ (function (_super) {
             changedLineages = cropped[2];
         }
         ;
-        croppedLineages = croppedLineages.map(function (item) { item.splice(0, 1, root); return item; }); // Fixes the problem with the root label of married plots.
+        // Fixes the problem with the root label of married plots.
+        croppedLineages = croppedLineages.map(function (item) { item.splice(0, 1, root); return item; });
         // Collapse lineages if necessary.
         if (collapse) {
             var arr = this.collapse(croppedLineages, croppedRanks);
             croppedLineages = arr[0];
             croppedRanks = arr[1];
         }
+        ;
         // Align cropped lineages by adding null as placeholder for missing ranks.
         var alignedCropppedLineages = [];
         var alignedCropppedRanks = [];
@@ -772,32 +764,27 @@ var PlotDrawing = /** @class */ (function (_super) {
         var taxonSpecifics = {};
         for (var i = 0; i < croppedLineages.length; i++) {
             var taxName = croppedLineages[i][croppedLineages[i].length - 1];
+            taxonSpecifics[taxName] = {};
+            taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length - 1];
+            taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
+            taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
+            taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
+            taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
             if (changedLineages[i] || taxName.includes("&")) {
-                taxonSpecifics[taxName] = {};
-                taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length - 1];
-                taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
-                taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
                 var taxa = taxName.split(" & ");
                 var unassignedCount = taxa.map(function (item) { return allTaxaReduced[item]["totalCount"]; }).reduce(function (accumulator, value) { return accumulator + value; }, 0);
                 taxonSpecifics[taxName]["unassignedCount"] = unassignedCount;
                 taxonSpecifics[taxName]["totalCount"] = unassignedCount;
-                taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
-                taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
                 taxonSpecifics[taxName]["married"] = true;
             }
             else {
-                taxonSpecifics[taxName] = {};
-                taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length - 1];
-                taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
-                taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
                 taxonSpecifics[taxName]["unassignedCount"] = allTaxaReduced[taxName].unassignedCount;
                 taxonSpecifics[taxName]["totalCount"] = allTaxaReduced[taxName]["totalCount"];
-                taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length - 1;
-                taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
             }
             ;
         }
         ;
+        // Get sum of all unassigned counts.
         var totalUnassignedCount = 0;
         if (root.indexOf("&") > -1) {
             for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
@@ -838,16 +825,8 @@ var PlotDrawing = /** @class */ (function (_super) {
             ;
         }
         ;
-        var dpmm = viewportDimensions["dpmm"];
-        var numberOfLayers = alignedCropppedLineages[0] ? alignedCropppedLineages[0].length : 0;
-        var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
-        // Continue if more than one lineage fulfilling the criteria was found.
-        var currPlotId = root + layer + collapse + alteration + plotEValue + (0, helperFunctions_js_1.round)(layerWidth) + eThreshold;
-        if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1 && newDataLoaded) {
-            this.setState(alreadyVisited[currPlotId]);
-        }
-        else if (croppedLineages.length >= 1) {
+        // Continue onto the next step if one or more lineages fulfill the criteria.
+        if (croppedLineages.length >= 1) {
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern,
                 "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages,
                 "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors,
@@ -1173,10 +1152,10 @@ var PlotDrawing = /** @class */ (function (_super) {
         var dpmm = viewportDimensions["dpmm"];
         // Redundancy v
         var numberOfLayers = alignedCroppedLineages[0].length;
-        //var smallerDimension:number = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
-        //var layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
-        var smallerDimension = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
+        var smallerDimension = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
+        var layerWidth = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
+        //var smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
+        //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
         var firstLayer = function (key) { return taxonSpecifics[key]["layers"][0]; };
         var secondLayer = function (key) { return taxonSpecifics[key]["layers"][1]; };
         var startDeg = function (key) { return taxonSpecifics[key]["degrees"][0]; };
@@ -1257,8 +1236,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         var numberOfLayers = alignedCroppedLineages[0].length;
         var cx = this.state.horizontalShift;
         var cy = this.state.verticalShift;
-        //var layerWidthInPx:number = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers , viewportDimensions["dpmm"] * 1);
-        var layerWidthInPx = Math.max((Math.min(cx, cy)) / numberOfLayers, viewportDimensions["dpmm"] * 1);
+        var layerWidthInPx = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers, viewportDimensions["dpmm"] * 1);
+        //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
         var startDeg = function (key) { return taxonSpecifics[key]["degrees"][0]; };
         var endDeg = function (key) { return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1]; };
         for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
@@ -1393,11 +1372,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         else {
             nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length - 1;
-        }
-        var plotId = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + (0, helperFunctions_js_1.round)(this.state.layerWidth) + eThreshold;
-        if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
-            alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
-            alreadyVisited[plotId]["abbreviateLabels"] = false;
         }
         window.taxSunClick(taxon);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
@@ -1555,6 +1529,11 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     PlotDrawing.prototype.render = function () {
         var _this = this;
+        var plotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + viewportDimensions["cx"] + viewportDimensions["cy"];
+        if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
+            alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
+            alreadyVisited[plotId]["abbreviateLabels"] = false;
+        }
         var shapes = [];
         var labels = [];
         var ancestors = [];
@@ -1628,4 +1607,3 @@ function LabelBackground(props) {
     ;
 }
 ;
-console.log("components.tsx end");
