@@ -1256,38 +1256,40 @@ var PlotDrawing = /** @class */ (function (_super) {
         var numberOfLayers = alignedCroppedLineages[0].length;
         var smallerDimension = Math.min(cx * 0.6, cy); //var smallerDimension:number = Math.min(cx, cy);
         var layerWidth = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1); //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
-        var firstLayer = function (key) { return taxonSpecifics[key]["layers"][0]; };
-        var secondLayer = function (key) { return taxonSpecifics[key]["layers"][1]; };
-        var startDeg = function (key) { return taxonSpecifics[key]["degrees"][0]; };
-        var endDeg = function (key) { return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1]; };
         for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
             var key = _a[_i];
-            var innRad = (0, helperFunctions_js_1.round)(firstLayer(key) * layerWidth);
+            var layers = taxonSpecifics[key]["layers"];
+            var degrees = taxonSpecifics[key]["degrees"];
+            var fstLayer = layers[0];
+            var sndLayer = layers[1];
+            var startDeg = degrees[0];
+            var endDeg = degrees[degrees.length - 1];
+            var innRad = (0, helperFunctions_js_1.round)(fstLayer * layerWidth);
             // If the shape to be drawn is the center of the plot (a single circle).
-            if (taxonSpecifics[key]["layers"][0] === 0) {
+            if (layers[0] === 0) {
                 taxonSpecifics[key]["svgPath"] = "M ".concat(cx, ", ").concat(cy, " m -").concat(layerWidth, ", 0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 ").concat((layerWidth) * 2, ",0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 -").concat((layerWidth) * 2, ",0");
             }
             // If the shape to be drawn is NOT the center of the plot, but a complex shape.
             else {
                 var subpaths = [];
                 // If the shape to be drawn completes a full circle...
-                if ((0, helperFunctions_js_1.round)(endDeg(key) - startDeg(key)) === 360) {
+                if ((0, helperFunctions_js_1.round)(endDeg - startDeg) === 360) {
                     var innerArcPath = "M ".concat(cx, ", ").concat(cy, " m -").concat(innRad, ", 0 a ").concat(innRad, ",").concat(innRad, " 0 1,0 ").concat((innRad) * 2, ",0 a ").concat(innRad, ",").concat(innRad, " 0 1,0 -").concat(innRad * 2, ",0");
                     subpaths = [innerArcPath];
                     // ...and consists simply of two concentric circles.
-                    if (taxonSpecifics[key]["layers"].length === 2) {
-                        var outerCirc = secondLayer(key) * layerWidth;
+                    if (layers.length === 2) {
+                        var outerCirc = sndLayer * layerWidth;
                         var midArcPath = "M ".concat(cx, ", ").concat(cy, " m -").concat(outerCirc, ", 0 a ").concat(outerCirc, ",").concat(outerCirc, " 0 1,0 ").concat(outerCirc * 2, ",0 a ").concat(outerCirc, ",").concat(outerCirc, " 0 1,0 -").concat(outerCirc * 2, ",0");
                         subpaths.push(midArcPath);
                     }
                     // ...and is of irregular shape.
                     else {
                         var midArc = {};
-                        for (var i = taxonSpecifics[key]["layers"].length - 1; i >= 1; i--) {
-                            var curr = taxonSpecifics[key]["degrees"][i];
-                            var prev = taxonSpecifics[key]["degrees"][i - 1];
-                            var MorL = i === taxonSpecifics[key]["layers"].length - 1 ? "M" : "L";
-                            midArc = (0, helperFunctions_js_1.calculateArcEndpoints)(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
+                        for (var i = layers.length - 1; i >= 1; i--) {
+                            var curr = degrees[i];
+                            var prev = degrees[i - 1];
+                            var MorL = i === layers.length - 1 ? "M" : "L";
+                            midArc = (0, helperFunctions_js_1.calculateArcEndpoints)(layers[i], layerWidth, prev, curr, cx, cy);
                             var midArcPath = "".concat(MorL, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 0 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
                             if (Math.abs(curr - prev) >= 180) {
                                 midArcPath = "".concat(MorL, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 1 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
@@ -1296,27 +1298,26 @@ var PlotDrawing = /** @class */ (function (_super) {
                             subpaths.push(midArcPath);
                         }
                         ;
-                        var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(cx, ",").concat(cy + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length - 1] * layerWidth);
+                        var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(cx, ",").concat(cy + layers[layers.length - 1] * layerWidth);
                         subpaths.push(lineInnertoOuter);
                     }
                     ;
-                    var d = subpaths.join(" ");
-                    taxonSpecifics[key]["svgPath"] = d;
+                    taxonSpecifics[key]["svgPath"] = subpaths.join(" ");
                 }
                 // If the shape doesn't complete a full circle.
                 else {
-                    var innerArc = (0, helperFunctions_js_1.calculateArcEndpoints)(firstLayer(key), layerWidth, startDeg(key), endDeg(key), cx, cy);
+                    var innerArc = (0, helperFunctions_js_1.calculateArcEndpoints)(fstLayer, layerWidth, startDeg, endDeg, cx, cy);
                     var innerArcPath = "M ".concat(innerArc["x1"], ",").concat(innerArc["y1"], " A ").concat(innRad, ",").concat(innRad, " 0 0 1 ").concat(innerArc["x2"], ",").concat(innerArc["y2"]);
-                    if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
+                    if (Math.abs(endDeg - startDeg) >= 180) {
                         innerArcPath = "M ".concat(innerArc["x1"], ",").concat(innerArc["y1"], " A ").concat(innerArc["radius"], ",").concat(innerArc["radius"], " 0 1 1 ").concat(innerArc["x2"], ",").concat(innerArc["y2"]);
                     }
                     ;
                     var subpaths_1 = [innerArcPath];
                     var midArc = {};
-                    for (var i = taxonSpecifics[key]["layers"].length - 1; i >= 0; i--) {
-                        var curr = taxonSpecifics[key]["degrees"][i];
-                        var prev = i === 0 ? startDeg(key) : taxonSpecifics[key]["degrees"][i - 1];
-                        midArc = (0, helperFunctions_js_1.calculateArcEndpoints)(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
+                    for (var i = layers.length - 1; i >= 0; i--) {
+                        var curr = degrees[i];
+                        var prev = i === 0 ? startDeg : degrees[i - 1];
+                        midArc = (0, helperFunctions_js_1.calculateArcEndpoints)(layers[i], layerWidth, prev, curr, cx, cy);
                         var midArcPath = "L ".concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 0 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
                         if (Math.abs(curr - prev) >= 180) {
                             midArcPath = "L ".concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 1 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
@@ -1327,8 +1328,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     ;
                     var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(innerArc["x1"], ",").concat(innerArc["y1"]);
                     subpaths_1.push(lineInnertoOuter);
-                    var d = subpaths_1.join(" ");
-                    taxonSpecifics[key]["svgPath"] = d;
+                    taxonSpecifics[key]["svgPath"] = subpaths_1.join(" ");
                 }
                 ;
             }
@@ -1341,15 +1341,14 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     ;
     PlotDrawing.prototype.calculateTaxonLabels = function (newState) {
-        var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
-        var totalUnassignedCount = newState["totalUnassignedCount"] ? newState["totalUnassignedCount"] : this.state.totalUnassignedCount;
-        var root = newState["root"] ? newState["root"] : this.state.root;
-        var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
+        var alignedCroppedLineages = newState["alignedCroppedLineages"];
+        var totalUnassignedCount = newState["totalUnassignedCount"];
+        var root = newState["root"];
+        var taxonSpecifics = newState["taxonSpecifics"];
         var numberOfLayers = alignedCroppedLineages[0].length;
         var cx = viewportDimensions["cx"];
         var cy = viewportDimensions["cy"];
-        var layerWidthInPx = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers, viewportDimensions["dpmm"] * 1);
-        //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
+        var layerWidthInPx = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers, viewportDimensions["dpmm"] * 1); //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
         var startDeg = function (key) { return taxonSpecifics[key]["degrees"][0]; };
         var endDeg = function (key) { return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1]; };
         for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
@@ -1401,7 +1400,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 }
                 ;
                 var percentage = (0, helperFunctions_js_1.round)((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
-                var oldPercentage = (0, helperFunctions_js_1.round)(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100);
                 taxonSpecifics[key]["label"] = {
                     "direction": direction,
                     "opacity": "1",
@@ -1437,9 +1435,6 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     ;
     PlotDrawing.prototype.getTaxonShapes = function (newState) {
-        // var colors:string[] = ["6CCFF6", "1B998B", "A1E887", "EA638C", "B33C86"];
-        // var colors:string[] = ["1B998B", "A1E887", "1E96FC", "B33C86","003F91", ];
-        //var colors:string[] = newState["colors"] ? newState["colors"].map(hexToRGB) : this.state.colors.map(hexToRGB);
         var croppedLineages = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
         var croppedLineages = JSON.parse(JSON.stringify(croppedLineages));
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
@@ -1477,12 +1472,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         taxonSpecifics[croppedLineages[0][0]]["fill"] = "white";
         taxonSpecifics[croppedLineages[0][0]]["stroke"] = skeletonColor;
         this.setState(newState);
-    };
-    ;
-    PlotDrawing.prototype.changePalette = function () {
-        var newPaletteInput = document.getElementById("new-palette").value;
-        var newPalette = Array.from(newPaletteInput.matchAll(/[0-9a-f]{6}/g)).map(String);
-        this.getTaxonShapes({ "colors": newPalette });
     };
     ;
     PlotDrawing.prototype.handleClick = function (shapeId) {

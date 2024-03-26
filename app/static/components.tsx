@@ -1147,17 +1147,18 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         let numberOfLayers:number = alignedCroppedLineages[0].length;
         let smallerDimension:number = Math.min(cx * 0.6, cy); //var smallerDimension:number = Math.min(cx, cy);
         let layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1); //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
-
-        let firstLayer = (key) => taxonSpecifics[key]["layers"][0];
-        let secondLayer = (key) => taxonSpecifics[key]["layers"][1];
-        let startDeg = (key) => taxonSpecifics[key]["degrees"][0];
-        let endDeg = (key) => taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1];
         
         for (let key of Object.keys(taxonSpecifics)) {
-            let innRad:number = round(firstLayer(key) * layerWidth);
+            let layers = taxonSpecifics[key]["layers"];
+            let degrees = taxonSpecifics[key]["degrees"];
+            let fstLayer = layers[0];
+            let sndLayer = layers[1];
+            let startDeg = degrees[0];
+            let endDeg = degrees[degrees.length - 1];
+            let innRad:number = round(fstLayer * layerWidth);
 
             // If the shape to be drawn is the center of the plot (a single circle).
-            if (taxonSpecifics[key]["layers"][0] === 0) {
+            if (layers[0] === 0) {
                 taxonSpecifics[key]["svgPath"] = `M ${cx}, ${cy} m -${layerWidth}, 0 a ${layerWidth},${layerWidth} 0 1,0 ${(layerWidth)* 2},0 a ${layerWidth},${layerWidth} 0 1,0 -${(layerWidth)* 2},0`;
             }
 
@@ -1166,51 +1167,50 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 var subpaths:string[] = [];
 
                 // If the shape to be drawn completes a full circle...
-                if (round(endDeg(key) - startDeg(key)) === 360) {
+                if (round(endDeg - startDeg) === 360) {
                     let innerArcPath:string = `M ${cx}, ${cy} m -${innRad}, 0 a ${innRad},${innRad} 0 1,0 ${(innRad)* 2},0 a ${innRad},${innRad} 0 1,0 -${innRad* 2},0`;
                     subpaths = [innerArcPath];
 
                     // ...and consists simply of two concentric circles.
-                    if (taxonSpecifics[key]["layers"].length === 2) { 
-                        let outerCirc = secondLayer(key) * layerWidth;
+                    if (layers.length === 2) { 
+                        let outerCirc = sndLayer * layerWidth;
                         let midArcPath:string = `M ${cx}, ${cy} m -${outerCirc}, 0 a ${outerCirc},${outerCirc} 0 1,0 ${outerCirc* 2},0 a ${outerCirc},${outerCirc} 0 1,0 -${outerCirc* 2},0`;
                         subpaths.push(midArcPath);
                     }
                     // ...and is of irregular shape.
                     else {
                         let midArc:object = {};
-                        for (let i = taxonSpecifics[key]["layers"].length - 1; i >= 1; i--) {
-                            let curr = taxonSpecifics[key]["degrees"][i];
-                            let prev = taxonSpecifics[key]["degrees"][i-1];
-                            let MorL:string = i === taxonSpecifics[key]["layers"].length - 1 ? "M" : "L";
-                            midArc = calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
+                        for (let i = layers.length - 1; i >= 1; i--) {
+                            let curr = degrees[i];
+                            let prev = degrees[i-1];
+                            let MorL:string = i === layers.length - 1 ? "M" : "L";
+                            midArc = calculateArcEndpoints(layers[i], layerWidth, prev, curr, cx, cy);
                             let midArcPath:string = `${MorL} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
                             if (Math.abs(curr - prev) >= 180) {
                                 midArcPath = `${MorL} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
                             };
                             subpaths.push(midArcPath);
                         };
-                        let lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${cx},${cy + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length - 1] * layerWidth}`;
+                        let lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${cx},${cy + layers[layers.length - 1] * layerWidth}`;
                         subpaths.push(lineInnertoOuter);
                     };
-                    let d:string = subpaths.join(" ");
-                    taxonSpecifics[key]["svgPath"] = d;
+                    taxonSpecifics[key]["svgPath"] = subpaths.join(" ");
                 }
 
                 // If the shape doesn't complete a full circle.
                 else { 
-                    let innerArc:object = calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key), cx, cy);
+                    let innerArc:object = calculateArcEndpoints(fstLayer, layerWidth, startDeg, endDeg, cx, cy);
                     let innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innRad},${innRad} 0 0 1 ${innerArc["x2"]},${innerArc["y2"]}`;
-                    if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
+                    if (Math.abs(endDeg - startDeg) >= 180) {
                         innerArcPath = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innerArc["radius"]},${innerArc["radius"]} 0 1 1 ${innerArc["x2"]},${innerArc["y2"]}`;
                     };
 
                     let subpaths:string[] = [innerArcPath];
                     let midArc:object = {};
-                    for (let i = taxonSpecifics[key]["layers"].length - 1; i >= 0; i--) {
-                        let curr = taxonSpecifics[key]["degrees"][i];
-                        let prev = i === 0 ? startDeg(key) : taxonSpecifics[key]["degrees"][i-1];
-                        midArc = calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
+                    for (let i = layers.length - 1; i >= 0; i--) {
+                        let curr = degrees[i];
+                        let prev = i === 0 ? startDeg : degrees[i-1];
+                        midArc = calculateArcEndpoints(layers[i], layerWidth, prev, curr, cx, cy);
                         let midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
                         if (Math.abs(curr - prev) >= 180) {
                             midArcPath = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
@@ -1230,15 +1230,15 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     };
 
     calculateTaxonLabels(newState:object):void {
-        var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
-        var totalUnassignedCount = newState["totalUnassignedCount"] ? newState["totalUnassignedCount"] : this.state.totalUnassignedCount;
-        var root:string = newState["root"] ? newState["root"] : this.state.root;
-        var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
+        var alignedCroppedLineages = newState["alignedCroppedLineages"];
+        var totalUnassignedCount = newState["totalUnassignedCount"];
+        var root:string = newState["root"];
+        var taxonSpecifics = newState["taxonSpecifics"];
         var numberOfLayers:number = alignedCroppedLineages[0].length;
         var cx:number = viewportDimensions["cx"];
         var cy:number = viewportDimensions["cy"];
-        var layerWidthInPx:number = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers , viewportDimensions["dpmm"] * 1);
-        //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
+        var layerWidthInPx:number = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers , viewportDimensions["dpmm"] * 1); //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
+        
         var startDeg = (key) => {return taxonSpecifics[key]["degrees"][0]};
         var endDeg = (key) => {return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1]};
 
@@ -1291,7 +1291,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 };
 
                 let percentage:number = round((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
-                let oldPercentage:number = round(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100);
                 taxonSpecifics[key]["label"] = {
                     "direction": direction,
                     "opacity": "1",
@@ -1324,16 +1323,13 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     };
 
     getTaxonShapes(newState:object):void {
-        // var colors:string[] = ["6CCFF6", "1B998B", "A1E887", "EA638C", "B33C86"];
-        // var colors:string[] = ["1B998B", "A1E887", "1E96FC", "B33C86","003F91", ];
-        //var colors:string[] = newState["colors"] ? newState["colors"].map(hexToRGB) : this.state.colors.map(hexToRGB);
         var croppedLineages:string[][] = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
         var croppedLineages:string[][] = JSON.parse(JSON.stringify(croppedLineages));
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
 
         let strokes:string[] = [];
         let colorIndex:number = 0;
-        for (let i=0; i<croppedLineages.length; i++) {
+        for (let i = 0; i < croppedLineages.length; i++) {
             if (croppedLineages[i].length > 1) {
                 let firstAncestor:string = croppedLineages[i][1];
                 if (strokes.indexOf(firstAncestor) === -1) {
@@ -1363,12 +1359,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         taxonSpecifics[croppedLineages[0][0]]["fill"] = "white";
         taxonSpecifics[croppedLineages[0][0]]["stroke"] = skeletonColor;
         this.setState(newState);
-    };
-
-    changePalette() {
-        var newPaletteInput:string = (document.getElementById("new-palette") as HTMLInputElement).value;
-        var newPalette:string[] = Array.from(newPaletteInput.matchAll(/[0-9a-f]{6}/g)).map(String);
-        this.getTaxonShapes({"colors": newPalette});
     };
 
     handleClick(shapeId):void {
