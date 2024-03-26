@@ -846,11 +846,41 @@ var PlotDrawing = /** @class */ (function (_super) {
         ;
     };
     ;
+    // If collapse=true, remove taxa that only come up in the lineage of one other taxon and have no unassigned counts of their own.
+    PlotDrawing.prototype.collapse = function (croppedLineages, croppedRanks) {
+        var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
+        var ranksCopy = JSON.parse(JSON.stringify(croppedRanks));
+        var layers = (0, helperFunctions_js_1.getLayers)(lineagesCopy);
+        var _loop_3 = function (i) {
+            var _loop_4 = function (j) {
+                if (layers[i].filter(function (item) { return item === layers[i][j]; }).length === 1 && Boolean(layers[i + 1][j])) {
+                    lineagesCopy[j].splice(i, 1, "toBeDeleted");
+                    ranksCopy[j].splice(i, 1, "toBeDeleted");
+                }
+                ;
+            };
+            for (var j = 0; j < layers[i].length; j++) {
+                _loop_4(j);
+            }
+            ;
+        };
+        for (var i = 0; i < layers.length - 1; i++) {
+            _loop_3(i);
+        }
+        ;
+        for (var i = 0; i < lineagesCopy.length; i++) {
+            lineagesCopy[i] = lineagesCopy[i].filter(function (item) { return item !== "toBeDeleted"; });
+            ranksCopy[i] = ranksCopy[i].filter(function (item) { return item !== "toBeDeleted"; });
+        }
+        ;
+        return [lineagesCopy, ranksCopy];
+    };
+    ;
     PlotDrawing.prototype.filterByEValue = function (croppedLineages, croppedRanks) {
         var allEValues = [];
         var newCroppedLineages = JSON.parse(JSON.stringify(croppedLineages));
         var newCroppedRanks = JSON.parse(JSON.stringify(croppedRanks));
-        var _loop_3 = function (i) {
+        var _loop_5 = function (i) {
             var lineage = croppedLineages[i];
             var lastTaxon = lineage[lineage.length - 1];
             var oldUnassignedCount = originalAllTaxaReduced[lastTaxon]["unassignedCount"];
@@ -891,7 +921,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             allEValues = allEValues.concat(originalAllTaxaReduced[lastTaxon]["eValues"]);
         };
         for (var i = croppedLineages.length - 1; i >= 0; i--) {
-            _loop_3(i);
+            _loop_5(i);
         }
         ;
         var minEValue = allEValues.sort(function (a, b) { return a - b; })[0];
@@ -978,7 +1008,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 ;
             }
             ;
-            var _loop_4 = function (group) {
+            var _loop_6 = function (group) {
                 var spliceAt = reductionGroups[group]["spliceAt"];
                 reductionGroups[group]["index"].sort(function (index1, index2) { return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"]; });
                 // In each reduction group, replace lineage indices with the names of the first too-small taxa.
@@ -1017,10 +1047,10 @@ var PlotDrawing = /** @class */ (function (_super) {
             // group some of them together if they are in the same subgroup.
             for (var _d = 0, _e = Object.keys(reductionGroups); _d < _e.length; _d++) {
                 var group = _e[_d];
-                _loop_4(group);
+                _loop_6(group);
             }
             ;
-            var _loop_5 = function (group) {
+            var _loop_7 = function (group) {
                 var minimalIndexArray = reductionGroups[group]["minimalIndexArray"].map(function (item) { return parseInt(item); });
                 var indexBeginning = 0;
                 var indexEnd = minimalIndexArray.length - 1;
@@ -1085,13 +1115,13 @@ var PlotDrawing = /** @class */ (function (_super) {
             };
             for (var _f = 0, _g = Object.keys(reductionGroups); _f < _g.length; _f++) {
                 var group = _g[_f];
-                _loop_5(group);
+                _loop_7(group);
             }
             ;
             // Reconfigure reductionGroups where each key holds the information for a single wedge.
             // The name of the wedge is calculated here.
             var newReductionGroups = {};
-            var _loop_6 = function (group) {
+            var _loop_8 = function (group) {
                 for (var i = 0; i < reductionGroups[group]["newGroups"].length; i++) {
                     newReductionGroups["".concat(group, "-").concat(i)] = {};
                     newReductionGroups["".concat(group, "-").concat(i)]["spliceAt"] = reductionGroups[group]["spliceAt"];
@@ -1104,7 +1134,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             var names;
             for (var _h = 0, _j = Object.keys(reductionGroups); _h < _j.length; _h++) {
                 var group = _j[_h];
-                _loop_6(group);
+                _loop_8(group);
             }
             ;
             reductionGroups = newReductionGroups;
@@ -1142,9 +1172,9 @@ var PlotDrawing = /** @class */ (function (_super) {
     ;
     // Assign each cropped lineage a start and end degree.
     PlotDrawing.prototype.assignDegrees = function (newState) {
-        var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
-        var croppedLineages = newState["croppedLineages"] ? newState["croppedLineages"] : this.state.taxonSpecifics;
-        var taxonSpecifics = newState["taxonSpecifics"] ? newState["taxonSpecifics"] : this.state.taxonSpecifics;
+        var alignedCroppedLineages = newState["alignedCroppedLineages"];
+        var croppedLineages = newState["croppedLineages"];
+        var taxonSpecifics = newState["taxonSpecifics"];
         var totalUnassignedCounts = 0;
         if (newState["alteration"] === "allEqual") {
             for (var _i = 0, _a = Object.keys(taxonSpecifics).filter(function (item) { return taxonSpecifics[item]["unassignedCount"] !== 0; }); _i < _a.length; _i++) {
@@ -1157,12 +1187,18 @@ var PlotDrawing = /** @class */ (function (_super) {
             var totalUnassignedCounts = newState["totalUnassignedCount"];
         }
         ;
+        // For each taxon, calculate what layer it starts and ends in, and its start and end degrees.
+        // ranges:object contains taxa names as keys and their layer and degree ranges as values.
         var ranges = {};
         var startDeg = 0;
         for (var i = 0; i < croppedLineages.length; i++) {
             for (var j = 0; j < croppedLineages[i].length; j++) {
                 var currentTaxon = croppedLineages[i][j];
                 var alignedIndex = taxonSpecifics[currentTaxon]["firstLayerAligned"];
+                // Determine first layers and degrees.
+                // Every taxon starts at its firstLayerAligned UNLESS
+                // its parent is the root taxon but there are missing ranks in between -
+                // in which case starts at its firstLayerUnaligned, which is layer 1.
                 if (!ranges[currentTaxon]) {
                     ranges[currentTaxon] = {};
                     var firstLayer = taxonSpecifics[currentTaxon]["firstLayerUnaligned"] === 1 ? 1 : alignedIndex;
@@ -1170,6 +1206,9 @@ var PlotDrawing = /** @class */ (function (_super) {
                     ranges[currentTaxon]["degrees"] = [startDeg];
                 }
                 ;
+                // Determine the last layer (for the current lineage - next iteration might be for the same taxon,
+                // but different lineage and a different last layer, but the first layer is the same for both).
+                // If there is a rank gap between the current taxon and the next one, the current taxon fills it.
                 var lastLayer = void 0;
                 if (j === croppedLineages[i].length - 1) {
                     lastLayer = alignedCroppedLineages[0].length;
@@ -1185,14 +1224,14 @@ var PlotDrawing = /** @class */ (function (_super) {
             startDeg += (taxonSpecifics[croppedLineages[i][croppedLineages[i].length - 1]]["unassignedCount"] * 360) / totalUnassignedCounts;
         }
         ;
+        // For each taxon, uniquify its "layers" array and adjust "degrees" accordingly.
         for (var _b = 0, _c = Object.keys(ranges); _b < _c.length; _b++) {
             var taxName = _c[_b];
             for (var i = ranges[taxName]["layers"].length - 1; i >= 1; i--) {
                 if (ranges[taxName]["layers"][i] === ranges[taxName]["layers"][i - 1]) {
-                    var newValue = ranges[taxName]["degrees"][i];
-                    ranges[taxName]["degrees"][i - 1] = newValue;
-                    ranges[taxName]["layers"].splice(i, 1);
+                    ranges[taxName]["degrees"][i - 1] = ranges[taxName]["degrees"][i];
                     ranges[taxName]["degrees"].splice(i, 1);
+                    ranges[taxName]["layers"].splice(i, 1);
                 }
                 ;
             }
@@ -1208,36 +1247,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.calculateSVGPaths(newState);
     };
     ;
-    // If collapse=true, remove taxa that only come up in the lineage of one other taxon and have no unassigned counts of their own.
-    PlotDrawing.prototype.collapse = function (croppedLineages, croppedRanks) {
-        var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
-        var ranksCopy = JSON.parse(JSON.stringify(croppedRanks));
-        var layers = (0, helperFunctions_js_1.getLayers)(lineagesCopy);
-        var _loop_7 = function (i) {
-            var _loop_8 = function (j) {
-                if (layers[i].filter(function (item) { return item === layers[i][j]; }).length === 1 && Boolean(layers[i + 1][j])) {
-                    lineagesCopy[j].splice(i, 1, "toBeDeleted");
-                    ranksCopy[j].splice(i, 1, "toBeDeleted");
-                }
-                ;
-            };
-            for (var j = 0; j < layers[i].length; j++) {
-                _loop_8(j);
-            }
-            ;
-        };
-        for (var i = 0; i < layers.length - 1; i++) {
-            _loop_7(i);
-        }
-        ;
-        for (var i = 0; i < lineagesCopy.length; i++) {
-            lineagesCopy[i] = lineagesCopy[i].filter(function (item) { return item !== "toBeDeleted"; });
-            ranksCopy[i] = ranksCopy[i].filter(function (item) { return item !== "toBeDeleted"; });
-        }
-        ;
-        return [lineagesCopy, ranksCopy];
-    };
-    ;
     PlotDrawing.prototype.calculateArcEndpoints = function (layer, layerWidthInPx, deg1, deg2) {
         var radius = layer * layerWidthInPx;
         var x1 = (0, helperFunctions_js_1.round)(radius * (0, helperFunctions_js_1.cos)(deg1) + viewportDimensions["cx"]);
@@ -1246,34 +1255,35 @@ var PlotDrawing = /** @class */ (function (_super) {
         var y2 = (0, helperFunctions_js_1.round)(-radius * (0, helperFunctions_js_1.sin)(deg2) + viewportDimensions["cy"]);
         return { x1: x1, y1: y1, x2: x2, y2: y2, radius: (0, helperFunctions_js_1.round)(radius) };
     };
+    ;
     PlotDrawing.prototype.calculateSVGPaths = function (newState) {
-        var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
-        var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
+        var cx = viewportDimensions["cx"];
+        var cy = viewportDimensions["cy"];
+        var alignedCroppedLineages = newState["alignedCroppedLineages"];
+        var taxonSpecifics = newState["taxonSpecifics"];
         var dpmm = viewportDimensions["dpmm"];
-        // Redundancy v
         var numberOfLayers = alignedCroppedLineages[0].length;
-        var smallerDimension = Math.min(viewportDimensions["cx"] * 0.6, viewportDimensions["cy"]);
-        var layerWidth = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
-        //var smallerDimension:number = Math.min(viewportDimensions["cx"], viewportDimensions["cy"]);
-        //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
+        var smallerDimension = Math.min(cx * 0.6, cy); //var smallerDimension:number = Math.min(cx, cy);
+        var layerWidth = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1); //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
         var firstLayer = function (key) { return taxonSpecifics[key]["layers"][0]; };
         var secondLayer = function (key) { return taxonSpecifics[key]["layers"][1]; };
         var startDeg = function (key) { return taxonSpecifics[key]["degrees"][0]; };
         var endDeg = function (key) { return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1]; };
         for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
             var key = _a[_i];
-            var firstLayerRadius = (0, helperFunctions_js_1.round)(firstLayer(key) * layerWidth);
+            var innRad = (0, helperFunctions_js_1.round)(firstLayer(key) * layerWidth);
             if (taxonSpecifics[key]["layers"][0] === 0) { // If the shape to be drawn is the center of the plot (1 circle).
-                taxonSpecifics[key]["svgPath"] = "M ".concat(viewportDimensions["cx"], ", ").concat(viewportDimensions["cy"], " m -").concat(layerWidth, ", 0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 ").concat((layerWidth) * 2, ",0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 -").concat((layerWidth) * 2, ",0");
+                taxonSpecifics[key]["svgPath"] = "M ".concat(cx, ", ").concat(cy, " m -").concat(layerWidth, ", 0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 ").concat((layerWidth) * 2, ",0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 -").concat((layerWidth) * 2, ",0");
             }
             else { // If the shape to be drawn is NOT the center of the plot, but a complex shape, add:
                 var subpaths = [];
                 if ((0, helperFunctions_js_1.round)(endDeg(key) - startDeg(key)) === 360) { // If the shape to be drawn completes a full circle:
                     var innerArc = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
-                    var innerArcPath = "M ".concat(viewportDimensions["cx"], ", ").concat(viewportDimensions["cy"], " m -").concat(firstLayerRadius, ", 0 a ").concat(firstLayerRadius, ",").concat(firstLayerRadius, " 0 1,0 ").concat((firstLayerRadius) * 2, ",0 a ").concat(firstLayerRadius, ",").concat(firstLayerRadius, " 0 1,0 -").concat((firstLayerRadius) * 2, ",0");
+                    var innerArcPath = "M ".concat(cx, ", ").concat(cy, " m -").concat(innRad, ", 0 a ").concat(innRad, ",").concat(innRad, " 0 1,0 ").concat((innRad) * 2, ",0 a ").concat(innRad, ",").concat(innRad, " 0 1,0 -").concat(innRad * 2, ",0");
                     subpaths = [innerArcPath];
                     if (taxonSpecifics[key]["layers"].length === 2) { // If the shape to be drawm completes a full circle AND consists simply of two concentric circles.
-                        var midArcPath = "M ".concat(viewportDimensions["cx"], ", ").concat(viewportDimensions["cy"], " m -").concat(secondLayer(key) * layerWidth, ", 0 a ").concat(secondLayer(key) * layerWidth, ",").concat(secondLayer(key) * layerWidth, " 0 1,0 ").concat((secondLayer(key) * layerWidth) * 2, ",0 a ").concat(secondLayer(key) * layerWidth, ",").concat(secondLayer(key) * layerWidth, " 0 1,0 -").concat((secondLayer(key) * layerWidth) * 2, ",0");
+                        var outerCirc = secondLayer(key) * layerWidth;
+                        var midArcPath = "M ".concat(cx, ", ").concat(cy, " m -").concat(outerCirc, ", 0 a ").concat(outerCirc, ",").concat(outerCirc, " 0 1,0 ").concat(outerCirc * 2, ",0 a ").concat(outerCirc, ",").concat(outerCirc, " 0 1,0 -").concat(outerCirc * 2, ",0");
                         subpaths.push(midArcPath);
                     }
                     else { // If the shape to be drawm completes a full circle AND is of irregular shape.
@@ -1290,15 +1300,17 @@ var PlotDrawing = /** @class */ (function (_super) {
                             ;
                             subpaths.push(midArcPath);
                         }
-                        var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(viewportDimensions["cx"], ",").concat(viewportDimensions["cy"] + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length - 1] * layerWidth);
+                        ;
+                        var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(cx, ",").concat(cy + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length - 1] * layerWidth);
                         subpaths.push(lineInnertoOuter);
                     }
+                    ;
                     var d = subpaths.join(" ");
                     taxonSpecifics[key]["svgPath"] = d;
                 }
                 else { // If the shape doesn't complete a full circle.
                     var innerArc = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
-                    var innerArcPath = "M ".concat(innerArc["x1"], ",").concat(innerArc["y1"], " A ").concat(firstLayerRadius, ",").concat(firstLayerRadius, " 0 0 1 ").concat(innerArc["x2"], ",").concat(innerArc["y2"]);
+                    var innerArcPath = "M ".concat(innerArc["x1"], ",").concat(innerArc["y1"], " A ").concat(innRad, ",").concat(innRad, " 0 0 1 ").concat(innerArc["x2"], ",").concat(innerArc["y2"]);
                     if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
                         var innerArcPath = "M ".concat(innerArc["x1"], ",").concat(innerArc["y1"], " A ").concat(innerArc["radius"], ",").concat(innerArc["radius"], " 0 1 1 ").concat(innerArc["x2"], ",").concat(innerArc["y2"]);
                     }
@@ -1316,18 +1328,22 @@ var PlotDrawing = /** @class */ (function (_super) {
                         ;
                         subpaths.push(midArcPath);
                     }
+                    ;
                     var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(innerArc["x1"], ",").concat(innerArc["y1"]);
                     subpaths.push(lineInnertoOuter);
                     var d = subpaths.join(" ");
                     taxonSpecifics[key]["svgPath"] = d;
                 }
+                ;
             }
+            ;
         }
         ;
         newState["numberOfLayers"] = numberOfLayers;
         newState["layerWidth"] = layerWidth;
         this.calculateTaxonLabels(newState);
     };
+    ;
     PlotDrawing.prototype.calculateTaxonLabels = function (newState) {
         var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
         var totalUnassignedCount = newState["totalUnassignedCount"] ? newState["totalUnassignedCount"] : this.state.totalUnassignedCount;
@@ -1387,6 +1403,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     angle = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
                     radialAngle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : taxonSpecifics[key]["center"][2];
                 }
+                ;
                 var percentage = (0, helperFunctions_js_1.round)((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
                 var oldPercentage = (0, helperFunctions_js_1.round)(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100);
                 taxonSpecifics[key]["label"] = {
@@ -1413,12 +1430,16 @@ var PlotDrawing = /** @class */ (function (_super) {
                         var newAbbr = (abbr.split(" ").slice(0, abbr.split(" ").indexOf("sp.") + 1).join(" ")).slice(0, 15);
                         taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
                     }
+                    ;
                 }
+                ;
             }
+            ;
         }
         ;
         this.getTaxonShapes(newState);
     };
+    ;
     PlotDrawing.prototype.getTaxonShapes = function (newState) {
         // var colors:string[] = ["6CCFF6", "1B998B", "A1E887", "EA638C", "B33C86"];
         // var colors:string[] = ["1B998B", "A1E887", "1E96FC", "B33C86","003F91", ];
@@ -1437,6 +1458,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     strokes.push(firstAncestor);
                     colorIndex++;
                 }
+                ;
                 for (var j = 2; j < croppedLineages[i].length; j++) {
                     var ancestorColor = taxonSpecifics[croppedLineages[i][1]]["fill"];
                     var nextColorIndex = (colors.indexOf(ancestorColor) + 1) % colors.length;
@@ -1451,17 +1473,22 @@ var PlotDrawing = /** @class */ (function (_super) {
                     taxonSpecifics[croppedLineages[i][j]]["fill"] = tintifiedHue;
                     taxonSpecifics[croppedLineages[i][j]]["stroke"] = skeletonColor;
                 }
+                ;
             }
+            ;
         }
+        ;
         taxonSpecifics[croppedLineages[0][0]]["fill"] = "white";
         taxonSpecifics[croppedLineages[0][0]]["stroke"] = skeletonColor;
         this.setState(newState);
     };
+    ;
     PlotDrawing.prototype.changePalette = function () {
         var newPaletteInput = document.getElementById("new-palette").value;
         var newPalette = Array.from(newPaletteInput.matchAll(/[0-9a-f]{6}/g)).map(String);
         this.getTaxonShapes({ "colors": newPalette });
     };
+    ;
     PlotDrawing.prototype.handleClick = function (shapeId) {
         var taxon = shapeId.match(/.+?(?=_)/)[0];
         var nextLayer;
@@ -1475,6 +1502,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         window.taxSunClick(taxon);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     };
+    ;
     PlotDrawing.prototype.placeLabels = function (alreadyRepeated) {
         if (alreadyRepeated === void 0) { alreadyRepeated = this.state.alreadyRepeated; }
         var newTaxonSpecifics = JSON.parse(JSON.stringify(this.state.taxonSpecifics));
@@ -1502,11 +1530,13 @@ var PlotDrawing = /** @class */ (function (_super) {
                     hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
                     angle = 270 - angle;
                 }
+                ;
                 abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"];
                 var sliceHere = (0, helperFunctions_js_1.round)(((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) + 1) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3);
                 if (newTaxonSpecifics[key]["label"]["abbreviation"].length > sliceHere) {
                     abbreviation = abbreviation.slice(0, sliceHere) + "...";
                 }
+                ;
             }
             // For internal wedges, calculate: 
             else if (newTaxonSpecifics[key]["label"]["direction"] === "verse") {
@@ -1544,6 +1574,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 else {
                     horizontalSpace = (0, helperFunctions_js_1.lineLength)(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"]);
                 }
+                ;
                 // Calculate radial space.
                 var layersCopy = JSON.parse(JSON.stringify(newTaxonSpecifics[key]["layers"]));
                 var lastViableLayer = layersCopy.sort(function (a, b) { return a - b; })[1];
@@ -1566,6 +1597,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     howManyLettersFit = Math.floor(horizontalSpace / lengthPerLetter) - 2 > 0 ? Math.floor(horizontalSpace / lengthPerLetter) - 2 : 0;
                     abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
                 }
+                ;
             }
             // Calculations for root shape in the center.
             else {
@@ -1577,6 +1609,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 howManyLettersFit = Math.floor(this.state.layerWidth * 2 / lengthPerLetter) - 2 > 0 ? Math.floor(this.state.layerWidth * 2 / lengthPerLetter) - 2 : 0;
                 abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
             }
+            ;
             // Decide if the label should be hidden due to being too short, and if a dot is needed.
             abbreviation = abbreviation.indexOf(".") >= 0 || !(newTaxonSpecifics[key]["label"]["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
             newTaxonSpecifics[key]["label"]["abbreviation"] = abbreviation;
@@ -1584,6 +1617,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 newTaxonSpecifics[key]["label"]["abbreviation"] = "";
                 newTaxonSpecifics[key]["label"]["display"] = "none";
             }
+            ;
             // Check one time if, after all the calculations, the abbreviated label indeed fits its shape. If not, set its display to none.
             var fourPoints = (0, helperFunctions_js_1.getFourCorners)((top_1 - height) - 2, top_1 + 2, left - 2, left + width + 2, newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], angle);
             var bottomLeft = document.querySelector("svg").createSVGPoint();
@@ -1603,12 +1637,15 @@ var PlotDrawing = /** @class */ (function (_super) {
                 if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight))) {
                     newTaxonSpecifics[key]["label"]["display"] = "none";
                 }
+                ;
             }
             else if (alreadyRepeated && newTaxonSpecifics[key]["label"]["direction"] === "radial") {
                 if (!((shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) || (shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)))) {
                     newTaxonSpecifics[key]["label"]["display"] = "none";
                 }
+                ;
             }
+            ;
             newTaxonSpecifics[key]["label"]["top"] = top_1;
             newTaxonSpecifics[key]["label"]["transformOrigin"] = transformOrigin;
             newTaxonSpecifics[key]["label"]["left"] = left;
@@ -1618,6 +1655,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 newTaxonSpecifics[key]["label"]["hoverDisplay"] = "none";
                 newTaxonSpecifics[key]["label"]["hoverWidth"] = hoverWidth;
             }
+            ;
         }
         if (!alreadyRepeated) {
             this.setState({ taxonSpecifics: newTaxonSpecifics, alreadyRepeated: true, height: height });
@@ -1625,7 +1663,9 @@ var PlotDrawing = /** @class */ (function (_super) {
         else {
             this.setState({ taxonSpecifics: newTaxonSpecifics, labelsPlaced: true });
         }
+        ;
     };
+    ;
     PlotDrawing.prototype.render = function () {
         var _this = this;
         var plotId;

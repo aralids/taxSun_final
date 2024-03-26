@@ -789,6 +789,29 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         };
     };
 
+    // If collapse=true, remove taxa that only come up in the lineage of one other taxon and have no unassigned counts of their own.
+    collapse(croppedLineages:string[][], croppedRanks:string[][]):string[][][] {
+        var lineagesCopy:string[][] = JSON.parse(JSON.stringify(croppedLineages));
+        var ranksCopy:string[][] = JSON.parse(JSON.stringify(croppedRanks));
+        var layers = getLayers(lineagesCopy);
+
+        for (let i = 0; i < layers.length - 1; i++) {
+            for (let j = 0; j < layers[i].length; j++) {
+                if (layers[i].filter(item => item === layers[i][j]).length === 1 && Boolean(layers[i+1][j])) {
+                    lineagesCopy[j].splice(i, 1, "toBeDeleted");
+                    ranksCopy[j].splice(i, 1, "toBeDeleted");
+                };
+            };
+        };
+
+        for (let i = 0; i < lineagesCopy.length; i++) {
+            lineagesCopy[i] = lineagesCopy[i].filter(item => item !== "toBeDeleted");
+            ranksCopy[i] = ranksCopy[i].filter(item => item !== "toBeDeleted");
+        };
+
+        return [lineagesCopy, ranksCopy];
+    };
+
     filterByEValue(croppedLineages:string[][], croppedRanks:string[][]):any {
         let allEValues:any = [];
         let newCroppedLineages = JSON.parse(JSON.stringify(croppedLineages));
@@ -1048,9 +1071,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
     // Assign each cropped lineage a start and end degree.
     assignDegrees(newState:object):void {
-        var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
-        var croppedLineages = newState["croppedLineages"] ? newState["croppedLineages"] : this.state.taxonSpecifics;
-        var taxonSpecifics = newState["taxonSpecifics"] ? newState["taxonSpecifics"] : this.state.taxonSpecifics;
+        var alignedCroppedLineages = newState["alignedCroppedLineages"];
+        var croppedLineages = newState["croppedLineages"];
+        var taxonSpecifics = newState["taxonSpecifics"];
         var totalUnassignedCounts:number = 0;
         if (newState["alteration"] === "allEqual") {
             for (let taxName of Object.keys(taxonSpecifics).filter(item => taxonSpecifics[item]["unassignedCount"] !== 0)) {
@@ -1059,13 +1082,19 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
         else { var totalUnassignedCounts = newState["totalUnassignedCount"]; };
 
+        // For each taxon, calculate what layer it starts and ends in, and its start and end degrees.
+        // ranges:object contains taxa names as keys and their layer and degree ranges as values.
         let ranges:object = {};
         let startDeg:number = 0;
-        for (let i=0; i<croppedLineages.length; i++) {
-            for (let j=0; j<croppedLineages[i].length; j++) {
+        for (let i = 0; i < croppedLineages.length; i++) {
+            for (let j = 0; j < croppedLineages[i].length; j++) {
                 let currentTaxon:string = croppedLineages[i][j];
-
                 let alignedIndex:number = taxonSpecifics[currentTaxon]["firstLayerAligned"];
+
+                // Determine first layers and degrees.
+                // Every taxon starts at its firstLayerAligned UNLESS
+                // its parent is the root taxon but there are missing ranks in between -
+                // in which case starts at its firstLayerUnaligned, which is layer 1.
                 if (!ranges[currentTaxon]) {
                     ranges[currentTaxon] = {};
                     let firstLayer:number = taxonSpecifics[currentTaxon]["firstLayerUnaligned"] === 1 ? 1 : alignedIndex;
@@ -1073,6 +1102,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     ranges[currentTaxon]["degrees"] = [startDeg];
                 };
 
+                // Determine the last layer (for the current lineage - next iteration might be for the same taxon,
+                // but different lineage and a different last layer, but the first layer is the same for both).
+                // If there is a rank gap between the current taxon and the next one, the current taxon fills it.
                 let lastLayer:number;
                 if (j === croppedLineages[i].length - 1) {
                     lastLayer = alignedCroppedLineages[0].length;
@@ -1080,19 +1112,20 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 else {
                     lastLayer = alignedCroppedLineages[i].indexOf(croppedLineages[i][j+1]);
                 };
+
                 ranges[currentTaxon]["layers"].push(lastLayer);
                 ranges[currentTaxon]["degrees"].push(startDeg + (taxonSpecifics[croppedLineages[i][croppedLineages[i].length-1]]["unassignedCount"] * 360) / totalUnassignedCounts);
             };
             startDeg += (taxonSpecifics[croppedLineages[i][croppedLineages[i].length-1]]["unassignedCount"] * 360) / totalUnassignedCounts;
         };
 
+        // For each taxon, uniquify its "layers" array and adjust "degrees" accordingly.
         for (let taxName of Object.keys(ranges)) {
-            for (let i=ranges[taxName]["layers"].length-1; i>=1; i--) {
+            for (let i = ranges[taxName]["layers"].length - 1; i >= 1; i--) {
                 if (ranges[taxName]["layers"][i] === ranges[taxName]["layers"][i-1]) {
-                    let newValue:number = ranges[taxName]["degrees"][i];
-                    ranges[taxName]["degrees"][i-1] = newValue;
-                    ranges[taxName]["layers"].splice(i,1);
+                    ranges[taxName]["degrees"][i-1] = ranges[taxName]["degrees"][i];
                     ranges[taxName]["degrees"].splice(i,1);
+                    ranges[taxName]["layers"].splice(i,1);
                 };
             };
         };
@@ -1105,49 +1138,24 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         this.calculateSVGPaths(newState);
     };
 
-    // If collapse=true, remove taxa that only come up in the lineage of one other taxon and have no unassigned counts of their own.
-    collapse(croppedLineages:string[][], croppedRanks:string[][]):string[][][] {
-        var lineagesCopy:string[][] = JSON.parse(JSON.stringify(croppedLineages));
-        var ranksCopy:string[][] = JSON.parse(JSON.stringify(croppedRanks));
-        var layers = getLayers(lineagesCopy);
-
-        for (let i=0; i<layers.length-1; i++) {
-            for (let j=0; j<layers[i].length; j++) {
-                if (layers[i].filter(item => item === layers[i][j]).length === 1 && Boolean(layers[i+1][j])) {
-                    lineagesCopy[j].splice(i,1, "toBeDeleted");
-                    ranksCopy[j].splice(i,1, "toBeDeleted");
-                };
-            };
-        };
-
-        for (let i=0; i<lineagesCopy.length; i++) {
-            lineagesCopy[i] = lineagesCopy[i].filter(item => item !== "toBeDeleted");
-            ranksCopy[i] = ranksCopy[i].filter(item => item !== "toBeDeleted");
-        };
-
-        return [lineagesCopy, ranksCopy];
-    };
-
     calculateArcEndpoints(layer:number, layerWidthInPx:number, deg1:number, deg2:number):object {
         var radius:number = layer * layerWidthInPx;
         var x1:number = round(radius * cos(deg1) + viewportDimensions["cx"]);
         var y1:number = round(- radius * sin(deg1) + viewportDimensions["cy"]);
         var x2:number = round(radius * cos(deg2) + viewportDimensions["cx"]);
         var y2:number = round(- radius * sin(deg2) + viewportDimensions["cy"]);
-    
         return {x1: x1, y1: y1, x2: x2, y2: y2, radius: round(radius)};
-    }
+    };
 
     calculateSVGPaths(newState:object):void {
-        var alignedCroppedLineages:string[][] = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
-        var taxonSpecifics:object = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
+        let cx = viewportDimensions["cx"];
+        let cy = viewportDimensions["cy"];
+        var alignedCroppedLineages:string[][] = newState["alignedCroppedLineages"];
+        var taxonSpecifics:object = newState["taxonSpecifics"];
         var dpmm:number = viewportDimensions["dpmm"];
-        // Redundancy v
         var numberOfLayers:number = alignedCroppedLineages[0].length;
-        var smallerDimension:number = Math.min(viewportDimensions["cx"] * 0.6, viewportDimensions["cy"]);
-        var layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
-        //var smallerDimension:number = Math.min(viewportDimensions["cx"], viewportDimensions["cy"]);
-        //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
+        var smallerDimension:number = Math.min(cx * 0.6, cy); //var smallerDimension:number = Math.min(cx, cy);
+        var layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1); //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
 
         var firstLayer = (key) => {return taxonSpecifics[key]["layers"][0]};
         var secondLayer = (key) => {return taxonSpecifics[key]["layers"][1]};
@@ -1155,23 +1163,25 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var endDeg = (key) => {return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1]};
         
         for (var key of Object.keys(taxonSpecifics)) {
-            var firstLayerRadius:number = round(firstLayer(key)*layerWidth);
+            let innRad:number = round(firstLayer(key)*layerWidth);
             if (taxonSpecifics[key]["layers"][0] === 0) { // If the shape to be drawn is the center of the plot (1 circle).
-                taxonSpecifics[key]["svgPath"] = `M ${viewportDimensions["cx"]}, ${viewportDimensions["cy"]} m -${layerWidth}, 0 a ${layerWidth},${layerWidth} 0 1,0 ${(layerWidth)* 2},0 a ${layerWidth},${layerWidth} 0 1,0 -${(layerWidth)* 2},0`;
-            } else { // If the shape to be drawn is NOT the center of the plot, but a complex shape, add:
+                taxonSpecifics[key]["svgPath"] = `M ${cx}, ${cy} m -${layerWidth}, 0 a ${layerWidth},${layerWidth} 0 1,0 ${(layerWidth)* 2},0 a ${layerWidth},${layerWidth} 0 1,0 -${(layerWidth)* 2},0`;
+            } 
+            else { // If the shape to be drawn is NOT the center of the plot, but a complex shape, add:
                 var subpaths:string[] = [];
                 if (round(endDeg(key) - startDeg(key)) === 360) { // If the shape to be drawn completes a full circle:
                     var innerArc:object = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
-                    var innerArcPath:string = `M ${viewportDimensions["cx"]}, ${viewportDimensions["cy"]} m -${firstLayerRadius}, 0 a ${firstLayerRadius},${firstLayerRadius} 0 1,0 ${(firstLayerRadius)* 2},0 a ${firstLayerRadius},${firstLayerRadius} 0 1,0 -${(firstLayerRadius)* 2},0`;
+                    var innerArcPath:string = `M ${cx}, ${cy} m -${innRad}, 0 a ${innRad},${innRad} 0 1,0 ${(innRad)* 2},0 a ${innRad},${innRad} 0 1,0 -${innRad* 2},0`;
                     subpaths = [innerArcPath];
 
                     if (taxonSpecifics[key]["layers"].length === 2) { // If the shape to be drawm completes a full circle AND consists simply of two concentric circles.
-                        var midArcPath:string = `M ${viewportDimensions["cx"]}, ${viewportDimensions["cy"]} m -${secondLayer(key)*layerWidth}, 0 a ${secondLayer(key)*layerWidth},${secondLayer(key)*layerWidth} 0 1,0 ${(secondLayer(key)*layerWidth)* 2},0 a ${secondLayer(key)*layerWidth},${secondLayer(key)*layerWidth} 0 1,0 -${(secondLayer(key)*layerWidth)* 2},0`;
+                        let outerCirc = secondLayer(key)*layerWidth;
+                        var midArcPath:string = `M ${cx}, ${cy} m -${outerCirc}, 0 a ${outerCirc},${outerCirc} 0 1,0 ${outerCirc* 2},0 a ${outerCirc},${outerCirc} 0 1,0 -${outerCirc* 2},0`;
                         subpaths.push(midArcPath);
                     }
                     else { // If the shape to be drawm completes a full circle AND is of irregular shape.
                         var midArc:object = {};
-                        for (let i=taxonSpecifics[key]["layers"].length-1; i>=1; i--) {
+                        for (let i = taxonSpecifics[key]["layers"].length - 1; i >= 1; i--) {
                             var curr = taxonSpecifics[key]["degrees"][i];
                             var prev = taxonSpecifics[key]["degrees"][i-1];
                             var startingLetter:string = i === taxonSpecifics[key]["layers"].length-1 ? "M" : "L";
@@ -1181,17 +1191,18 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                                 var midArcPath:string = `${startingLetter} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
                             };
                             subpaths.push(midArcPath);
-                        }
-                        var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${viewportDimensions["cx"]},${viewportDimensions["cy"] + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length-1]*layerWidth}`;
+                        };
+                        var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${cx},${cy + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length-1]*layerWidth}`;
                         subpaths.push(lineInnertoOuter);
-                    }
+                    };
                     
                     var d:string = subpaths.join(" ");
                     taxonSpecifics[key]["svgPath"] = d;
 
-                } else { // If the shape doesn't complete a full circle.
+                } 
+                else { // If the shape doesn't complete a full circle.
                     var innerArc:object = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
-                    var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${firstLayerRadius},${firstLayerRadius} 0 0 1 ${innerArc["x2"]},${innerArc["y2"]}`;
+                    var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innRad},${innRad} 0 0 1 ${innerArc["x2"]},${innerArc["y2"]}`;
                     if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
                         var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innerArc["radius"]},${innerArc["radius"]} 0 1 1 ${innerArc["x2"]},${innerArc["y2"]}`;
                     };
@@ -1207,19 +1218,19 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                             var midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
                         };
                         subpaths.push(midArcPath);
-                    }
+                    };
                     
                     var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${innerArc["x1"]},${innerArc["y1"]}`;
                     subpaths.push(lineInnertoOuter);
                     var d:string = subpaths.join(" ");
                     taxonSpecifics[key]["svgPath"] = d;
-                }
-            }
+                };
+            };
         };
         newState["numberOfLayers"] = numberOfLayers;
         newState["layerWidth"] = layerWidth;
         this.calculateTaxonLabels(newState);
-    }
+    };
 
     calculateTaxonLabels(newState:object):void {
         var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
@@ -1240,7 +1251,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.333;
             let centerX = centerRadius * layerWidthInPx * cos(centerDegree);
             centerX = round(centerX) + cx;
-            let centerY = - centerRadius * layerWidthInPx * sin(centerDegree);
+            let centerY = -centerRadius * layerWidthInPx * sin(centerDegree);
             centerY = round(centerY) + cy;
 
             let pointOnLeftBorderX = centerRadius * layerWidthInPx * cos(startDeg(key));
@@ -1257,7 +1268,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         };
 
         for (var key of Object.keys(taxonSpecifics)) {
-            if (taxonSpecifics[key]["layers"][0] === 0 ) {
+            if (taxonSpecifics[key]["layers"][0] === 0) {
                 taxonSpecifics[key]["label"] = {
                     "direction": "horizontal",
                     "opacity": "1",
@@ -1270,15 +1281,18 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "display": "unset",
                     "fullLabel": root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),""),
                 }
-            } else {
+            } 
+            else {
                 let direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "verse";
                 let angle, radialAngle;
                 if (direction === "radial") {
                     angle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : taxonSpecifics[key]["center"][2];
-                } else {
+                } 
+                else {
                     angle = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
                     radialAngle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : taxonSpecifics[key]["center"][2];
-                }
+                };
+
                 let percentage:number = round((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
                 let oldPercentage:number = round(((taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1] - taxonSpecifics[key]["degrees"][0]) / 360) * 100);
                 taxonSpecifics[key]["label"] = {
@@ -1294,7 +1308,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "display": "unset",
                     "fullLabel": key.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"") + ` ${percentage}%`,
                     "radialAngle": radialAngle,
-                }
+                };
 
                 if (taxonSpecifics[key]["rank"] === "species") {
                     let abbr:string = taxonSpecifics[key]["label"]["abbreviation"];
@@ -1305,12 +1319,12 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     else if (abbr.split(" ").indexOf("sp.") !== -1) {
                         let newAbbr:string = (abbr.split(" ").slice(0, abbr.split(" ").indexOf("sp.") + 1).join(" ")).slice(0,15);
                         taxonSpecifics[key]["label"]["abbreviation"] = newAbbr;
-                    }
-                }
-            }
+                    };
+                };
+            };
         };
         this.getTaxonShapes(newState);
-    }
+    };
 
     getTaxonShapes(newState:object):void {
         // var colors:string[] = ["6CCFF6", "1B998B", "A1E887", "EA638C", "B33C86"];
@@ -1330,9 +1344,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     taxonSpecifics[firstAncestor]["stroke"] = skeletonColor;
                     strokes.push(firstAncestor);
                     colorIndex++;
-                }
+                };
 
-                for (let j=2; j<croppedLineages[i].length; j++) {
+                for (let j = 2; j < croppedLineages[i].length; j++) {
                     let ancestorColor = taxonSpecifics[croppedLineages[i][1]]["fill"];
                     let nextColorIndex = (colors.indexOf(ancestorColor) + 1) % colors.length;
                     let nextColor = colors[nextColorIndex];
@@ -1345,23 +1359,24 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     var tintifiedHue = tintify(hue, tintFactor);
                     taxonSpecifics[croppedLineages[i][j]]["fill"] = tintifiedHue;
                     taxonSpecifics[croppedLineages[i][j]]["stroke"] = skeletonColor;
-                }
-            }
-        }
+                };
+            };
+        };
+
         taxonSpecifics[croppedLineages[0][0]]["fill"] = "white";
         taxonSpecifics[croppedLineages[0][0]]["stroke"] = skeletonColor;
         this.setState(newState);
-    }
+    };
 
     changePalette() {
         var newPaletteInput:string = (document.getElementById("new-palette") as HTMLInputElement).value;
         var newPalette:string[] = Array.from(newPaletteInput.matchAll(/[0-9a-f]{6}/g)).map(String);
         this.getTaxonShapes({"colors": newPalette});
-    }
+    };
 
     handleClick(shapeId):void {
-        var taxon:string = shapeId.match(/.+?(?=_)/)[0];
-        var nextLayer;
+        let taxon:string = shapeId.match(/.+?(?=_)/)[0];
+        let nextLayer;
         if (taxon.includes("&")) {
             nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length-1;
         }
@@ -1370,10 +1385,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         };
         (window as any).taxSunClick(taxon);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
-    }
+    };
 
     placeLabels(alreadyRepeated:boolean = this.state.alreadyRepeated) {
-        let newTaxonSpecifics:object = JSON.parse(JSON.stringify(this.state.taxonSpecifics))
+        let newTaxonSpecifics:object = JSON.parse(JSON.stringify(this.state.taxonSpecifics));
         let height:number = 0;
         for (let key of Object.keys(newTaxonSpecifics)) {
             let labelElement:any = document.getElementById(`${key}_-_${newTaxonSpecifics[key]["firstLayerUnaligned"]}-label`)!;
@@ -1397,12 +1412,13 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     left = newTaxonSpecifics[key]["center"][0] - width;
                     hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
                     angle = 270 - angle;
-                }
+                };
+
                 abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"];
                 let sliceHere:number = round(((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) + 1) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3)
                 if (newTaxonSpecifics[key]["label"]["abbreviation"].length > sliceHere) {
                     abbreviation = abbreviation.slice(0, sliceHere) + "...";
-                }
+                };
             }
 
             // For internal wedges, calculate: 
@@ -1445,7 +1461,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 }
                 else {
                     horizontalSpace = lineLength(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"])
-                }
+                };
 
                 // Calculate radial space.
                 let layersCopy = JSON.parse(JSON.stringify(newTaxonSpecifics[key]["layers"]));
@@ -1470,7 +1486,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
                     howManyLettersFit = Math.floor(horizontalSpace/lengthPerLetter) - 2 > 0 ? Math.floor(horizontalSpace/lengthPerLetter) - 2 : 0;
                     abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
-                }
+                };
             }
 
             // Calculations for root shape in the center.
@@ -1483,7 +1499,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
                 howManyLettersFit = Math.floor(this.state.layerWidth*2/lengthPerLetter) - 2 > 0 ? Math.floor(this.state.layerWidth*2/lengthPerLetter) - 2 : 0;
                 abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
-            }
+            };
 
             // Decide if the label should be hidden due to being too short, and if a dot is needed.
             abbreviation = abbreviation.indexOf(".") >= 0 || !(newTaxonSpecifics[key]["label"]["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
@@ -1491,7 +1507,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             if (newTaxonSpecifics[key]["label"]["abbreviation"].length < 4) {
                 newTaxonSpecifics[key]["label"]["abbreviation"] = "";
                 newTaxonSpecifics[key]["label"]["display"] = "none"; 
-            } 
+            };
 
             // Check one time if, after all the calculations, the abbreviated label indeed fits its shape. If not, set its display to none.
             var fourPoints = getFourCorners((top-height)-2, top+2, left-2, left+width+2, newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], angle);
@@ -1516,12 +1532,13 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             if (alreadyRepeated && (newTaxonSpecifics[key]["label"]["direction"] === "verse" || newTaxonSpecifics[key]["label"]["direction"] === "horizontal")) {
                 if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight))) {
                     newTaxonSpecifics[key]["label"]["display"] = "none"; 
-                }
-            } else if (alreadyRepeated && newTaxonSpecifics[key]["label"]["direction"] === "radial") {
+                };
+            } 
+            else if (alreadyRepeated && newTaxonSpecifics[key]["label"]["direction"] === "radial") {
                 if (!((shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) || (shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)))) {
                     newTaxonSpecifics[key]["label"]["display"] = "none"; 
-                }
-            }
+                };
+            };
 
             newTaxonSpecifics[key]["label"]["top"] = top;
             newTaxonSpecifics[key]["label"]["transformOrigin"] = transformOrigin;
@@ -1532,17 +1549,16 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 newTaxonSpecifics[key]["label"]["hoverLeft"] = hoverLeft;
                 newTaxonSpecifics[key]["label"]["hoverDisplay"] = "none";
                 newTaxonSpecifics[key]["label"]["hoverWidth"] = hoverWidth;
-            }
-
+            };
         }
+
         if (!alreadyRepeated) {
             this.setState({taxonSpecifics: newTaxonSpecifics, alreadyRepeated: true, height: height})
         }
         else {
             this.setState({taxonSpecifics: newTaxonSpecifics, labelsPlaced: true})
-        }
-        
-    }
+        };  
+    };
 
 
     render() {
@@ -1596,7 +1612,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         return [<svg key={"svg"} xmlns="http://www.w3.org/2000/svg" style={{"margin": "0", "padding": "0", "boxSizing": "border-box", "border": "none"}} id="shapes">{shapes} {labels}<clipPath key={"clipPath"} id="mask">{clipPaths}</clipPath></svg>,<div key={"div-ancestors"} id="ancestors">{ancestors}</div>,<div key={"left-column"} id="left-column"><AncestorSection key={"ancestor-section"} ancestors={anc} root={this.state.root} layer={this.state.layer} plotEValue={this.state.plotEValue} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/><DescendantSection key={"descendant-section"} self="Felinae" layer={0} ancestor="Felidae" hovered={true}/></div>]
     }
-    //<AncestorSection ancestors={anc} root={this.state.root} layer={this.state.layer} onClickArray={anc.map((self, index) => () => {this.handleClick(`${self}_-_${-index}`)})}/>
 }
 
 function TaxonShape(props) {
