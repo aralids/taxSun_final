@@ -214,7 +214,7 @@ downloadAllSeqButton.setAttribute("id", "download-all-seq");
 downloadAllSeqButton.innerText = "Download all sequences";
 contextMenu.appendChild(downloadAllSeqButton);
 
-import {PlotDrawing, extClick} from "./components.js";
+import {PlotDrawing} from "./components.js";
 let domContainer:any = document.querySelector('#plot-container');
 let reactRoot = ReactDOM.createRoot(domContainer);
 reactRoot.render(<PlotDrawing lineages={ln} ranks={lr}/>);

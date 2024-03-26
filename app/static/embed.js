@@ -53,7 +53,7 @@ function simulateMouseOut(element){
 window.addEventListener('load', function() {
     console.log("embed.js end")
     var element = document.getElementById("Gammaproteobacteria_-_2");
-    //simulateMouseClick(element);
+    // simulateMouseClick(element);
     //simulateMouseOver(element);
     //setTimeout(() => {simulateMouseOut(element)}, 3000);
     console.log("embed.js end 2")

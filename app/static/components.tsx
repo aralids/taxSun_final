@@ -162,7 +162,6 @@ document.getElementById("download-all-seq")!.addEventListener("click", () => {
 });
 
 document.getElementById("file")?.addEventListener("change", () => {
-    console.log("YEAH")
     let fileInput:any = document.getElementById("file")!
     fileName = fileInput.files[0].name;
     document.getElementById("status")!.innerHTML = "pending";
@@ -559,16 +558,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         // Once everything is initialized, calculate plot.
         this.cropLineages();
 
-        // On (external) click.
-        addEventListener("mouseup", (event) => {
-            console.log("ext mouseup: ", event.detail);
-        })
-
         // Recalculate plot on window resize.
-        addEventListener("resize", (event) => {
-            console.log(window.innerWidth / 2, window.innerHeight / 2);
-            let plotC:any = document.getElementById("plot-container")!;
-            console.log(plotC.offsetWidth / 2, plotC.offsetHeight / 2);
+        addEventListener("resize", () => {
             var newViewportDimensions = getViewportDimensions();
             viewportDimensions = newViewportDimensions;
             this.setState({horizontalShift: newViewportDimensions["cx"], verticalShift: newViewportDimensions["cy"], alteration:this.state.alteration}, () => this.cropLineages());
@@ -576,7 +567,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
         // Recalculate plot when user changes settings - radio button, checkboxes, new file.
         document.getElementById("radio-input")!.addEventListener("change", () => {
-            console.log("radio")
             let alteration:any = document.querySelector('input[name="radio"]:checked')!.getAttribute("id");
             let plotId:string = this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + round(this.state.layerWidth) + eThreshold;
             if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
@@ -648,42 +638,49 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     // Leave only relevant lineages and crop them if necessary.
-    cropLineages(root=this.state.root, layer=this.state.layer, alteration=this.state.alteration, collapse=this.state.collapse, plotEValue=this.state.plotEValue, lineages=lineagesNames, ranks=lineagesRanks):void {
+    cropLineages(root=this.state.root, layer=this.state.layer, 
+        alteration=this.state.alteration, collapse=this.state.collapse, 
+        plotEValue=this.state.plotEValue, lineages=lineagesNames, ranks=lineagesRanks):void {
 
-        // Change some variables, so that when the SVG is downloaded, the SVG file name reflects all settings.
+        // Change some variables, so that if the plot is dowlnoaded as SVG, the file name reflects all settings.
         taxonName = root.slice(0, 10);
         layerName = layer;
         modeName = alteration;
         collapseName = "collapse" + collapse;
 
         // Get only relevant lineages.
-        var croppedLineages:string[][] = [], croppedRanks:string[][] = [];
-        let rootTaxa:string[] = root.split(" & "); // In the root taxon is actually multiple taxa married together.
-        for (let i=0; i<lineages.length; i++) { // Iterate over all lineages.
-            if (rootTaxa.indexOf(lineages[i][layer]) > -1) { // If the current lineage, at the relevant layer, contains the root taxon (or one of them), add it.
+        // Iterate over all lineages and filter out the ones that do not contain any of the root taxa.
+        let rootTaxa:string[] = root.split(" & ");
+        let croppedLineages:string[][] = [];
+        let croppedRanks:string[][] = [];
+        for (let i=0; i<lineages.length; i++) {
+            if (rootTaxa.indexOf(lineages[i][layer]) > -1) {
                 croppedLineages.push(lineages[i]);
                 croppedRanks.push(ranks[i]);
             }
         };
 
-        // Crop lineages so they start with clicked taxon.
-        var ancestors:string[] = [""];
-        if (croppedLineages[0]) { // If there is anything to show at all, a.k.a if there are lineages that passed the first requirement above...
-            ancestors = croppedLineages[0].slice(0, layer); // ...then, they all have the same ancestors, so we set up a variable that will become a part of the component state later.
-        }
-        if (rootTaxa.length > 1) { // If the clicked taxon is a married taxon, then crop the lineages to start with the parent taxon of the clicked (married) taxon.
+        // Remember the common ancestors of all relevant lineages.
+        let ancestors:string[] = [""];
+        if (croppedLineages[0]) {
+            ancestors = croppedLineages[0].slice(0, layer);
+        };
+
+        // Crop lineages so they start with the first common taxon (root).
+        if (rootTaxa.length > 1) {
             croppedLineages = croppedLineages.map(item => item.slice(layer-1));
             croppedRanks = croppedRanks.map(item => item.slice(layer-1));
         }
-        else { // Otherwise, crop the lineages to start with the clicked taxon.
+        else {
             croppedLineages = croppedLineages.map(item => item.slice(layer));
             croppedRanks = croppedRanks.map(item => item.slice(layer));
-        }
+        };
 
         allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
+
+        // Filter by e-value if required.
         if (plotEValue) {
             let modified = this.filterByEValue(croppedLineages, croppedRanks);
-            
             let minEValue = modified[2];
             if (eThreshold < minEValue) {
                 allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
@@ -691,14 +688,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 let eText:any = document.getElementById("e-text")!
                 eText.value = minEValue;
                 modified = this.filterByEValue(croppedLineages, croppedRanks);
-            }
+            };
             croppedLineages = modified[0], croppedRanks = modified[1];
-        }
+        };
 
         // Get minimal rank pattern for this particular plot to prepare for alignment.
-        var ranksUnique:string[] = croppedRanks.reduce((accumulator, value) => accumulator.concat(value), []); // Create an array of all ranks of all cropped lineages. Not unique yet.
-        ranksUnique = ranksUnique.filter((value, index, self) => Boolean(value) && self.indexOf(value) === index); // Uniquify.
-        var rankPattern:string[] = rankPatternFull.filter(item => ranksUnique.indexOf(item) > -1); // Match the uniquified array to the fixed rank pattern to keep hierarchical order.
+        let ranksUnique:string[] = croppedRanks.reduce((accumulator, value) => accumulator.concat(value), []);
+        ranksUnique = ranksUnique.filter((value, index, self) => Boolean(value) && self.indexOf(value) === index);
+        let rankPattern:string[] = rankPatternFull.filter(item => ranksUnique.indexOf(item) > -1);
 
         // Mary taxa if necessary.
         let changedLineages:Boolean[] = [];
@@ -707,9 +704,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             croppedLineages = cropped[0];
             croppedRanks = cropped[1];
             changedLineages = cropped[2];
-        }
+        };
 
-        croppedLineages = croppedLineages.map(item => {item.splice(0, 1, root); return item}); // Fixes the problem with the root label of married plots.
+        // Fixes the problem with the root label of married plots.
+        croppedLineages = croppedLineages.map(item => {item.splice(0, 1, root); return item});
 
         // Collapse lineages if necessary.
         if (collapse) {
@@ -719,97 +717,100 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
         
         // Align cropped lineages by adding null as placeholder for missing ranks.
-        var alignedCropppedLineages:string[][] = [];
-        var alignedCropppedRanks:string[][] = [];
+        let alignedCropppedLineages:string[][] = [];
+        let alignedCropppedRanks:string[][] = [];
         for (let i=0; i<croppedLineages.length; i++) {
-            var alignedLineage:any = new Array(rankPattern.length).fill(null);
-            var alignedRank:any = new Array(rankPattern.length).fill(null);
+            let alignedLineage:any = new Array(rankPattern.length).fill(null);
+            let alignedRank:any = new Array(rankPattern.length).fill(null);
             for (let j=0; j<croppedRanks[i].length; j++) {
-                var index = rankPattern.indexOf(croppedRanks[i][j]);
+                let index = rankPattern.indexOf(croppedRanks[i][j]);
                 if (index > -1) { 
                     alignedLineage.splice(index, 1, croppedLineages[i][j]);
                     alignedRank.splice(index, 1, croppedRanks[i][j]);
-                }
-            }
+                };
+            };
             alignedCropppedLineages.push(alignedLineage);
             alignedCropppedRanks.push(alignedRank);
-        }
+        };
 
         // Save in state object taxonSpecifics.
-        var taxonSpecifics:object = {};
+        let taxonSpecifics:object = {};
         for (let i=0; i<croppedLineages.length; i++) {
-            var taxName:string = croppedLineages[i][croppedLineages[i].length-1];
+            let taxName:string = croppedLineages[i][croppedLineages[i].length-1];
+            taxonSpecifics[taxName] = {};
+            taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length-1];
+            taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
+            taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
+            taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length-1;
+            taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
             if (changedLineages[i] || taxName.includes("&")) {
-                taxonSpecifics[taxName] = {};
-                taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length-1]
-                taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
-                taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
                 let taxa:string[] = taxName.split(" & ");
                 let unassignedCount:number = taxa.map(item => allTaxaReduced[item]["totalCount"]).reduce((accumulator, value) => accumulator + value, 0);
                 taxonSpecifics[taxName]["unassignedCount"] = unassignedCount;
                 taxonSpecifics[taxName]["totalCount"] = unassignedCount;
-                taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length-1;
-                taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
                 taxonSpecifics[taxName]["married"] = true;
-            } else {
-                taxonSpecifics[taxName] = {};
-                taxonSpecifics[taxName]["rank"] = croppedRanks[i][croppedRanks[i].length-1]
-                taxonSpecifics[taxName]["croppedLineage"] = croppedLineages[i];
-                taxonSpecifics[taxName]["alignedCroppedLineage"] = alignedCropppedLineages[i];
+            } 
+            else {
                 taxonSpecifics[taxName]["unassignedCount"] = allTaxaReduced[taxName].unassignedCount;
                 taxonSpecifics[taxName]["totalCount"] = allTaxaReduced[taxName]["totalCount"];
-                taxonSpecifics[taxName]["firstLayerUnaligned"] = croppedLineages[i].length-1;
-                taxonSpecifics[taxName]["firstLayerAligned"] = alignedCropppedLineages[i].indexOf(taxName);
-            }
-        }
+            };
+        };
+
+        // Get sum of all unassigned counts.
         let totalUnassignedCount:number = 0;
         if (root.indexOf("&") > -1) {
             for (let taxName of Object.keys(taxonSpecifics)) {
                 totalUnassignedCount += taxonSpecifics[taxName]["unassignedCount"];
-            }
+            };
             allTaxaReduced[root] = totalUnassignedCount;
         }
         else {
             totalUnassignedCount = allTaxaReduced[root]["totalCount"];
-        }
+        };
         
         // Make all lineages take up the same amount of degrees in the plot if necessary.
         if (alteration === "allEqual") {
             for (let taxName of Object.keys(taxonSpecifics)) {
                 taxonSpecifics[taxName]["unassignedCount"] = 1;
-            }
-        }
+            };
+        };
         for (let i=0; i<croppedLineages.length; i++) {
             for (let j=croppedLineages[i].length-2; j>=0; j--) {
                 if (!taxonSpecifics[croppedLineages[i][j]]) {
                     taxonSpecifics[croppedLineages[i][j]] = {};
                     taxonSpecifics[croppedLineages[i][j]]["rank"] = croppedRanks[i][j];
                     taxonSpecifics[croppedLineages[i][j]]["croppedLineage"] = croppedLineages[i].slice(0, j+1);
-                    var index = alignedCropppedLineages[i].indexOf(croppedLineages[i][j]);
+                    let index = alignedCropppedLineages[i].indexOf(croppedLineages[i][j]);
                     taxonSpecifics[croppedLineages[i][j]]["alignedCroppedLineage"] = alignedCropppedLineages[i].slice(0, index+1);
                     taxonSpecifics[croppedLineages[i][j]]["unassignedCount"] = 0;
                     taxonSpecifics[croppedLineages[i][j]]["totalCount"] = allTaxaReduced[croppedLineages[i][j]]["totalCount"];
                     taxonSpecifics[croppedLineages[i][j]]["firstLayerUnaligned"] = j;
                     taxonSpecifics[croppedLineages[i][j]]["firstLayerAligned"] = index;
-                }
-            }
-        }
+                };
+            };
+        };
 
-        var dpmm:number = viewportDimensions["dpmm"];
-        var numberOfLayers:number = alignedCropppedLineages[0] ? alignedCropppedLineages[0].length : 0;
-        //var smallerDimension:number = Math.min(this.state.horizontalShift * 0.6, this.state.verticalShift);
-        //var layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1);
-        var smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
-        var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
+        // Calculate some parameters needed by the next functions.
+        let dpmm:number = viewportDimensions["dpmm"];
+        let numberOfLayers:number = alignedCropppedLineages[0] ? alignedCropppedLineages[0].length : 0;
+        let smallerDimension:number = Math.min(this.state.horizontalShift, this.state.verticalShift);
+        let layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
 
+        // If this plot has been calculated before, retrieve it from storage.
         // Continue if more than one lineage fulfilling the criteria was found.
-        var currPlotId:string = root + layer + collapse + alteration + plotEValue + round(layerWidth) + eThreshold;
+        let currPlotId:string = root + layer + collapse + alteration + plotEValue + round(layerWidth) + eThreshold;
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1 && newDataLoaded) {
             this.setState(alreadyVisited[currPlotId]);
-        } else if (croppedLineages.length >= 1) {
-            this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, "alteration": alteration, "collapse": collapse, "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue});
-        }
-    }
+        } 
+        else if (croppedLineages.length >= 1) {
+            this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, 
+                                "taxonSpecifics": taxonSpecifics, "croppedLineages": croppedLineages, 
+                                "alignedCroppedLineages": alignedCropppedLineages, "ancestors": ancestors, 
+                                "alteration": alteration, "collapse": collapse, 
+                                "totalUnassignedCount": totalUnassignedCount, count: 0, "abbreviateLabels": true, 
+                                "labelsPlaced": false, "alreadyRepeated": false, "plotEValue": plotEValue});
+        };
+    };
 
     filterByEValue(croppedLineages:string[][], croppedRanks:string[][]):any {
         let allEValues:any = [];
@@ -1584,19 +1585,12 @@ function LabelBackground(props) {
     else { return null; };
 };
 
-function extClick(shapeId) {
-    let el:any = document.getElementById("Gammaproteobacteria_-_2");
-    console.log("shapeId: ", el, document)
-    let evt = new CustomEvent('click');
-    el.dispatchEvent(evt);
-}
-
 //extClick("Gammaproteobacteria_-_2");
 
 /* ===== DRAWING THE PLOT ===== */
 
 //addEventListener("mousemove", (event) => handleMouseMove(event));
 
-export {PlotDrawing, extClick}
+export {PlotDrawing}
 
 console.log("components.tsx end")
