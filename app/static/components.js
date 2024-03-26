@@ -635,10 +635,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var el = document.getElementById("e-text");
                 var value = parseFloat(el.value);
                 if (eInput.checked) {
-                    console.log("eText entered");
-                    console.log("eThreshold before: ", eThreshold);
                     eThreshold = value;
-                    console.log("eThreshold after: ", eThreshold);
                     _this.cropLineages();
                 }
                 else {
@@ -679,7 +676,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         else {
             currPlotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + " " + viewportDimensions["cx"] + viewportDimensions["cy"];
         }
-        console.log("cropLineages plotid: ", currPlotId);
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
             console.log("NO RECALCULATING");
             this.setState(alreadyVisited[currPlotId]);
@@ -718,7 +714,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             croppedRanks = croppedRanks.map(function (item) { return item.slice(layer); });
         }
         ;
-        console.log("croppedLineages immediately before filtering: ", croppedLineages.length);
         // Filter by e-value if required.
         if (plotEValue) {
             var modified = this.filterByEValue(croppedLineages, croppedRanks);
@@ -733,7 +728,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             croppedLineages = modified[0], croppedRanks = modified[1];
         }
         ;
-        console.log("croppedLineages immediately after filtering: ", croppedLineages.length);
         // Get minimal rank pattern for this particular plot to prepare for alignment.
         var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []);
         ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; });
@@ -840,7 +834,6 @@ var PlotDrawing = /** @class */ (function (_super) {
             ;
         }
         ;
-        console.log("END OF CROP-LINEAGES()", croppedLineages);
         // Continue onto the next step if one or more lineages fulfill the criteria.
         if (croppedLineages.length >= 1) {
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern,
@@ -909,30 +902,42 @@ var PlotDrawing = /** @class */ (function (_super) {
         if (alteration === void 0) { alteration = "marriedTaxaI"; }
         // Set threshold for marrying. Currently fixed at 2%.
         var threshold = 0.02;
+        // Get the sum of unassigned counts.
         var totalUnassignedCounts = 0;
         for (var _i = 0, croppedLineages_1 = croppedLineages; _i < croppedLineages_1.length; _i++) {
             var lineage = croppedLineages_1[_i];
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
         }
+        ;
+        // Find all lineages that make up <2% of the whole. 
+        // Crop them so that they end in the most specific taxon >= 2 %.
+        // Put them in an array called reducibleLineages. 
         var reducibleLineages = [];
-        // Find all lineages that make up <2% of the whole, crop them so that they end in the most specific taxon >=1%, put them in an array called reducibleLineages. 
         for (var _a = 0, croppedLineages_2 = croppedLineages; _a < croppedLineages_2.length; _a++) {
             var lineage = croppedLineages_2[_a];
-            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < threshold) { // So, the wedge is too thin?
-                var lineageNumber = croppedLineages.indexOf(lineage);
+            // If the last wedge of the current lineage is too thin...
+            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < threshold) {
+                var lineageIndex = croppedLineages.indexOf(lineage);
                 var lastWayTooThinLayer = lineage.length - 1;
-                // Find the furthest wedge above it that is also too thin.
+                // ...find the furthest parent that is also too thin.
                 for (var i = lineage.length - 2; i >= 0; i--) {
                     if (allTaxaReduced[lineage[i]]["totalCount"] / totalUnassignedCounts >= threshold) {
                         lastWayTooThinLayer = i + 1;
                         break;
                     }
+                    ;
                 }
                 ;
                 var partialLineage = lineage.slice(0, lastWayTooThinLayer);
-                reducibleLineages.push([lineageNumber, partialLineage]);
+                reducibleLineages.push([lineageIndex, partialLineage]);
             }
+            ;
         }
+        ;
+        // Viewing mode "Married taxa I" puts all wedges with the same ancestry
+        // (the same partialLineage) under the same property name in the object reductionGroups.
+        // Their common name is composed by concatenating the names of the first less-than-2%
+        // taxa in each lineage.
         var reductionGroups = {};
         if (alteration === "marriedTaxaI") {
             for (var _b = 0, reducibleLineages_1 = reducibleLineages; _b < reducibleLineages_1.length; _b++) {
@@ -949,10 +954,17 @@ var PlotDrawing = /** @class */ (function (_super) {
                     if (taxa.indexOf(croppedLineages[item[0]][item[1].length]) === -1) {
                         reductionGroups[item[1].join("")]["commonName"] += " & ".concat(croppedLineages[item[0]][item[1].length]);
                     }
+                    ;
                 }
+                ;
             }
+            ;
         }
+        // Viewing mode "Married taxa II" puts wedges with the same ancestry together
+        // until the combined wedge reaches the threshold. If there are more with the 
+        // same ancestry, they will be combined into another wedge.
         else {
+            // Put all wedges with the same ancestry under the same property name in reducibleLineages.
             for (var _c = 0, reducibleLineages_2 = reducibleLineages; _c < reducibleLineages_2.length; _c++) {
                 var item = reducibleLineages_2[_c];
                 if (!reductionGroups[item[1].join("")]) {
@@ -963,10 +975,16 @@ var PlotDrawing = /** @class */ (function (_super) {
                 else {
                     reductionGroups[item[1].join("")]["index"].push(item[0]);
                 }
+                ;
             }
+            ;
             var _loop_4 = function (group) {
                 var spliceAt = reductionGroups[group]["spliceAt"];
                 reductionGroups[group]["index"].sort(function (index1, index2) { return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"]; });
+                // In each reduction group, replace lineage indices with the names of the first too-small taxa.
+                // The resulting array is called renameables.
+                // For each unique item in renameables, create a key in temporaryObject.
+                // The key will contain a list of all indices of lineages whose first too-small taxa have the same name.
                 var renameables = reductionGroups[group]["index"].map(function (item) { return croppedLineages[item][spliceAt]; });
                 var temporaryObject = {};
                 for (var i = 0; i < renameables.length; i++) {
@@ -977,20 +995,31 @@ var PlotDrawing = /** @class */ (function (_super) {
                     else {
                         temporaryObject[renameable].push(reductionGroups[group]["index"][i]);
                     }
+                    ;
                 }
+                ;
+                // Use temporaryObject to create permanentObject, in which every key is a lineage index,
+                // every value is the name of its first too-small taxon.
+                // Add permanentObject to the reduction group as its "reference".
+                // minimalIndexArrat contains all indices in the group ordered by size of the wedge.
                 var permanentObject = {};
                 for (var _p = 0, _q = Object.keys(temporaryObject); _p < _q.length; _p++) {
                     var key = _q[_p];
                     permanentObject[temporaryObject[key][0]] = temporaryObject[key];
                 }
+                ;
                 reductionGroups[group]["references"] = permanentObject;
-                reductionGroups[group]["minimalIndexArray"] = Object.keys(permanentObject).sort(function (index1, index2) { return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"]; });
+                reductionGroups[group]["minimalIndexArray"] = Object.keys(permanentObject).sort(function (index1, index2) {
+                    return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"];
+                });
             };
-            // Sort indices of reduction groups in ascending order, group some of them together if they are in the same subgroup.
+            // Sort indices of reduction groups by size in ascending order,
+            // group some of them together if they are in the same subgroup.
             for (var _d = 0, _e = Object.keys(reductionGroups); _d < _e.length; _d++) {
                 var group = _e[_d];
                 _loop_4(group);
             }
+            ;
             var _loop_5 = function (group) {
                 var minimalIndexArray = reductionGroups[group]["minimalIndexArray"].map(function (item) { return parseInt(item); });
                 var indexBeginning = 0;
@@ -1001,7 +1030,14 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var newGroups = [];
                 var iterations = minimalIndexArray.length % 2 === 0 ? minimalIndexArray.length / 2 : Math.floor(minimalIndexArray.length / 2) + 1;
                 var spliceAt = reductionGroups[group]["spliceAt"];
-                while ((minimalIndexArray.length % 2 === 0 && indexBeginning <= iterations && (minimalIndexArray.length - 1) - indexEnd < iterations) || (minimalIndexArray.length % 2 === 1 && indexBeginning !== iterations && (minimalIndexArray.length - 1) - indexEnd < iterations)) {
+                // To create a single wedge from a group (multiple wedges might be needed),
+                // combine a the smallest wedge with the biggest and remove them from the group.
+                // Continue building up the same wedge the same way until the threshold is reached.
+                // Then start a new wedge if needed.
+                // newIndexGroup holds the indices of the current wedge.
+                // newGroups holds every newIndexGroup for this reduction group.
+                while ((minimalIndexArray.length % 2 === 0 && indexBeginning <= iterations && (minimalIndexArray.length - 1) - indexEnd < iterations) ||
+                    (minimalIndexArray.length % 2 === 1 && indexBeginning !== iterations && (minimalIndexArray.length - 1) - indexEnd < iterations)) {
                     if (addNext === "indexBeginning") {
                         var newIndex = minimalIndexArray[indexBeginning];
                         newIndexGroup.push(newIndex);
@@ -1020,20 +1056,29 @@ var PlotDrawing = /** @class */ (function (_super) {
                         addNext = "indexBeginning";
                         indexEnd--;
                     }
+                    ;
                     if (sum >= threshold) {
                         newGroups.push(newIndexGroup);
                         newIndexGroup = [];
                         sum = 0;
                     }
+                    ;
                 }
+                ;
+                // Add the last newIndexGroup to its newGroups array, unless it's empty.
                 if (newIndexGroup.length !== 0) {
                     if (newGroups.length === 0) {
                         newGroups = [[]];
                     }
+                    ;
                     var lastGroup = newGroups[newGroups.length - 1];
                     lastGroup.splice.apply(lastGroup, __spreadArray([lastGroup.length, 0], newIndexGroup, false));
-                    //newGroups.push(newIndexGroup);
                 }
+                ;
+                // Replace each index in each newIndexGroup with the name 
+                // of the first too-small taxon in the lineage with this index.
+                // Each element in the array reductionGroups[group]["newGroups"]
+                // is an array of names which will form a single wedge.
                 newGroups = newGroups.map(function (item) { return item.map(function (item1) { return reductionGroups[group]["references"][item1]; }); });
                 newGroups = newGroups.map(function (item) { return item.reduce(function (accumulator, value) { return accumulator.concat(value); }, []); });
                 reductionGroups[group]["newGroups"] = newGroups;
@@ -1042,6 +1087,9 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var group = _g[_f];
                 _loop_5(group);
             }
+            ;
+            // Reconfigure reductionGroups where each key holds the information for a single wedge.
+            // The name of the wedge is calculated here.
             var newReductionGroups = {};
             var _loop_6 = function (group) {
                 for (var i = 0; i < reductionGroups[group]["newGroups"].length; i++) {
@@ -1049,17 +1097,20 @@ var PlotDrawing = /** @class */ (function (_super) {
                     newReductionGroups["".concat(group, "-").concat(i)]["spliceAt"] = reductionGroups[group]["spliceAt"];
                     newReductionGroups["".concat(group, "-").concat(i)]["index"] = reductionGroups[group]["newGroups"][i];
                     names = reductionGroups[group]["newGroups"][i].map(function (item) { return croppedLineages[item][reductionGroups[group]["spliceAt"]]; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
-                    //let names1 = names.map(item => item.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),""));
                     newReductionGroups["".concat(group, "-").concat(i)]["commonName"] = names.join(" & ");
                 }
+                ;
             };
             var names;
             for (var _h = 0, _j = Object.keys(reductionGroups); _h < _j.length; _h++) {
                 var group = _j[_h];
                 _loop_6(group);
             }
+            ;
             reductionGroups = newReductionGroups;
         }
+        ;
+        // Crop lineages and ranks to start with common ancestry and end with the married name.
         var changedLineages = new Array(croppedLineages.length).fill(false);
         for (var _k = 0, _l = Object.keys(reductionGroups).filter(function (item) { return reductionGroups[item]["index"].length > 1; }); _k < _l.length; _k++) {
             var group = _l[_k];
@@ -1069,9 +1120,10 @@ var PlotDrawing = /** @class */ (function (_super) {
                 croppedRanks[index].splice(reductionGroups[group]["spliceAt"] + 1);
                 changedLineages.splice(index, 1, true);
             }
-            //console.log("group cm: ", group["commonName"])
-            //group["commonName"] = group.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
+            ;
         }
+        ;
+        // Remove duplicates from the married lineages.
         for (var i = croppedLineages.length - 1; i >= 0; i--) {
             var croppedLineageCopy = croppedLineages.map(function (item) { return JSON.stringify(item); });
             var lineage = croppedLineageCopy[i];
@@ -1082,12 +1134,14 @@ var PlotDrawing = /** @class */ (function (_super) {
                 croppedRanks.splice(lastIndex, 1);
                 changedLineages.splice(lastIndex, 1);
             }
+            ;
         }
+        ;
         return [croppedLineages, croppedRanks, changedLineages];
     };
+    ;
     // Assign each cropped lineage a start and end degree.
     PlotDrawing.prototype.assignDegrees = function (newState) {
-        console.log("ASSIGN-DEGREES()");
         var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
         var croppedLineages = newState["croppedLineages"] ? newState["croppedLineages"] : this.state.taxonSpecifics;
         var taxonSpecifics = newState["taxonSpecifics"] ? newState["taxonSpecifics"] : this.state.taxonSpecifics;
@@ -1097,10 +1151,12 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var taxName = _a[_i];
                 totalUnassignedCounts += taxonSpecifics[taxName]["unassignedCount"];
             }
+            ;
         }
         else {
             var totalUnassignedCounts = newState["totalUnassignedCount"];
         }
+        ;
         var ranges = {};
         var startDeg = 0;
         for (var i = 0; i < croppedLineages.length; i++) {
@@ -1113,6 +1169,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     ranges[currentTaxon]["layers"] = [firstLayer];
                     ranges[currentTaxon]["degrees"] = [startDeg];
                 }
+                ;
                 var lastLayer = void 0;
                 if (j === croppedLineages[i].length - 1) {
                     lastLayer = alignedCroppedLineages[0].length;
@@ -1120,11 +1177,14 @@ var PlotDrawing = /** @class */ (function (_super) {
                 else {
                     lastLayer = alignedCroppedLineages[i].indexOf(croppedLineages[i][j + 1]);
                 }
+                ;
                 ranges[currentTaxon]["layers"].push(lastLayer);
                 ranges[currentTaxon]["degrees"].push(startDeg + (taxonSpecifics[croppedLineages[i][croppedLineages[i].length - 1]]["unassignedCount"] * 360) / totalUnassignedCounts);
             }
+            ;
             startDeg += (taxonSpecifics[croppedLineages[i][croppedLineages[i].length - 1]]["unassignedCount"] * 360) / totalUnassignedCounts;
         }
+        ;
         for (var _b = 0, _c = Object.keys(ranges); _b < _c.length; _b++) {
             var taxName = _c[_b];
             for (var i = ranges[taxName]["layers"].length - 1; i >= 1; i--) {
@@ -1134,15 +1194,20 @@ var PlotDrawing = /** @class */ (function (_super) {
                     ranges[taxName]["layers"].splice(i, 1);
                     ranges[taxName]["degrees"].splice(i, 1);
                 }
+                ;
             }
+            ;
         }
+        ;
         for (var _d = 0, _e = Object.keys(taxonSpecifics); _d < _e.length; _d++) {
             var taxName = _e[_d];
             taxonSpecifics[taxName]["layers"] = ranges[taxName]["layers"];
             taxonSpecifics[taxName]["degrees"] = ranges[taxName]["degrees"];
         }
+        ;
         this.calculateSVGPaths(newState);
     };
+    ;
     // If collapse=true, remove taxa that only come up in the lineage of one other taxon and have no unassigned counts of their own.
     PlotDrawing.prototype.collapse = function (croppedLineages, croppedRanks) {
         var lineagesCopy = JSON.parse(JSON.stringify(croppedLineages));
@@ -1154,22 +1219,27 @@ var PlotDrawing = /** @class */ (function (_super) {
                     lineagesCopy[j].splice(i, 1, "toBeDeleted");
                     ranksCopy[j].splice(i, 1, "toBeDeleted");
                 }
+                ;
             };
             for (var j = 0; j < layers[i].length; j++) {
                 _loop_8(j);
             }
+            ;
         };
         for (var i = 0; i < layers.length - 1; i++) {
             _loop_7(i);
         }
+        ;
         for (var i = 0; i < lineagesCopy.length; i++) {
             lineagesCopy[i] = lineagesCopy[i].filter(function (item) { return item !== "toBeDeleted"; });
             ranksCopy[i] = ranksCopy[i].filter(function (item) { return item !== "toBeDeleted"; });
         }
+        ;
         return [lineagesCopy, ranksCopy];
     };
+    ;
     PlotDrawing.prototype.calculateArcEndpoints = function (layer, layerWidthInPx, deg1, deg2) {
-        var radius = layer * layerWidthInPx; // in px
+        var radius = layer * layerWidthInPx;
         var x1 = (0, helperFunctions_js_1.round)(radius * (0, helperFunctions_js_1.cos)(deg1) + viewportDimensions["cx"]);
         var y1 = (0, helperFunctions_js_1.round)(-radius * (0, helperFunctions_js_1.sin)(deg1) + viewportDimensions["cy"]);
         var x2 = (0, helperFunctions_js_1.round)(radius * (0, helperFunctions_js_1.cos)(deg2) + viewportDimensions["cx"]);
@@ -1393,9 +1463,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.getTaxonShapes({ "colors": newPalette });
     };
     PlotDrawing.prototype.handleClick = function (shapeId) {
-        console.log("shapeId: ", shapeId);
         var taxon = shapeId.match(/.+?(?=_)/)[0];
-        var currLayer = parseInt(shapeId.match(/-?\d+/)[0]);
         var nextLayer;
         if (taxon.includes("&")) {
             nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length - 1;
@@ -1403,6 +1471,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         else {
             nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length - 1;
         }
+        ;
         window.taxSunClick(taxon);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     };
@@ -1566,11 +1635,12 @@ var PlotDrawing = /** @class */ (function (_super) {
         else {
             plotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + " " + viewportDimensions["cx"] + viewportDimensions["cy"];
         }
-        console.log("render plotid: ", plotId);
+        ;
         if (Object.keys(alreadyVisited).indexOf(plotId) === -1 && this.state.numberOfLayers !== -1) {
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
         }
+        ;
         var shapes = [];
         var labels = [];
         var ancestors = [];

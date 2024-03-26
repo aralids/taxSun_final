@@ -597,10 +597,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 let el:any = document.getElementById("e-text")!
                 let value:number = parseFloat(el.value);
                 if (eInput.checked) {
-                    console.log("eText entered")
-                    console.log("eThreshold before: ", eThreshold)
                     eThreshold = value;
-                    console.log("eThreshold after: ", eThreshold)
                     this.cropLineages();
                 }
                 else { eThreshold = value; };
@@ -633,7 +630,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         else {
             currPlotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + " " + viewportDimensions["cx"] + viewportDimensions["cy"];
         }
-        console.log("cropLineages plotid: ", currPlotId);
+
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
             console.log("NO RECALCULATING")
             this.setState(alreadyVisited[currPlotId]);
@@ -671,7 +668,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             croppedLineages = croppedLineages.map(item => item.slice(layer));
             croppedRanks = croppedRanks.map(item => item.slice(layer));
         };
-        console.log("croppedLineages immediately before filtering: ", croppedLineages.length)
+        
         // Filter by e-value if required.
         if (plotEValue) {
             let modified = this.filterByEValue(croppedLineages, croppedRanks);
@@ -684,7 +681,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             };
             croppedLineages = modified[0], croppedRanks = modified[1];
         };
-        console.log("croppedLineages immediately after filtering: ", croppedLineages.length)
 
         // Get minimal rank pattern for this particular plot to prepare for alignment.
         let ranksUnique:string[] = croppedRanks.reduce((accumulator, value) => accumulator.concat(value), []);
@@ -782,7 +778,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             };
         };
         
-        console.log("END OF CROP-LINEAGES()", croppedLineages)
         // Continue onto the next step if one or more lineages fulfill the criteria.
         if (croppedLineages.length >= 1) {
             this.assignDegrees({"root": root, "layer": layer, "rankPattern": rankPattern, 
@@ -843,33 +838,43 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
     marryTaxa(croppedLineages:string[][], croppedRanks:string[][], alteration="marriedTaxaI") {
         // Set threshold for marrying. Currently fixed at 2%.
-        var threshold:number = 0.02;
+        let threshold:number = 0.02;
 
-        var totalUnassignedCounts:number = 0;
+        // Get the sum of unassigned counts.
+        let totalUnassignedCounts:number = 0;
         for (let lineage of croppedLineages) {
             totalUnassignedCounts += allTaxaReduced[lineage[lineage.length - 1]]["unassignedCount"];
-        }
+        };
 
-        var reducibleLineages:any = [];
-
-        // Find all lineages that make up <2% of the whole, crop them so that they end in the most specific taxon >=1%, put them in an array called reducibleLineages. 
+        // Find all lineages that make up <2% of the whole. 
+        // Crop them so that they end in the most specific taxon >= 2 %.
+        // Put them in an array called reducibleLineages. 
+        let reducibleLineages:any = [];
         for (let lineage of croppedLineages) {
-            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < threshold) { // So, the wedge is too thin?
-                let lineageNumber:number = croppedLineages.indexOf(lineage);
+
+            // If the last wedge of the current lineage is too thin...
+            if (allTaxaReduced[lineage[lineage.length - 1]]["totalCount"] / totalUnassignedCounts < threshold) {
+                let lineageIndex:number = croppedLineages.indexOf(lineage);
                 let lastWayTooThinLayer:number = lineage.length - 1;
-                // Find the furthest wedge above it that is also too thin.
-                for (let i=lineage.length-2; i>=0; i--) {
+
+                // ...find the furthest parent that is also too thin.
+                for (let i = lineage.length - 2; i >= 0; i--) {
                     if (allTaxaReduced[lineage[i]]["totalCount"] / totalUnassignedCounts >= threshold) {
                         lastWayTooThinLayer = i+1;
                         break;
-                    }
+                    };
                 };
-                let partialLineage:string[] = lineage.slice(0, lastWayTooThinLayer);
-                reducibleLineages.push([lineageNumber, partialLineage])
-            }
-        }
 
-        var reductionGroups:object = {};
+                let partialLineage:string[] = lineage.slice(0, lastWayTooThinLayer);
+                reducibleLineages.push([lineageIndex, partialLineage]);
+            };
+        };
+
+        // Viewing mode "Married taxa I" puts all wedges with the same ancestry
+        // (the same partialLineage) under the same property name in the object reductionGroups.
+        // Their common name is composed by concatenating the names of the first less-than-2%
+        // taxa in each lineage.
+        let reductionGroups:object = {};
         if (alteration === "marriedTaxaI") {
             for (let item of reducibleLineages) {
                 if (!reductionGroups[item[1].join("")]) {
@@ -877,49 +882,67 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     reductionGroups[item[1].join("")]["spliceAt"] = item[1].length;
                     reductionGroups[item[1].join("")]["index"] = [item[0]];
                     reductionGroups[item[1].join("")]["commonName"] = croppedLineages[item[0]][item[1].length];
-                } else {
+                } 
+                else {
                     reductionGroups[item[1].join("")]["index"].push(item[0]);
                     let taxa:string = reductionGroups[item[1].join("")]["commonName"].split(" & ");
                     if (taxa.indexOf(croppedLineages[item[0]][item[1].length]) === -1) {
                         reductionGroups[item[1].join("")]["commonName"] += ` & ${croppedLineages[item[0]][item[1].length]}`;
-                    }
-                }
-            }
+                    };
+                };
+            };
         }
 
+        // Viewing mode "Married taxa II" puts wedges with the same ancestry together
+        // until the combined wedge reaches the threshold. If there are more with the 
+        // same ancestry, they will be combined into another wedge.
         else {
+
+            // Put all wedges with the same ancestry under the same property name in reducibleLineages.
             for (let item of reducibleLineages) {
                 if (!reductionGroups[item[1].join("")]) {
                     reductionGroups[item[1].join("")] = {};
                     reductionGroups[item[1].join("")]["spliceAt"] = item[1].length;
                     reductionGroups[item[1].join("")]["index"] = [item[0]];
-                } else {
-                    reductionGroups[item[1].join("")]["index"].push(item[0]);
-                }
-            }
+                } 
+                else { reductionGroups[item[1].join("")]["index"].push(item[0]); };
+            };
 
-            // Sort indices of reduction groups in ascending order, group some of them together if they are in the same subgroup.
+            // Sort indices of reduction groups by size in ascending order,
+            // group some of them together if they are in the same subgroup.
             for (let group of Object.keys(reductionGroups)) {
                 let spliceAt:number = reductionGroups[group]["spliceAt"];
                 reductionGroups[group]["index"].sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
+                
+                // In each reduction group, replace lineage indices with the names of the first too-small taxa.
+                // The resulting array is called renameables.
+                // For each unique item in renameables, create a key in temporaryObject.
+                // The key will contain a list of all indices of lineages whose first too-small taxa have the same name.
                 let renameables:string[] = reductionGroups[group]["index"].map(item => croppedLineages[item][spliceAt]);
                 let temporaryObject:object = {};
-                for (let i=0; i<renameables.length; i++) {
+                for (let i = 0; i < renameables.length; i++) {
                     let renameable:string = renameables[i];
                     if (!temporaryObject[renameable]) {
-                        temporaryObject[renameable] = [reductionGroups[group]["index"][i]]
+                        temporaryObject[renameable] = [reductionGroups[group]["index"][i]];
                     }
                     else {
-                        temporaryObject[renameable].push(reductionGroups[group]["index"][i])
-                    }
-                }
+                        temporaryObject[renameable].push(reductionGroups[group]["index"][i]);
+                    };
+                };
+
+                // Use temporaryObject to create permanentObject, in which every key is a lineage index,
+                // every value is the name of its first too-small taxon.
+                // Add permanentObject to the reduction group as its "reference".
+                // minimalIndexArrat contains all indices in the group ordered by size of the wedge.
                 let permanentObject:object = {};
                 for (let key of Object.keys(temporaryObject)) {
                     permanentObject[temporaryObject[key][0]] = temporaryObject[key];
-                }
+                };
                 reductionGroups[group]["references"] = permanentObject;
-                reductionGroups[group]["minimalIndexArray"] = Object.keys(permanentObject).sort((index1, index2) => allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"])
-            }
+                reductionGroups[group]["minimalIndexArray"] = Object.keys(permanentObject).sort((index1, index2) => {
+                    return allTaxaReduced[croppedLineages[index1][spliceAt]]["totalCount"] - allTaxaReduced[croppedLineages[index2][spliceAt]]["totalCount"];
+                });
+            };
 
             for (let group of Object.keys(reductionGroups)) {
                 let minimalIndexArray:number[] = reductionGroups[group]["minimalIndexArray"].map(item => parseInt(item));
@@ -931,8 +954,15 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 let newGroups:any = [];
                 let iterations:number = minimalIndexArray.length % 2 === 0 ? minimalIndexArray.length / 2 : Math.floor(minimalIndexArray.length / 2) + 1;
                 let spliceAt:number = reductionGroups[group]["spliceAt"];
-                while ((minimalIndexArray.length % 2 === 0 && indexBeginning <= iterations && (minimalIndexArray.length - 1) - indexEnd < iterations) || (minimalIndexArray.length % 2 === 1 && indexBeginning !== iterations && (minimalIndexArray.length - 1) - indexEnd < iterations)) {
-
+                
+                // To create a single wedge from a group (multiple wedges might be needed),
+                // combine a the smallest wedge with the biggest and remove them from the group.
+                // Continue building up the same wedge the same way until the threshold is reached.
+                // Then start a new wedge if needed.
+                // newIndexGroup holds the indices of the current wedge.
+                // newGroups holds every newIndexGroup for this reduction group.
+                while ((minimalIndexArray.length % 2 === 0 && indexBeginning <= iterations && (minimalIndexArray.length - 1) - indexEnd < iterations) || 
+                       (minimalIndexArray.length % 2 === 1 && indexBeginning !== iterations && (minimalIndexArray.length - 1) - indexEnd < iterations)) {
                     if (addNext === "indexBeginning") {
                         let newIndex:number = minimalIndexArray[indexBeginning];
                         newIndexGroup.push(newIndex);
@@ -950,54 +980,58 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                         sum += additive;
                         addNext = "indexBeginning";
                         indexEnd--;
-                    }
+                    };
 
                     if (sum >= threshold) {
                         newGroups.push(newIndexGroup);
                         newIndexGroup = [];
                         sum = 0;
-                    }
-                }
+                    };
+                };
+
+                // Add the last newIndexGroup to its newGroups array, unless it's empty.
                 if (newIndexGroup.length !== 0) {
-                    if (newGroups.length === 0) {
-                        newGroups = [[]];
-                    }
+                    if (newGroups.length === 0) { newGroups = [[]]; };
                     let lastGroup:number[] = newGroups[newGroups.length - 1];
                     lastGroup.splice(lastGroup.length, 0, ...newIndexGroup);
-                    //newGroups.push(newIndexGroup);
-                }
+                };
+
+                // Replace each index in each newIndexGroup with the name 
+                // of the first too-small taxon in the lineage with this index.
+                // Each element in the array reductionGroups[group]["newGroups"]
+                // is an array of names which will form a single wedge.
                 newGroups = newGroups.map(item => item.map(item1 => reductionGroups[group]["references"][item1]));
                 newGroups = newGroups.map(item => item.reduce((accumulator, value) => accumulator.concat(value), []));
                 reductionGroups[group]["newGroups"] = newGroups;
-            }
+            };
 
+            // Reconfigure reductionGroups where each key holds the information for a single wedge.
+            // The name of the wedge is calculated here.
             let newReductionGroups:object = {};
             for (let group of Object.keys(reductionGroups)) {
-                for (let i=0; i<reductionGroups[group]["newGroups"].length; i++) {
+                for (let i = 0; i < reductionGroups[group]["newGroups"].length; i++) {
                     newReductionGroups[`${group}-${i}`] = {};
                     newReductionGroups[`${group}-${i}`]["spliceAt"] = reductionGroups[group]["spliceAt"];
                     newReductionGroups[`${group}-${i}`]["index"] = reductionGroups[group]["newGroups"][i];
                     var names:string[] = reductionGroups[group]["newGroups"][i].map(item => croppedLineages[item][reductionGroups[group]["spliceAt"]]).filter((v, i, a) => a.indexOf(v) === i);
-                    //let names1 = names.map(item => item.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),""));
                     newReductionGroups[`${group}-${i}`]["commonName"] = names.join(" & ");
-                }
-            }
+                };
+            };
             reductionGroups = newReductionGroups;
-        }
+        };
 
+        // Crop lineages and ranks to start with common ancestry and end with the married name.
         let changedLineages:any[] = new Array(croppedLineages.length).fill(false);
-
         for (let group of Object.keys(reductionGroups).filter(item => reductionGroups[item]["index"].length > 1)) {
             for (let index of reductionGroups[group]["index"]) {
                 croppedLineages[index].splice(reductionGroups[group]["spliceAt"], croppedLineages[index].length - reductionGroups[group]["spliceAt"], reductionGroups[group]["commonName"]);
                 croppedRanks[index].splice(reductionGroups[group]["spliceAt"] + 1);
                 changedLineages.splice(index, 1, true);
-            }
-            //console.log("group cm: ", group["commonName"])
-            //group["commonName"] = group.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),"");
-        }
+            };
+        };
         
-        for (let i=croppedLineages.length-1; i>=0; i--) {
+        // Remove duplicates from the married lineages.
+        for (let i = croppedLineages.length - 1; i >= 0; i--) {
             let croppedLineageCopy = croppedLineages.map(item => JSON.stringify(item));
             let lineage:string = croppedLineageCopy[i];
             let lastIndex = i;
@@ -1006,14 +1040,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 croppedLineages.splice(lastIndex, 1);
                 croppedRanks.splice(lastIndex, 1);
                 changedLineages.splice(lastIndex, 1);
-            }
-        }
+            };
+        };
+
         return [croppedLineages, croppedRanks, changedLineages];
-    }
+    };
 
     // Assign each cropped lineage a start and end degree.
     assignDegrees(newState:object):void {
-        console.log("ASSIGN-DEGREES()")
         var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
         var croppedLineages = newState["croppedLineages"] ? newState["croppedLineages"] : this.state.taxonSpecifics;
         var taxonSpecifics = newState["taxonSpecifics"] ? newState["taxonSpecifics"] : this.state.taxonSpecifics;
@@ -1021,11 +1055,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         if (newState["alteration"] === "allEqual") {
             for (let taxName of Object.keys(taxonSpecifics).filter(item => taxonSpecifics[item]["unassignedCount"] !== 0)) {
                 totalUnassignedCounts += taxonSpecifics[taxName]["unassignedCount"];
-            }
+            };
         }
-        else {     
-            var totalUnassignedCounts = newState["totalUnassignedCount"];
-        }
+        else { var totalUnassignedCounts = newState["totalUnassignedCount"]; };
 
         let ranges:object = {};
         let startDeg:number = 0;
@@ -1039,39 +1071,39 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     let firstLayer:number = taxonSpecifics[currentTaxon]["firstLayerUnaligned"] === 1 ? 1 : alignedIndex;
                     ranges[currentTaxon]["layers"] = [firstLayer];
                     ranges[currentTaxon]["degrees"] = [startDeg];
-                }
+                };
 
                 let lastLayer:number;
                 if (j === croppedLineages[i].length - 1) {
                     lastLayer = alignedCroppedLineages[0].length;
-                } else {
+                } 
+                else {
                     lastLayer = alignedCroppedLineages[i].indexOf(croppedLineages[i][j+1]);
-                }
+                };
                 ranges[currentTaxon]["layers"].push(lastLayer);
                 ranges[currentTaxon]["degrees"].push(startDeg + (taxonSpecifics[croppedLineages[i][croppedLineages[i].length-1]]["unassignedCount"] * 360) / totalUnassignedCounts);
-            }
+            };
             startDeg += (taxonSpecifics[croppedLineages[i][croppedLineages[i].length-1]]["unassignedCount"] * 360) / totalUnassignedCounts;
-        }
+        };
 
         for (let taxName of Object.keys(ranges)) {
             for (let i=ranges[taxName]["layers"].length-1; i>=1; i--) {
                 if (ranges[taxName]["layers"][i] === ranges[taxName]["layers"][i-1]) {
                     let newValue:number = ranges[taxName]["degrees"][i];
-                    
                     ranges[taxName]["degrees"][i-1] = newValue;
                     ranges[taxName]["layers"].splice(i,1);
                     ranges[taxName]["degrees"].splice(i,1);
-                }
-            }
-        }
+                };
+            };
+        };
 
         for (let taxName of Object.keys(taxonSpecifics)) {
             taxonSpecifics[taxName]["layers"] = ranges[taxName]["layers"];
             taxonSpecifics[taxName]["degrees"] = ranges[taxName]["degrees"];
-        }
+        };
 
         this.calculateSVGPaths(newState);
-    }
+    };
 
     // If collapse=true, remove taxa that only come up in the lineage of one other taxon and have no unassigned counts of their own.
     collapse(croppedLineages:string[][], croppedRanks:string[][]):string[][][] {
@@ -1084,24 +1116,26 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 if (layers[i].filter(item => item === layers[i][j]).length === 1 && Boolean(layers[i+1][j])) {
                     lineagesCopy[j].splice(i,1, "toBeDeleted");
                     ranksCopy[j].splice(i,1, "toBeDeleted");
-                }
-            }
-        }
+                };
+            };
+        };
+
         for (let i=0; i<lineagesCopy.length; i++) {
             lineagesCopy[i] = lineagesCopy[i].filter(item => item !== "toBeDeleted");
             ranksCopy[i] = ranksCopy[i].filter(item => item !== "toBeDeleted");
-        }
+        };
+
         return [lineagesCopy, ranksCopy];
-    }
+    };
 
     calculateArcEndpoints(layer:number, layerWidthInPx:number, deg1:number, deg2:number):object {
-        var radius:number = layer * layerWidthInPx; // in px
+        var radius:number = layer * layerWidthInPx;
         var x1:number = round(radius * cos(deg1) + viewportDimensions["cx"]);
         var y1:number = round(- radius * sin(deg1) + viewportDimensions["cy"]);
         var x2:number = round(radius * cos(deg2) + viewportDimensions["cx"]);
         var y2:number = round(- radius * sin(deg2) + viewportDimensions["cy"]);
     
-        return {x1: x1, y1: y1, x2: x2, y2: y2, radius:round(radius)};
+        return {x1: x1, y1: y1, x2: x2, y2: y2, radius: round(radius)};
     }
 
     calculateSVGPaths(newState:object):void {
@@ -1120,7 +1154,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         var startDeg = (key) => {return taxonSpecifics[key]["degrees"][0]};
         var endDeg = (key) => {return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1]};
         
-
         for (var key of Object.keys(taxonSpecifics)) {
             var firstLayerRadius:number = round(firstLayer(key)*layerWidth);
             if (taxonSpecifics[key]["layers"][0] === 0) { // If the shape to be drawn is the center of the plot (1 circle).
@@ -1327,16 +1360,14 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     }
 
     handleClick(shapeId):void {
-        console.log("shapeId: ", shapeId)
         var taxon:string = shapeId.match(/.+?(?=_)/)[0];
-        var currLayer:number = parseInt(shapeId.match(/-?\d+/)[0]);
         var nextLayer;
         if (taxon.includes("&")) {
             nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length-1;
         }
         else {
             nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length-1;
-        }
+        };
         (window as any).taxSunClick(taxon);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     }
@@ -1521,12 +1552,11 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         }
         else {
             plotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + " " + viewportDimensions["cx"] + viewportDimensions["cy"];
-        }
-        console.log("render plotid: ", plotId)
+        };
         if (Object.keys(alreadyVisited).indexOf(plotId) === -1 && this.state.numberOfLayers !== -1) {
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
-        }
+        };
 
         var shapes:any = [];
         var labels:any = [];
