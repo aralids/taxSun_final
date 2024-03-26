@@ -1141,86 +1141,86 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     calculateSVGPaths(newState:object):void {
         let cx = viewportDimensions["cx"];
         let cy = viewportDimensions["cy"];
-        var alignedCroppedLineages:string[][] = newState["alignedCroppedLineages"];
-        var taxonSpecifics:object = newState["taxonSpecifics"];
-        var dpmm:number = viewportDimensions["dpmm"];
-        var numberOfLayers:number = alignedCroppedLineages[0].length;
-        var smallerDimension:number = Math.min(cx * 0.6, cy); //var smallerDimension:number = Math.min(cx, cy);
-        var layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1); //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
+        let alignedCroppedLineages:string[][] = newState["alignedCroppedLineages"];
+        let taxonSpecifics:object = newState["taxonSpecifics"];
+        let dpmm:number = viewportDimensions["dpmm"];
+        let numberOfLayers:number = alignedCroppedLineages[0].length;
+        let smallerDimension:number = Math.min(cx * 0.6, cy); //var smallerDimension:number = Math.min(cx, cy);
+        let layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1); //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
 
-        var firstLayer = (key) => {return taxonSpecifics[key]["layers"][0]};
-        var secondLayer = (key) => {return taxonSpecifics[key]["layers"][1]};
-        var startDeg = (key) => {return taxonSpecifics[key]["degrees"][0]};
-        var endDeg = (key) => {return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1]};
+        let firstLayer = (key) => taxonSpecifics[key]["layers"][0];
+        let secondLayer = (key) => taxonSpecifics[key]["layers"][1];
+        let startDeg = (key) => taxonSpecifics[key]["degrees"][0];
+        let endDeg = (key) => taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1];
         
-        for (var key of Object.keys(taxonSpecifics)) {
-            let innRad:number = round(firstLayer(key)*layerWidth);
+        for (let key of Object.keys(taxonSpecifics)) {
+            let innRad:number = round(firstLayer(key) * layerWidth);
+
             // If the shape to be drawn is the center of the plot (a single circle).
             if (taxonSpecifics[key]["layers"][0] === 0) {
                 taxonSpecifics[key]["svgPath"] = `M ${cx}, ${cy} m -${layerWidth}, 0 a ${layerWidth},${layerWidth} 0 1,0 ${(layerWidth)* 2},0 a ${layerWidth},${layerWidth} 0 1,0 -${(layerWidth)* 2},0`;
             }
+
             // If the shape to be drawn is NOT the center of the plot, but a complex shape.
             else {
                 var subpaths:string[] = [];
 
                 // If the shape to be drawn completes a full circle...
                 if (round(endDeg(key) - startDeg(key)) === 360) {
-                    var innerArc:object = calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key), cx, cy);
-                    var innerArcPath:string = `M ${cx}, ${cy} m -${innRad}, 0 a ${innRad},${innRad} 0 1,0 ${(innRad)* 2},0 a ${innRad},${innRad} 0 1,0 -${innRad* 2},0`;
+                    let innerArcPath:string = `M ${cx}, ${cy} m -${innRad}, 0 a ${innRad},${innRad} 0 1,0 ${(innRad)* 2},0 a ${innRad},${innRad} 0 1,0 -${innRad* 2},0`;
                     subpaths = [innerArcPath];
 
                     // ...and consists simply of two concentric circles.
                     if (taxonSpecifics[key]["layers"].length === 2) { 
-                        let outerCirc = secondLayer(key)*layerWidth;
-                        var midArcPath:string = `M ${cx}, ${cy} m -${outerCirc}, 0 a ${outerCirc},${outerCirc} 0 1,0 ${outerCirc* 2},0 a ${outerCirc},${outerCirc} 0 1,0 -${outerCirc* 2},0`;
+                        let outerCirc = secondLayer(key) * layerWidth;
+                        let midArcPath:string = `M ${cx}, ${cy} m -${outerCirc}, 0 a ${outerCirc},${outerCirc} 0 1,0 ${outerCirc* 2},0 a ${outerCirc},${outerCirc} 0 1,0 -${outerCirc* 2},0`;
                         subpaths.push(midArcPath);
                     }
                     // ...and is of irregular shape.
                     else {
-                        var midArc:object = {};
+                        let midArc:object = {};
                         for (let i = taxonSpecifics[key]["layers"].length - 1; i >= 1; i--) {
-                            var curr = taxonSpecifics[key]["degrees"][i];
-                            var prev = taxonSpecifics[key]["degrees"][i-1];
-                            var startingLetter:string = i === taxonSpecifics[key]["layers"].length-1 ? "M" : "L";
+                            let curr = taxonSpecifics[key]["degrees"][i];
+                            let prev = taxonSpecifics[key]["degrees"][i-1];
+                            let MorL:string = i === taxonSpecifics[key]["layers"].length - 1 ? "M" : "L";
                             midArc = calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
-                            var midArcPath:string = `${startingLetter} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
+                            let midArcPath:string = `${MorL} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
                             if (Math.abs(curr - prev) >= 180) {
-                                var midArcPath:string = `${startingLetter} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
+                                midArcPath = `${MorL} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
                             };
                             subpaths.push(midArcPath);
                         };
-                        var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${cx},${cy + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length-1]*layerWidth}`;
+                        let lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${cx},${cy + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length - 1] * layerWidth}`;
                         subpaths.push(lineInnertoOuter);
                     };
-                    var d:string = subpaths.join(" ");
+                    let d:string = subpaths.join(" ");
                     taxonSpecifics[key]["svgPath"] = d;
                 }
 
                 // If the shape doesn't complete a full circle.
                 else { 
-                    var innerArc:object = calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key), cx, cy);
-                    var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innRad},${innRad} 0 0 1 ${innerArc["x2"]},${innerArc["y2"]}`;
+                    let innerArc:object = calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key), cx, cy);
+                    let innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innRad},${innRad} 0 0 1 ${innerArc["x2"]},${innerArc["y2"]}`;
                     if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
-                        var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innerArc["radius"]},${innerArc["radius"]} 0 1 1 ${innerArc["x2"]},${innerArc["y2"]}`;
+                        innerArcPath = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innerArc["radius"]},${innerArc["radius"]} 0 1 1 ${innerArc["x2"]},${innerArc["y2"]}`;
                     };
 
-                    var subpaths:string[] = [innerArcPath];
-                    var midArc:object = {};
+                    let subpaths:string[] = [innerArcPath];
+                    let midArc:object = {};
                     for (let i = taxonSpecifics[key]["layers"].length - 1; i >= 0; i--) {
-                        var curr = taxonSpecifics[key]["degrees"][i];
-                        var prev = i === 0 ? startDeg(key) : taxonSpecifics[key]["degrees"][i-1];
+                        let curr = taxonSpecifics[key]["degrees"][i];
+                        let prev = i === 0 ? startDeg(key) : taxonSpecifics[key]["degrees"][i-1];
                         midArc = calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
-                        var midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
+                        let midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
                         if (Math.abs(curr - prev) >= 180) {
-                            var midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
+                            midArcPath = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
                         };
                         subpaths.push(midArcPath);
                     };
                     
-                    var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${innerArc["x1"]},${innerArc["y1"]}`;
+                    let lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${innerArc["x1"]},${innerArc["y1"]}`;
                     subpaths.push(lineInnertoOuter);
-                    var d:string = subpaths.join(" ");
-                    taxonSpecifics[key]["svgPath"] = d;
+                    taxonSpecifics[key]["svgPath"] = subpaths.join(" ");
                 };
             };
         };

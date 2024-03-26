@@ -1272,7 +1272,6 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var subpaths = [];
                 // If the shape to be drawn completes a full circle...
                 if ((0, helperFunctions_js_1.round)(endDeg(key) - startDeg(key)) === 360) {
-                    var innerArc = (0, helperFunctions_js_1.calculateArcEndpoints)(firstLayer(key), layerWidth, startDeg(key), endDeg(key), cx, cy);
                     var innerArcPath = "M ".concat(cx, ", ").concat(cy, " m -").concat(innRad, ", 0 a ").concat(innRad, ",").concat(innRad, " 0 1,0 ").concat((innRad) * 2, ",0 a ").concat(innRad, ",").concat(innRad, " 0 1,0 -").concat(innRad * 2, ",0");
                     subpaths = [innerArcPath];
                     // ...and consists simply of two concentric circles.
@@ -1287,11 +1286,11 @@ var PlotDrawing = /** @class */ (function (_super) {
                         for (var i = taxonSpecifics[key]["layers"].length - 1; i >= 1; i--) {
                             var curr = taxonSpecifics[key]["degrees"][i];
                             var prev = taxonSpecifics[key]["degrees"][i - 1];
-                            var startingLetter = i === taxonSpecifics[key]["layers"].length - 1 ? "M" : "L";
+                            var MorL = i === taxonSpecifics[key]["layers"].length - 1 ? "M" : "L";
                             midArc = (0, helperFunctions_js_1.calculateArcEndpoints)(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
-                            var midArcPath = "".concat(startingLetter, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 0 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
+                            var midArcPath = "".concat(MorL, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 0 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
                             if (Math.abs(curr - prev) >= 180) {
-                                var midArcPath = "".concat(startingLetter, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 1 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
+                                midArcPath = "".concat(MorL, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 1 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
                             }
                             ;
                             subpaths.push(midArcPath);
@@ -1309,10 +1308,10 @@ var PlotDrawing = /** @class */ (function (_super) {
                     var innerArc = (0, helperFunctions_js_1.calculateArcEndpoints)(firstLayer(key), layerWidth, startDeg(key), endDeg(key), cx, cy);
                     var innerArcPath = "M ".concat(innerArc["x1"], ",").concat(innerArc["y1"], " A ").concat(innRad, ",").concat(innRad, " 0 0 1 ").concat(innerArc["x2"], ",").concat(innerArc["y2"]);
                     if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
-                        var innerArcPath = "M ".concat(innerArc["x1"], ",").concat(innerArc["y1"], " A ").concat(innerArc["radius"], ",").concat(innerArc["radius"], " 0 1 1 ").concat(innerArc["x2"], ",").concat(innerArc["y2"]);
+                        innerArcPath = "M ".concat(innerArc["x1"], ",").concat(innerArc["y1"], " A ").concat(innerArc["radius"], ",").concat(innerArc["radius"], " 0 1 1 ").concat(innerArc["x2"], ",").concat(innerArc["y2"]);
                     }
                     ;
-                    var subpaths = [innerArcPath];
+                    var subpaths_1 = [innerArcPath];
                     var midArc = {};
                     for (var i = taxonSpecifics[key]["layers"].length - 1; i >= 0; i--) {
                         var curr = taxonSpecifics[key]["degrees"][i];
@@ -1320,15 +1319,15 @@ var PlotDrawing = /** @class */ (function (_super) {
                         midArc = (0, helperFunctions_js_1.calculateArcEndpoints)(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
                         var midArcPath = "L ".concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 0 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
                         if (Math.abs(curr - prev) >= 180) {
-                            var midArcPath = "L ".concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 1 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
+                            midArcPath = "L ".concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 1 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
                         }
                         ;
-                        subpaths.push(midArcPath);
+                        subpaths_1.push(midArcPath);
                     }
                     ;
                     var lineInnertoOuter = "L ".concat(midArc["x1"], ",").concat(midArc["y1"], " ").concat(innerArc["x1"], ",").concat(innerArc["y1"]);
-                    subpaths.push(lineInnertoOuter);
-                    var d = subpaths.join(" ");
+                    subpaths_1.push(lineInnertoOuter);
+                    var d = subpaths_1.join(" ");
                     taxonSpecifics[key]["svgPath"] = d;
                 }
                 ;
