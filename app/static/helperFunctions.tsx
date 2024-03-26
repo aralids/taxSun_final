@@ -312,4 +312,13 @@ function getLayers(lineagesCopy:string[][], unique:boolean=false):string[][] {
     return layers;
 }
 
-export {createPalette, radians, round, sin, cos, handleMouseMove, hexToRGB, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions, makeID, enableEValue, disableEValue, showContextMenu, hideContextMenu, findRealName, downloadSVGasTextFile, hoverHandler, onMouseOutHandler, getLayers};
+function calculateArcEndpoints(layer:number, layerWidthInPx:number, deg1:number, deg2:number, cx:number, cy:number):object {
+    var radius:number = layer * layerWidthInPx;
+    var x1:number = round(radius * cos(deg1) + cx);
+    var y1:number = round(- radius * sin(deg1) + cy);
+    var x2:number = round(radius * cos(deg2) + cx);
+    var y2:number = round(- radius * sin(deg2) + cy);
+    return {x1: x1, y1: y1, x2: x2, y2: y2, radius: round(radius)};
+};
+
+export {createPalette, radians, round, sin, cos, handleMouseMove, hexToRGB, midColor, tintify, lineIntersect, lineLength, getFourCorners, getViewportDimensions, makeID, enableEValue, disableEValue, showContextMenu, hideContextMenu, findRealName, downloadSVGasTextFile, hoverHandler, onMouseOutHandler, getLayers, calculateArcEndpoints};

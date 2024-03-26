@@ -1247,15 +1247,6 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.calculateSVGPaths(newState);
     };
     ;
-    PlotDrawing.prototype.calculateArcEndpoints = function (layer, layerWidthInPx, deg1, deg2) {
-        var radius = layer * layerWidthInPx;
-        var x1 = (0, helperFunctions_js_1.round)(radius * (0, helperFunctions_js_1.cos)(deg1) + viewportDimensions["cx"]);
-        var y1 = (0, helperFunctions_js_1.round)(-radius * (0, helperFunctions_js_1.sin)(deg1) + viewportDimensions["cy"]);
-        var x2 = (0, helperFunctions_js_1.round)(radius * (0, helperFunctions_js_1.cos)(deg2) + viewportDimensions["cx"]);
-        var y2 = (0, helperFunctions_js_1.round)(-radius * (0, helperFunctions_js_1.sin)(deg2) + viewportDimensions["cy"]);
-        return { x1: x1, y1: y1, x2: x2, y2: y2, radius: (0, helperFunctions_js_1.round)(radius) };
-    };
-    ;
     PlotDrawing.prototype.calculateSVGPaths = function (newState) {
         var cx = viewportDimensions["cx"];
         var cy = viewportDimensions["cy"];
@@ -1272,27 +1263,32 @@ var PlotDrawing = /** @class */ (function (_super) {
         for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
             var key = _a[_i];
             var innRad = (0, helperFunctions_js_1.round)(firstLayer(key) * layerWidth);
-            if (taxonSpecifics[key]["layers"][0] === 0) { // If the shape to be drawn is the center of the plot (1 circle).
+            // If the shape to be drawn is the center of the plot (a single circle).
+            if (taxonSpecifics[key]["layers"][0] === 0) {
                 taxonSpecifics[key]["svgPath"] = "M ".concat(cx, ", ").concat(cy, " m -").concat(layerWidth, ", 0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 ").concat((layerWidth) * 2, ",0 a ").concat(layerWidth, ",").concat(layerWidth, " 0 1,0 -").concat((layerWidth) * 2, ",0");
             }
-            else { // If the shape to be drawn is NOT the center of the plot, but a complex shape, add:
+            // If the shape to be drawn is NOT the center of the plot, but a complex shape.
+            else {
                 var subpaths = [];
-                if ((0, helperFunctions_js_1.round)(endDeg(key) - startDeg(key)) === 360) { // If the shape to be drawn completes a full circle:
-                    var innerArc = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
+                // If the shape to be drawn completes a full circle...
+                if ((0, helperFunctions_js_1.round)(endDeg(key) - startDeg(key)) === 360) {
+                    var innerArc = (0, helperFunctions_js_1.calculateArcEndpoints)(firstLayer(key), layerWidth, startDeg(key), endDeg(key), cx, cy);
                     var innerArcPath = "M ".concat(cx, ", ").concat(cy, " m -").concat(innRad, ", 0 a ").concat(innRad, ",").concat(innRad, " 0 1,0 ").concat((innRad) * 2, ",0 a ").concat(innRad, ",").concat(innRad, " 0 1,0 -").concat(innRad * 2, ",0");
                     subpaths = [innerArcPath];
-                    if (taxonSpecifics[key]["layers"].length === 2) { // If the shape to be drawm completes a full circle AND consists simply of two concentric circles.
+                    // ...and consists simply of two concentric circles.
+                    if (taxonSpecifics[key]["layers"].length === 2) {
                         var outerCirc = secondLayer(key) * layerWidth;
                         var midArcPath = "M ".concat(cx, ", ").concat(cy, " m -").concat(outerCirc, ", 0 a ").concat(outerCirc, ",").concat(outerCirc, " 0 1,0 ").concat(outerCirc * 2, ",0 a ").concat(outerCirc, ",").concat(outerCirc, " 0 1,0 -").concat(outerCirc * 2, ",0");
                         subpaths.push(midArcPath);
                     }
-                    else { // If the shape to be drawm completes a full circle AND is of irregular shape.
+                    // ...and is of irregular shape.
+                    else {
                         var midArc = {};
                         for (var i = taxonSpecifics[key]["layers"].length - 1; i >= 1; i--) {
                             var curr = taxonSpecifics[key]["degrees"][i];
                             var prev = taxonSpecifics[key]["degrees"][i - 1];
                             var startingLetter = i === taxonSpecifics[key]["layers"].length - 1 ? "M" : "L";
-                            midArc = this.calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr);
+                            midArc = (0, helperFunctions_js_1.calculateArcEndpoints)(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
                             var midArcPath = "".concat(startingLetter, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 0 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
                             if (Math.abs(curr - prev) >= 180) {
                                 var midArcPath = "".concat(startingLetter, " ").concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 1 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
@@ -1308,8 +1304,9 @@ var PlotDrawing = /** @class */ (function (_super) {
                     var d = subpaths.join(" ");
                     taxonSpecifics[key]["svgPath"] = d;
                 }
-                else { // If the shape doesn't complete a full circle.
-                    var innerArc = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
+                // If the shape doesn't complete a full circle.
+                else {
+                    var innerArc = (0, helperFunctions_js_1.calculateArcEndpoints)(firstLayer(key), layerWidth, startDeg(key), endDeg(key), cx, cy);
                     var innerArcPath = "M ".concat(innerArc["x1"], ",").concat(innerArc["y1"], " A ").concat(innRad, ",").concat(innRad, " 0 0 1 ").concat(innerArc["x2"], ",").concat(innerArc["y2"]);
                     if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
                         var innerArcPath = "M ".concat(innerArc["x1"], ",").concat(innerArc["y1"], " A ").concat(innerArc["radius"], ",").concat(innerArc["radius"], " 0 1 1 ").concat(innerArc["x2"], ",").concat(innerArc["y2"]);
@@ -1320,7 +1317,7 @@ var PlotDrawing = /** @class */ (function (_super) {
                     for (var i = taxonSpecifics[key]["layers"].length - 1; i >= 0; i--) {
                         var curr = taxonSpecifics[key]["degrees"][i];
                         var prev = i === 0 ? startDeg(key) : taxonSpecifics[key]["degrees"][i - 1];
-                        midArc = this.calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr);
+                        midArc = (0, helperFunctions_js_1.calculateArcEndpoints)(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
                         var midArcPath = "L ".concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 0 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);
                         if (Math.abs(curr - prev) >= 180) {
                             var midArcPath = "L ".concat(midArc["x2"], ",").concat(midArc["y2"], " A ").concat(midArc["radius"], ",").concat(midArc["radius"], " 0 1 0 ").concat(midArc["x1"], ",").concat(midArc["y1"]);

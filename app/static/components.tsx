@@ -5,7 +5,7 @@ import {getViewportDimensions, handleMouseMove,
         round, sin, cos,
         lineIntersect, lineLength, getFourCorners,
         enableEValue, disableEValue, showContextMenu, hideContextMenu, findRealName, downloadSVGasTextFile, 
-        hoverHandler, onMouseOutHandler, getLayers} from "./helperFunctions.js";
+        hoverHandler, onMouseOutHandler, getLayers, calculateArcEndpoints} from "./helperFunctions.js";
 
 
 
@@ -1138,15 +1138,6 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         this.calculateSVGPaths(newState);
     };
 
-    calculateArcEndpoints(layer:number, layerWidthInPx:number, deg1:number, deg2:number):object {
-        var radius:number = layer * layerWidthInPx;
-        var x1:number = round(radius * cos(deg1) + viewportDimensions["cx"]);
-        var y1:number = round(- radius * sin(deg1) + viewportDimensions["cy"]);
-        var x2:number = round(radius * cos(deg2) + viewportDimensions["cx"]);
-        var y2:number = round(- radius * sin(deg2) + viewportDimensions["cy"]);
-        return {x1: x1, y1: y1, x2: x2, y2: y2, radius: round(radius)};
-    };
-
     calculateSVGPaths(newState:object):void {
         let cx = viewportDimensions["cx"];
         let cy = viewportDimensions["cy"];
@@ -1164,28 +1155,34 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         
         for (var key of Object.keys(taxonSpecifics)) {
             let innRad:number = round(firstLayer(key)*layerWidth);
-            if (taxonSpecifics[key]["layers"][0] === 0) { // If the shape to be drawn is the center of the plot (1 circle).
+            // If the shape to be drawn is the center of the plot (a single circle).
+            if (taxonSpecifics[key]["layers"][0] === 0) {
                 taxonSpecifics[key]["svgPath"] = `M ${cx}, ${cy} m -${layerWidth}, 0 a ${layerWidth},${layerWidth} 0 1,0 ${(layerWidth)* 2},0 a ${layerWidth},${layerWidth} 0 1,0 -${(layerWidth)* 2},0`;
-            } 
-            else { // If the shape to be drawn is NOT the center of the plot, but a complex shape, add:
+            }
+            // If the shape to be drawn is NOT the center of the plot, but a complex shape.
+            else {
                 var subpaths:string[] = [];
-                if (round(endDeg(key) - startDeg(key)) === 360) { // If the shape to be drawn completes a full circle:
-                    var innerArc:object = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
+
+                // If the shape to be drawn completes a full circle...
+                if (round(endDeg(key) - startDeg(key)) === 360) {
+                    var innerArc:object = calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key), cx, cy);
                     var innerArcPath:string = `M ${cx}, ${cy} m -${innRad}, 0 a ${innRad},${innRad} 0 1,0 ${(innRad)* 2},0 a ${innRad},${innRad} 0 1,0 -${innRad* 2},0`;
                     subpaths = [innerArcPath];
 
-                    if (taxonSpecifics[key]["layers"].length === 2) { // If the shape to be drawm completes a full circle AND consists simply of two concentric circles.
+                    // ...and consists simply of two concentric circles.
+                    if (taxonSpecifics[key]["layers"].length === 2) { 
                         let outerCirc = secondLayer(key)*layerWidth;
                         var midArcPath:string = `M ${cx}, ${cy} m -${outerCirc}, 0 a ${outerCirc},${outerCirc} 0 1,0 ${outerCirc* 2},0 a ${outerCirc},${outerCirc} 0 1,0 -${outerCirc* 2},0`;
                         subpaths.push(midArcPath);
                     }
-                    else { // If the shape to be drawm completes a full circle AND is of irregular shape.
+                    // ...and is of irregular shape.
+                    else {
                         var midArc:object = {};
                         for (let i = taxonSpecifics[key]["layers"].length - 1; i >= 1; i--) {
                             var curr = taxonSpecifics[key]["degrees"][i];
                             var prev = taxonSpecifics[key]["degrees"][i-1];
                             var startingLetter:string = i === taxonSpecifics[key]["layers"].length-1 ? "M" : "L";
-                            midArc = this.calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr);
+                            midArc = calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
                             var midArcPath:string = `${startingLetter} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
                             if (Math.abs(curr - prev) >= 180) {
                                 var midArcPath:string = `${startingLetter} ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  
@@ -1195,13 +1192,13 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                         var lineInnertoOuter = `L ${midArc["x1"]},${midArc["y1"]} ${cx},${cy + taxonSpecifics[key]["layers"][taxonSpecifics[key]["layers"].length-1]*layerWidth}`;
                         subpaths.push(lineInnertoOuter);
                     };
-                    
                     var d:string = subpaths.join(" ");
                     taxonSpecifics[key]["svgPath"] = d;
+                }
 
-                } 
-                else { // If the shape doesn't complete a full circle.
-                    var innerArc:object = this.calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key));
+                // If the shape doesn't complete a full circle.
+                else { 
+                    var innerArc:object = calculateArcEndpoints(firstLayer(key), layerWidth, startDeg(key), endDeg(key), cx, cy);
                     var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innRad},${innRad} 0 0 1 ${innerArc["x2"]},${innerArc["y2"]}`;
                     if (Math.abs(endDeg(key) - startDeg(key)) >= 180) {
                         var innerArcPath:string = `M ${innerArc["x1"]},${innerArc["y1"]} A ${innerArc["radius"]},${innerArc["radius"]} 0 1 1 ${innerArc["x2"]},${innerArc["y2"]}`;
@@ -1209,10 +1206,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 
                     var subpaths:string[] = [innerArcPath];
                     var midArc:object = {};
-                    for (let i=taxonSpecifics[key]["layers"].length-1; i>=0; i--) {
+                    for (let i = taxonSpecifics[key]["layers"].length - 1; i >= 0; i--) {
                         var curr = taxonSpecifics[key]["degrees"][i];
                         var prev = i === 0 ? startDeg(key) : taxonSpecifics[key]["degrees"][i-1];
-                        midArc = this.calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr);
+                        midArc = calculateArcEndpoints(taxonSpecifics[key]["layers"][i], layerWidth, prev, curr, cx, cy);
                         var midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 0 0 ${midArc["x1"]},${midArc["y1"]}`;
                         if (Math.abs(curr - prev) >= 180) {
                             var midArcPath:string = `L ${midArc["x2"]},${midArc["y2"]} A ${midArc["radius"]},${midArc["radius"]} 0 1 0 ${midArc["x1"]},${midArc["y1"]}`;  

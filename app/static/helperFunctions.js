@@ -1,6 +1,6 @@
 "use strict";
 exports.__esModule = true;
-exports.getLayers = exports.onMouseOutHandler = exports.hoverHandler = exports.downloadSVGasTextFile = exports.findRealName = exports.hideContextMenu = exports.showContextMenu = exports.disableEValue = exports.enableEValue = exports.makeID = exports.getViewportDimensions = exports.getFourCorners = exports.lineLength = exports.lineIntersect = exports.tintify = exports.midColor = exports.hexToRGB = exports.handleMouseMove = exports.cos = exports.sin = exports.round = exports.radians = exports.createPalette = void 0;
+exports.calculateArcEndpoints = exports.getLayers = exports.onMouseOutHandler = exports.hoverHandler = exports.downloadSVGasTextFile = exports.findRealName = exports.hideContextMenu = exports.showContextMenu = exports.disableEValue = exports.enableEValue = exports.makeID = exports.getViewportDimensions = exports.getFourCorners = exports.lineLength = exports.lineIntersect = exports.tintify = exports.midColor = exports.hexToRGB = exports.handleMouseMove = exports.cos = exports.sin = exports.round = exports.radians = exports.createPalette = void 0;
 function createPalette(colorOffset) {
     if (colorOffset === void 0) { colorOffset = 7; }
     var newColors = [];
@@ -313,3 +313,13 @@ function getLayers(lineagesCopy, unique) {
     return layers;
 }
 exports.getLayers = getLayers;
+function calculateArcEndpoints(layer, layerWidthInPx, deg1, deg2, cx, cy) {
+    var radius = layer * layerWidthInPx;
+    var x1 = round(radius * cos(deg1) + cx);
+    var y1 = round(-radius * sin(deg1) + cy);
+    var x2 = round(radius * cos(deg2) + cx);
+    var y2 = round(-radius * sin(deg2) + cy);
+    return { x1: x1, y1: y1, x2: x2, y2: y2, radius: round(radius) };
+}
+exports.calculateArcEndpoints = calculateArcEndpoints;
+;
