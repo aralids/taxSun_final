@@ -557,7 +557,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     function PlotDrawing(props) {
         var _this = _super.call(this, props) || this;
         _this.state = {
-            root: "root",
+            root: "Bacteria",
             layer: 1,
             collapse: false,
             horizontalShift: viewportDimensions["cx"],
@@ -635,7 +635,10 @@ var PlotDrawing = /** @class */ (function (_super) {
                 var el = document.getElementById("e-text");
                 var value = parseFloat(el.value);
                 if (eInput.checked) {
+                    console.log("eText entered");
+                    console.log("eThreshold before: ", eThreshold);
                     eThreshold = value;
+                    console.log("eThreshold after: ", eThreshold);
                     _this.cropLineages();
                 }
                 else {
@@ -656,7 +659,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     ;
     // Leave only relevant lineages and crop them if necessary.
     PlotDrawing.prototype.cropLineages = function (root, layer, alteration, collapse, plotEValue, lineages, ranks) {
-        if (root === void 0) { root = "Bacteria"; }
+        if (root === void 0) { root = this.state.root; }
         if (layer === void 0) { layer = this.state.layer; }
         if (alteration === void 0) { alteration = this.state.alteration; }
         if (collapse === void 0) { collapse = this.state.collapse; }
@@ -669,12 +672,21 @@ var PlotDrawing = /** @class */ (function (_super) {
         modeName = alteration;
         collapseName = "collapse" + collapse;
         // If this plot has been calculated before, retrieve it from storage.
-        var currPlotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + viewportDimensions["cx"] + viewportDimensions["cy"];
+        var currPlotId;
+        if (plotEValue) {
+            currPlotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + eThreshold + " " + viewportDimensions["cx"] + viewportDimensions["cy"];
+        }
+        else {
+            currPlotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + " " + viewportDimensions["cx"] + viewportDimensions["cy"];
+        }
+        console.log("cropLineages plotid: ", currPlotId);
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
+            console.log("NO RECALCULATING");
             this.setState(alreadyVisited[currPlotId]);
             return;
         }
         ;
+        console.log("RECALCULATING");
         // Reset the object with all taxon data.
         allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
         // Get only relevant lineages.
@@ -706,6 +718,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             croppedRanks = croppedRanks.map(function (item) { return item.slice(layer); });
         }
         ;
+        console.log("croppedLineages immediately before filtering: ", croppedLineages.length);
         // Filter by e-value if required.
         if (plotEValue) {
             var modified = this.filterByEValue(croppedLineages, croppedRanks);
@@ -720,6 +733,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             croppedLineages = modified[0], croppedRanks = modified[1];
         }
         ;
+        console.log("croppedLineages immediately after filtering: ", croppedLineages.length);
         // Get minimal rank pattern for this particular plot to prepare for alignment.
         var ranksUnique = croppedRanks.reduce(function (accumulator, value) { return accumulator.concat(value); }, []);
         ranksUnique = ranksUnique.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; });
@@ -826,6 +840,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             ;
         }
         ;
+        console.log("END OF CROP-LINEAGES()", croppedLineages);
         // Continue onto the next step if one or more lineages fulfill the criteria.
         if (croppedLineages.length >= 1) {
             this.assignDegrees({ "root": root, "layer": layer, "rankPattern": rankPattern,
@@ -846,21 +861,25 @@ var PlotDrawing = /** @class */ (function (_super) {
             var lineage = croppedLineages[i];
             var lastTaxon = lineage[lineage.length - 1];
             var oldUnassignedCount = originalAllTaxaReduced[lastTaxon]["unassignedCount"];
+            // For every cropped lineage, store the /"eValues"/ indices of its occurrences with permissible e-value.
+            // The array where we store these indices is called successfulIndices.
             var successfulIndices = [];
-            var eValues = JSON.parse(JSON.stringify(originalAllTaxaReduced[lastTaxon]["eValues"])).filter(function (item, index) {
+            var eValues = originalAllTaxaReduced[lastTaxon]["eValues"].filter(function (item, index) {
                 if (item <= eThreshold) {
                     successfulIndices.push(index);
                 }
+                ;
                 return item <= eThreshold;
             });
             allTaxaReduced[lastTaxon]["successfulIndices"] = successfulIndices;
+            // Update the unassignedCount of every relevant unspecified taxon except "root".
             var newUnassignedCount = eValues.length;
-            allEValues = allEValues.concat(originalAllTaxaReduced[lastTaxon]["eValues"]);
-            var diff = oldUnassignedCount - newUnassignedCount;
             if (lastTaxon !== "root") {
                 allTaxaReduced[lastTaxon]["unassignedCount"] = newUnassignedCount;
             }
             ;
+            // Update the totalCount of every taxon except unspecified "root".
+            var diff = oldUnassignedCount - newUnassignedCount;
             for (var _i = 0, lineage_2 = lineage; _i < lineage_2.length; _i++) {
                 var taxon = lineage_2[_i];
                 if (!(taxon === lastTaxon && lastTaxon === "root")) {
@@ -869,18 +888,23 @@ var PlotDrawing = /** @class */ (function (_super) {
                 ;
             }
             ;
+            // If some unspecified taxon has 0 occurrences with permissible e-values,
+            // remove it from the list.
             if (newUnassignedCount === 0) {
                 newCroppedLineages.splice(i, 1);
                 newCroppedRanks.splice(i, 1);
             }
             ;
+            allEValues = allEValues.concat(originalAllTaxaReduced[lastTaxon]["eValues"]);
         };
         for (var i = croppedLineages.length - 1; i >= 0; i--) {
             _loop_3(i);
         }
+        ;
         var minEValue = allEValues.sort(function (a, b) { return a - b; })[0];
         return [newCroppedLineages, newCroppedRanks, minEValue];
     };
+    ;
     PlotDrawing.prototype.marryTaxa = function (croppedLineages, croppedRanks, alteration) {
         if (alteration === void 0) { alteration = "marriedTaxaI"; }
         // Set threshold for marrying. Currently fixed at 2%.
@@ -1063,6 +1087,7 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     // Assign each cropped lineage a start and end degree.
     PlotDrawing.prototype.assignDegrees = function (newState) {
+        console.log("ASSIGN-DEGREES()");
         var alignedCroppedLineages = newState["alignedCroppedLineages"] ? newState["alignedCroppedLineages"] : this.state.alignedCroppedLineages;
         var croppedLineages = newState["croppedLineages"] ? newState["croppedLineages"] : this.state.taxonSpecifics;
         var taxonSpecifics = newState["taxonSpecifics"] ? newState["taxonSpecifics"] : this.state.taxonSpecifics;
@@ -1534,8 +1559,15 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     PlotDrawing.prototype.render = function () {
         var _this = this;
-        var plotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + viewportDimensions["cx"] + viewportDimensions["cy"];
-        if (Object.keys(alreadyVisited).indexOf(plotId) === -1) {
+        var plotId;
+        if (this.state.plotEValue) {
+            plotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + eThreshold + " " + viewportDimensions["cx"] + viewportDimensions["cy"];
+        }
+        else {
+            plotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + this.state.root + this.state.layer + this.state.collapse + this.state.alteration + this.state.plotEValue + " " + viewportDimensions["cx"] + viewportDimensions["cy"];
+        }
+        console.log("render plotid: ", plotId);
+        if (Object.keys(alreadyVisited).indexOf(plotId) === -1 && this.state.numberOfLayers !== -1) {
             alreadyVisited[plotId] = JSON.parse(JSON.stringify(this.state));
             alreadyVisited[plotId]["abbreviateLabels"] = false;
         }
