@@ -1,5 +1,5 @@
 :root {
-    --container-position: fixed;
+    --container-position: absolute;
     --container-top: 0%;
     --container-left: 0%;
     --container-width: 100%;
@@ -11,7 +11,7 @@
 }
 
 svg {
-    position: fixed;
+    position: absolute;
     top: var(--container-top);
     left: var(--container-left);
     width: var(--container-width);
@@ -21,7 +21,7 @@ svg {
 
 #interaction, #left-column {
     flex-direction: column; 
-    position: fixed; 
+    position: absolute; 
     top: var(--container-top);
     z-index: 200;
 }
@@ -115,7 +115,7 @@ body, #body-1 {
 }
 
 #married-pattern {
-    position: fixed; 
+    position: absolute; 
     height: 100%; 
     width: 100%; 
     margin: 0; 
@@ -132,7 +132,7 @@ body, #body-1 {
 
 #descendant-section {
     display: flex; 
-    position: fixed; 
+    position: absolute; 
     top: 0vmin; 
     left: 50%; 
     visibility: hidden;
@@ -216,12 +216,12 @@ legend {
     height: 1mm; 
     width: 1mm; 
     left: 100%; 
-    position: fixed; 
+    position: absolute; 
     top: 100%;
 }
 
 #plot-container {
-    position: var(--container-position);
+    position: absolute;
     height: var(--container-height);
     width: var(--container-width);
     margin: 0; 
@@ -229,6 +229,7 @@ legend {
     box-sizing: 
     border-box; 
     border: none;
+    z-index: 90;
 }
 
 #labels {

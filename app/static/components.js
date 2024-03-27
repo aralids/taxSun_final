@@ -1721,7 +1721,7 @@ function TaxonShape(props) {
 }
 ;
 function TaxonLabel(props) {
-    return React.createElement("text", { className: "hoverable-object", x: props.left, y: props.top, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return (0, helperFunctions_js_1.hoverHandler)(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return (0, helperFunctions_js_1.onMouseOutHandler)(props.id, props.labelDisplay); }, onClick: props.onClick, onContextMenu: function (e) { (0, helperFunctions_js_1.showContextMenu)(e); }, style: { "margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "absolute", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight } }, props.abbr);
+    return React.createElement("text", { className: "hoverable-object", x: props.left, y: props.top, transform: props.transform, "transform-origin": props.transformOrigin, id: props.id, onMouseOver: function () { return (0, helperFunctions_js_1.hoverHandler)(props.id, props.fullLabel, props.root); }, onMouseOut: function () { return (0, helperFunctions_js_1.onMouseOutHandler)(props.id, props.labelDisplay); }, onClick: props.onClick, onContextMenu: function (e) { (0, helperFunctions_js_1.showContextMenu)(e); }, style: { "margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "fixed", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight } }, props.abbr);
 }
 ;
 function LabelBackground(props) {
