@@ -2,7 +2,6 @@ import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import {ln, lr} from "./predefinedObjects.js";
 
-var apple = "apple"
 let newContainerParent:any = document.createElement("div");
 newContainerParent.setAttribute("id", "body-1");
 let plotContainerParentDiv = document.createElement("div");
@@ -10,6 +9,28 @@ plotContainerParentDiv.setAttribute("id", "plot-container-parent");
 newContainerParent.appendChild(plotContainerParentDiv);
 let currContainerParent = document.getElementById("plot-container")!.parentElement!;
 let container = document.getElementById("plot-container")!;
+
+let lcw = container.getAttribute("left-column-width")
+document.body.style.setProperty("--left-column-width", container.getAttribute("left-column-width"));
+if (!Boolean(Number(lcw))) document.body.style.setProperty("--left-column-display", "none");
+container.setAttribute("left-column-width", "");
+
+let rcw = container.getAttribute("right-column-width")
+document.body.style.setProperty("--right-column-width", container.getAttribute("right-column-width"));
+if (!Boolean(Number(rcw))) document.body.style.setProperty("--right-column-display", "none");
+container.setAttribute("right-column-width", "");
+
+document.body.style.setProperty("--container-position", container.getAttribute("position"));
+container.setAttribute("position", "");
+document.body.style.setProperty("--container-top", container.getAttribute("top"));
+container.setAttribute("top", "");
+document.body.style.setProperty("--container-left", container.getAttribute("left"));
+container.setAttribute("left", "");
+document.body.style.setProperty("--container-width", container.getAttribute("width"));
+container.setAttribute("width", "");
+document.body.style.setProperty("--container-height", container.getAttribute("height"));
+container.setAttribute("height", "");
+
 currContainerParent.replaceChild(newContainerParent, container);
 plotContainerParentDiv.appendChild(container);
 

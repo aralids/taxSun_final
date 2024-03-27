@@ -4,8 +4,10 @@
     --container-left: 0%;
     --container-width: 100%;
     --container-height: 100%;
-    --left-column-width: calc(var(--container-width) * 0.2);
-    --right-column-width: calc(var(--container-width) * 0.2);
+    --left-column-width: 0.2;
+    --right-column-width: 0.2;
+    --left-column-display: flex;
+    --right-column-display: flex;
 }
 
 svg {
@@ -13,12 +15,11 @@ svg {
     top: var(--container-top);
     left: var(--container-left);
     width: var(--container-width);
-    height: var(--container-height);;
+    height: var(--container-height);
     z-index: 100;
 }
 
 #interaction, #left-column {
-    display: flex; 
     flex-direction: column; 
     position: fixed; 
     top: var(--container-top);
@@ -26,15 +27,17 @@ svg {
 }
 
 #left-column {
+    display: var(--left-column-display); 
     left: var(--container-left);
     margin-left: 2vmin;
-    width: var(--left-column-width);
+    width: calc(var(--container-width) * var(--left-column-width));
 }
 
 #interaction {
-    left: calc(var(--container-top) + var(--container-width) * 0.8 - 2vmin);
+    display: var(--right-column-display); 
+    right: 0;
     margin-right: 2vmin;
-    width: var(--right-column-width);
+    width: calc(var(--container-width) * var(--right-column-width));
 }
 
 fieldset {

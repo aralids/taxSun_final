@@ -115,18 +115,25 @@ function getFourCorners(top, bottom, left, right, cx, cy, angle) {
 exports.getFourCorners = getFourCorners;
 function getViewportDimensions() {
     var plotC = document.getElementById("plot-container");
-    var dpmm = document.getElementById('dpmm').offsetWidth; // returns the div's width in px, thereby telling us how many px equal 1mm for our particular screen
+    var dpmm = document.getElementById("dpmm").offsetWidth; // returns the div's width in px, thereby telling us how many px equal 1mm for our particular screen
     var cx = plotC.offsetWidth / 2;
     var cy = plotC.offsetHeight / 2;
     var twoVMin = plotC.offsetHeight < plotC.offsetWidth ? plotC.offsetHeight / 50 : plotC.offsetWidth / 50;
+    var leftColumnWidth = Number(getComputedStyle(document.body).getPropertyValue("--left-column-width"));
+    var rightColumnWidth = Number(getComputedStyle(document.body).getPropertyValue("--right-column-width"));
+    var sum = leftColumnWidth + rightColumnWidth;
+    var smallerDimSize = Math.min(cx * (1 - sum), cy) - dpmm * 10;
+    console.log(cx, cy);
     return {
-        "cx": cx,
+        "cx": (-rightColumnWidth * cx + leftColumnWidth * cx) + cx,
         "cy": cy,
         "dpmm": dpmm,
-        "2vmin": twoVMin
+        "2vmin": twoVMin,
+        "smallerDimSize": smallerDimSize
     };
 }
 exports.getViewportDimensions = getViewportDimensions;
+;
 function makeID(length) {
     var result = '';
     var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -136,9 +143,11 @@ function makeID(length) {
         result += characters.charAt(Math.floor(Math.random() * charactersLength));
         counter += 1;
     }
+    ;
     return result;
 }
 exports.makeID = makeID;
+;
 function enableEValue(median) {
     document.getElementById("e-input").removeAttribute("disabled");
     document.getElementById("e-label").style.color = "black";
@@ -147,6 +156,7 @@ function enableEValue(median) {
     eText.value = median;
 }
 exports.enableEValue = enableEValue;
+;
 function disableEValue() {
     document.getElementById("e-input").setAttribute("disabled", "disabled");
     document.getElementById("e-label").style.color = "grey";
@@ -155,16 +165,19 @@ function disableEValue() {
     eText.value = "";
 }
 exports.disableEValue = disableEValue;
+;
 function showContextMenu(e) {
     e.preventDefault();
     document.getElementById("context-menu").style.display = "block";
     positionContextMenu(e);
 }
 exports.showContextMenu = showContextMenu;
+;
 function hideContextMenu() {
     document.getElementById("context-menu").style.display = "none";
 }
 exports.hideContextMenu = hideContextMenu;
+;
 // Get the position of the right click in window and returns the X and Y coordinates
 function getClickCoords(e) {
     var posx = 0;
@@ -184,6 +197,7 @@ function getClickCoords(e) {
     ;
     return { x: posx, y: posy };
 }
+;
 // Position the Context Menu in right position.
 function positionContextMenu(e) {
     var menu = document.getElementById("context-menu");
@@ -254,6 +268,7 @@ function hoverHandler(id, fullLabel, root) {
         var hoverLabel = id + "-hoverLabel";
         var labelBackground = id + "-labelBackground";
     }
+    ;
     window.taxSunHover(shape.split("_-_")[0]);
     document.getElementById(shape).style.strokeWidth = "0.4vmin";
     document.getElementById(hoverLabel).style.display = "unset";
@@ -264,6 +279,7 @@ function hoverHandler(id, fullLabel, root) {
     document.getElementById("descendant-section").dispatchEvent(evt);
 }
 exports.hoverHandler = hoverHandler;
+;
 function onMouseOutHandler(id, initialLabelDisplay) {
     if (id.indexOf("-labelBackground") > -1) {
         var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
@@ -289,6 +305,7 @@ function onMouseOutHandler(id, initialLabelDisplay) {
         var hoverLabel = id + "-hoverLabel";
         var labelBackground = id + "-labelBackground";
     }
+    ;
     document.getElementById(shape).style.strokeWidth = "0.2vmin";
     document.getElementById(label).style.display = initialLabelDisplay;
     document.getElementById(hoverLabel).style.display = "none";
@@ -305,9 +322,11 @@ function getLayers(lineagesCopy, unique) {
         for (var j = 0; j < lineagesCopy.length; j++) {
             layer.push(lineagesCopy[j][i]);
         }
+        ;
         if (unique) {
             layer = layer.filter(function (value, index, self) { return Boolean(value) && self.indexOf(value) === index; });
         }
+        ;
         layers.push(layer);
     }
     return layers;

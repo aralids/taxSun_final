@@ -112,17 +112,24 @@ function getFourCorners(top:number, bottom:number, left:number, right:number, cx
 
 function getViewportDimensions():object {
     let plotC:any = document.getElementById("plot-container")!;
-    var dpmm:number = document.getElementById('dpmm')!.offsetWidth; // returns the div's width in px, thereby telling us how many px equal 1mm for our particular screen
+    var dpmm:number = document.getElementById("dpmm")!.offsetWidth; // returns the div's width in px, thereby telling us how many px equal 1mm for our particular screen
     var cx:number = plotC.offsetWidth / 2;
     var cy:number = plotC.offsetHeight / 2;
     var twoVMin:number = plotC.offsetHeight < plotC.offsetWidth ? plotC.offsetHeight / 50 : plotC.offsetWidth / 50;
+    let leftColumnWidth = Number(getComputedStyle(document.body).getPropertyValue("--left-column-width"));
+    let rightColumnWidth = Number(getComputedStyle(document.body).getPropertyValue("--right-column-width"));
+    let sum = leftColumnWidth + rightColumnWidth;
+    let smallerDimSize = Math.min(cx * (1 - sum), cy) - dpmm * 10;
+    console.log(cx, cy);
+
     return {
-        "cx": cx,
+        "cx": (-rightColumnWidth * cx + leftColumnWidth * cx) + cx,
         "cy": cy,
         "dpmm": dpmm,
-        "2vmin": twoVMin
-    }
-}
+        "2vmin": twoVMin,
+        "smallerDimSize": smallerDimSize
+    };
+};
 
 function makeID(length) {
     let result = '';
@@ -132,9 +139,9 @@ function makeID(length) {
     while (counter < length) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
       counter += 1;
-    }
+    };
     return result;
-}
+};
 
 function enableEValue(median) {
     document.getElementById("e-input")!.removeAttribute("disabled");
@@ -142,7 +149,7 @@ function enableEValue(median) {
     let eText:any = document.getElementById("e-text")!;
     eText.removeAttribute("disabled");
     eText.value = median;
-}
+};
 
 function disableEValue() {
     document.getElementById("e-input")!.setAttribute("disabled", "disabled");
@@ -150,36 +157,36 @@ function disableEValue() {
     let eText:any = document.getElementById("e-text")!;
     eText.setAttribute("disabled", "disabled");
     eText.value = "";
-}
+};
 
 function showContextMenu(e) {
     e.preventDefault();
     document.getElementById("context-menu")!.style.display = "block";
     positionContextMenu(e);
-}
+};
 
 function hideContextMenu() {
     document.getElementById("context-menu")!.style.display = "none";
-}
+};
 
 // Get the position of the right click in window and returns the X and Y coordinates
 function getClickCoords(e) {
-  var posx = 0;
-  var posy = 0;
+    var posx = 0;
+    var posy = 0;
 
-  if (!e) { var e:any = window.event; };
+    if (!e) { var e:any = window.event; };
 
-  if (e.pageX || e.pageY) {
-    posx = e.pageX;
-    posy = e.pageY;
-  } 
-  else if (e.clientX || e.clientY) {
-    posx = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-    posy = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
-  };
+    if (e.pageX || e.pageY) {
+        posx = e.pageX;
+        posy = e.pageY;
+    } 
+    else if (e.clientX || e.clientY) {
+        posx = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+        posy = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+    };
 
-  return { x: posx, y: posy };
-}
+    return { x: posx, y: posy };
+};
 
 // Position the Context Menu in right position.
 function positionContextMenu(e) {
@@ -252,7 +259,7 @@ function hoverHandler(id:string, fullLabel:string, root:string):void {
         var label = id + "-label";
         var hoverLabel = id + "-hoverLabel";
         var labelBackground = id + "-labelBackground";
-    }
+    };
 
     (window as any).taxSunHover(shape.split("_-_")[0]);
     document.getElementById(shape)!.style.strokeWidth = "0.4vmin";
@@ -262,7 +269,7 @@ function hoverHandler(id:string, fullLabel:string, root:string):void {
     document.getElementById("descendant-section")!.setAttribute('value', `${shape.split("_-_")[0]}*${shape.split("_-_")[1]}*${root}`);
     var evt = new CustomEvent('change');
     document.getElementById("descendant-section")!.dispatchEvent(evt);
-}
+};
 
 function onMouseOutHandler(id:string, initialLabelDisplay:string):void {
     if (id.indexOf("-labelBackground") > -1) {
@@ -270,7 +277,8 @@ function onMouseOutHandler(id:string, initialLabelDisplay:string):void {
         var shape = id.replace("-labelBackground", "");
         var label = id.replace("-labelBackground", "-label");
         var labelBackground = id;
-    } else if (id.indexOf("-hoverLabel") > -1) {
+    } 
+    else if (id.indexOf("-hoverLabel") > -1) {
         var hoverLabel = id;
         var shape = id.replace("-hoverLabel", "");
         var label = id.replace("-hoverLabel", "-label");
@@ -281,12 +289,13 @@ function onMouseOutHandler(id:string, initialLabelDisplay:string):void {
         var shape = id.replace("-label", "");
         var hoverLabel = id.replace("-label", "-hoverLabel");
         var labelBackground = id.replace("-label", "-labelBackground");
-    } else {
+    } 
+    else {
         var shape = id;
         var label = id + "-label";
         var hoverLabel = id + "-hoverLabel";
         var labelBackground = id + "-labelBackground";
-    }
+    };
 
     document.getElementById(shape)!.style.strokeWidth = "0.2vmin";
     document.getElementById(label)!.style.display = initialLabelDisplay;
@@ -303,10 +312,10 @@ function getLayers(lineagesCopy:string[][], unique:boolean=false):string[][] {
         var layer:string[] = [];
         for (let j=0; j<lineagesCopy.length; j++) {
             layer.push(lineagesCopy[j][i]);
-        }
+        };
         if (unique) { 
             layer = layer.filter((value, index, self) => Boolean(value) && self.indexOf(value) === index);
-        }
+        };
         layers.push(layer);
     }
     return layers;

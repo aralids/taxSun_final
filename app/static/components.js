@@ -349,6 +349,7 @@ var AncestorSection = /** @class */ (function (_super) {
                 var taxon = groupedTaxa_1[_i];
                 totalCount += allTaxaReduced[taxon]["totalCount"];
             }
+            ;
             unassignedCount = 0;
             rank = allTaxaReduced[groupedTaxa[0]]["rank"];
         }
@@ -1254,8 +1255,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         var taxonSpecifics = newState["taxonSpecifics"];
         var dpmm = viewportDimensions["dpmm"];
         var numberOfLayers = alignedCroppedLineages[0].length;
-        var smallerDimension = Math.min(cx * 0.6, cy); //var smallerDimension:number = Math.min(cx, cy);
-        var layerWidth = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1); //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
+        // let smallerDimension:number = Math.min(cx * 0.6, cy); //var smallerDimension:number = Math.min(cx, cy);
+        var layerWidth = Math.max(viewportDimensions["smallerDimSize"] / numberOfLayers, dpmm * 1); //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
         for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
             var key = _a[_i];
             var layers = taxonSpecifics[key]["layers"];
@@ -1348,32 +1349,26 @@ var PlotDrawing = /** @class */ (function (_super) {
         var numberOfLayers = alignedCroppedLineages[0].length;
         var cx = viewportDimensions["cx"];
         var cy = viewportDimensions["cy"];
-        var layerWidthInPx = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers, viewportDimensions["dpmm"] * 1); //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
-        var startDeg = function (key) { return taxonSpecifics[key]["degrees"][0]; };
-        var endDeg = function (key) { return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1]; };
+        var layerWidthInPx = Math.max(viewportDimensions["smallerDimSize"] / numberOfLayers, viewportDimensions["dpmm"] * 1); //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
         for (var _i = 0, _a = Object.keys(taxonSpecifics); _i < _a.length; _i++) {
             var key = _a[_i];
-            var centerDegree = void 0, centerRadius = void 0;
-            centerDegree = startDeg(key) + (endDeg(key) - startDeg(key)) / 2;
-            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.333;
-            var centerX = centerRadius * layerWidthInPx * (0, helperFunctions_js_1.cos)(centerDegree);
-            centerX = (0, helperFunctions_js_1.round)(centerX) + cx;
-            var centerY = -centerRadius * layerWidthInPx * (0, helperFunctions_js_1.sin)(centerDegree);
-            centerY = (0, helperFunctions_js_1.round)(centerY) + cy;
-            var pointOnLeftBorderX = centerRadius * layerWidthInPx * (0, helperFunctions_js_1.cos)(startDeg(key));
-            pointOnLeftBorderX = (0, helperFunctions_js_1.round)(pointOnLeftBorderX) + cx;
-            var pointOnLeftBorderY = -centerRadius * layerWidthInPx * (0, helperFunctions_js_1.sin)(startDeg(key));
-            pointOnLeftBorderY = (0, helperFunctions_js_1.round)(pointOnLeftBorderY) + cy;
-            var pointOnRightBorderX = centerRadius * layerWidthInPx * (0, helperFunctions_js_1.cos)(endDeg(key));
-            pointOnRightBorderX = (0, helperFunctions_js_1.round)(pointOnRightBorderX) + cx;
-            var pointOnRightBorderY = -centerRadius * layerWidthInPx * (0, helperFunctions_js_1.sin)(endDeg(key));
-            pointOnRightBorderY = (0, helperFunctions_js_1.round)(pointOnRightBorderY) + cy;
+            var startDeg = taxonSpecifics[key]["degrees"][0];
+            var endDeg = taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length - 1];
+            var centerDegree = startDeg + (endDeg - startDeg) / 2;
+            var centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.333;
+            var centerX = (0, helperFunctions_js_1.round)(centerRadius * layerWidthInPx * (0, helperFunctions_js_1.cos)(centerDegree)) + cx;
+            var centerY = (0, helperFunctions_js_1.round)(-centerRadius * layerWidthInPx * (0, helperFunctions_js_1.sin)(centerDegree)) + cy;
+            var pointOnLeftBorderX = (0, helperFunctions_js_1.round)(centerRadius * layerWidthInPx * (0, helperFunctions_js_1.cos)(startDeg)) + cx;
+            var pointOnLeftBorderY = (0, helperFunctions_js_1.round)(-centerRadius * layerWidthInPx * (0, helperFunctions_js_1.sin)(startDeg)) + cy;
+            var pointOnRightBorderX = (0, helperFunctions_js_1.round)(centerRadius * layerWidthInPx * (0, helperFunctions_js_1.cos)(endDeg)) + cx;
+            var pointOnRightBorderY = (0, helperFunctions_js_1.round)(-centerRadius * layerWidthInPx * (0, helperFunctions_js_1.sin)(endDeg)) + cy;
             var center = [centerX, centerY, centerDegree, pointOnLeftBorderX, pointOnLeftBorderY, pointOnRightBorderX, pointOnRightBorderY];
             taxonSpecifics[key]["center"] = center;
         }
         ;
         for (var _b = 0, _c = Object.keys(taxonSpecifics); _b < _c.length; _b++) {
             var key = _c[_b];
+            // Label of root taxon.
             if (taxonSpecifics[key]["layers"][0] === 0) {
                 taxonSpecifics[key]["label"] = {
                     "direction": "horizontal",
@@ -1389,14 +1384,15 @@ var PlotDrawing = /** @class */ (function (_super) {
                 };
             }
             else {
+                var centerDeg = taxonSpecifics[key]["center"][2];
                 var direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "verse";
                 var angle = void 0, radialAngle = void 0;
                 if (direction === "radial") {
-                    angle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : taxonSpecifics[key]["center"][2];
+                    angle = centerDeg <= 180 ? -centerDeg : centerDeg;
                 }
                 else {
-                    angle = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
-                    radialAngle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : taxonSpecifics[key]["center"][2];
+                    angle = (((270 - centerDeg) + 360) % 360) > 180 && (((270 - centerDeg) + 360) % 360 <= 360) ? centerDeg % 360 : (centerDeg + 180) % 360;
+                    radialAngle = centerDeg <= 180 ? -centerDeg : centerDeg;
                 }
                 ;
                 var percentage = (0, helperFunctions_js_1.round)((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
@@ -1431,10 +1427,10 @@ var PlotDrawing = /** @class */ (function (_super) {
             ;
         }
         ;
-        this.getTaxonShapes(newState);
+        this.calcShapeColors(newState);
     };
     ;
-    PlotDrawing.prototype.getTaxonShapes = function (newState) {
+    PlotDrawing.prototype.calcShapeColors = function (newState) {
         var croppedLineages = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
         var croppedLineages = JSON.parse(JSON.stringify(croppedLineages));
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
@@ -1474,83 +1470,69 @@ var PlotDrawing = /** @class */ (function (_super) {
         this.setState(newState);
     };
     ;
-    PlotDrawing.prototype.handleClick = function (shapeId) {
-        var taxon = shapeId.match(/.+?(?=_)/)[0];
-        var nextLayer;
-        if (taxon.includes("&")) {
-            nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length - 1;
-        }
-        else {
-            nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length - 1;
-        }
-        ;
-        window.taxSunClick(taxon);
-        this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
-    };
-    ;
     PlotDrawing.prototype.placeLabels = function (alreadyRepeated) {
         if (alreadyRepeated === void 0) { alreadyRepeated = this.state.alreadyRepeated; }
         var newTaxonSpecifics = JSON.parse(JSON.stringify(this.state.taxonSpecifics));
         var height = 0;
         for (var _i = 0, _a = Object.keys(newTaxonSpecifics); _i < _a.length; _i++) {
             var key = _a[_i];
+            var center = newTaxonSpecifics[key]["center"];
+            var label = newTaxonSpecifics[key]["label"];
             var labelElement = document.getElementById("".concat(key, "_-_").concat(newTaxonSpecifics[key]["firstLayerUnaligned"], "-label"));
             var hoverLabelElement = document.getElementById("".concat(key, "_-_").concat(newTaxonSpecifics[key]["firstLayerUnaligned"], "-hoverLabel"));
             height = !alreadyRepeated ? labelElement.getBoundingClientRect().height / 2 : this.state.height;
             var width = labelElement.getBoundingClientRect().width;
             var hoverWidth = hoverLabelElement.getBoundingClientRect().width;
-            var angle = newTaxonSpecifics[key]["label"]["angle"];
-            var centerDegree = newTaxonSpecifics[key]["center"][2];
-            var transformOrigin = "".concat(newTaxonSpecifics[key]["center"][0], " ").concat(newTaxonSpecifics[key]["center"][1]);
-            var top_1 = newTaxonSpecifics[key]["center"][1] + height / 2;
+            var angle = label["angle"];
+            var centerDegree = center[2];
+            var transformOrigin = "".concat(center[0], " ").concat(center[1]);
+            var top_1 = center[1] + height / 2;
             var left = void 0, radialLeft = void 0, horizontalSpace = void 0, abbreviation = void 0, howManyLettersFit = void 0, hoverLeft = void 0, hoverRadialLeft = void 0;
             // Calculate left and angle for all labels of the last layer, which are always radial.
-            if (newTaxonSpecifics[key]["label"]["direction"] === "radial") {
+            if (label["direction"] === "radial") {
                 if (centerDegree >= 180 && centerDegree < 360) {
-                    left = hoverLeft = newTaxonSpecifics[key]["center"][0];
+                    left = hoverLeft = center[0];
                     angle = 360 - (270 - angle);
                 }
                 else if (centerDegree >= 0 && centerDegree <= 180) {
-                    left = newTaxonSpecifics[key]["center"][0] - width;
-                    hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
+                    left = center[0] - width;
+                    hoverLeft = center[0] - hoverWidth;
                     angle = 270 - angle;
                 }
                 ;
-                abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"];
+                abbreviation = label["abbreviation"];
                 var sliceHere = (0, helperFunctions_js_1.round)(((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) + 1) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3);
-                if (newTaxonSpecifics[key]["label"]["abbreviation"].length > sliceHere) {
+                if (label["abbreviation"].length > sliceHere) {
                     abbreviation = abbreviation.slice(0, sliceHere) + "...";
                 }
                 ;
             }
             // For internal wedges, calculate: 
-            else if (newTaxonSpecifics[key]["label"]["direction"] === "verse") {
-                left = newTaxonSpecifics[key]["center"][0] - width / 2;
-                hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth / 2;
-                var radialAngle = newTaxonSpecifics[key]["label"]["radialAngle"];
+            else if (label["direction"] === "verse") {
+                left = center[0] - width / 2;
+                hoverLeft = center[0] - hoverWidth / 2;
+                var radialAngle = label["radialAngle"];
                 // The circumferential space of the wedge (1).
-                var topBeforeRotation = newTaxonSpecifics[key]["center"][1] - height / 2;
-                var bottomBeforeRotation = newTaxonSpecifics[key]["center"][1] + height / 2;
+                var topBeforeRotation = center[1] - height / 2;
+                var bottomBeforeRotation = center[1] + height / 2;
                 var leftBeforeRotation = left;
                 var rightBeforeRotation = left + width;
-                var cx = newTaxonSpecifics[key]["center"][0];
-                var cy = newTaxonSpecifics[key]["center"][1];
-                var fourPoints = (0, helperFunctions_js_1.getFourCorners)(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
+                var fourPoints_1 = (0, helperFunctions_js_1.getFourCorners)(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, center[0], center[1], angle);
                 var leftIntersect = void 0, rightIntersect = void 0;
                 if (centerDegree >= 180 && centerDegree < 360) {
-                    radialLeft = hoverRadialLeft = newTaxonSpecifics[key]["center"][0];
+                    radialLeft = hoverRadialLeft = center[0];
                     radialAngle = 360 - (270 - radialAngle);
                     // (1)
-                    leftIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
-                    rightIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1]);
+                    leftIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[3], center[4], fourPoints_1["bottomLeft"][0], fourPoints_1["bottomLeft"][1], fourPoints_1["bottomRight"][0], fourPoints_1["bottomRight"][1]);
+                    rightIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[5], center[6], fourPoints_1["bottomLeft"][0], fourPoints_1["bottomLeft"][1], fourPoints_1["bottomRight"][0], fourPoints_1["bottomRight"][1]);
                 }
                 else if (centerDegree >= 0 && centerDegree <= 180) {
-                    radialLeft = newTaxonSpecifics[key]["center"][0] - width;
-                    hoverRadialLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
+                    radialLeft = center[0] - width;
+                    hoverRadialLeft = center[0] - hoverWidth;
                     radialAngle = 270 - radialAngle;
                     // (1)
-                    leftIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
-                    rightIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1]);
+                    leftIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[3], center[4], fourPoints_1["topLeft"][0], fourPoints_1["topLeft"][1], fourPoints_1["topRight"][0], fourPoints_1["topRight"][1]);
+                    rightIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[5], center[6], fourPoints_1["topLeft"][0], fourPoints_1["topLeft"][1], fourPoints_1["topRight"][0], fourPoints_1["topRight"][1]);
                 }
                 // (1)
                 if (leftIntersect === null || rightIntersect === null) {
@@ -1563,44 +1545,42 @@ var PlotDrawing = /** @class */ (function (_super) {
                 // Calculate radial space.
                 var layersCopy = JSON.parse(JSON.stringify(newTaxonSpecifics[key]["layers"]));
                 var lastViableLayer = layersCopy.sort(function (a, b) { return a - b; })[1];
-                var pointOnLastLayerX = lastViableLayer * this.state.layerWidth * (0, helperFunctions_js_1.cos)(newTaxonSpecifics[key]["center"][2]);
+                var pointOnLastLayerX = lastViableLayer * this.state.layerWidth * (0, helperFunctions_js_1.cos)(center[2]);
                 pointOnLastLayerX = (0, helperFunctions_js_1.round)(pointOnLastLayerX) + viewportDimensions["cx"];
-                var pointOnLastLayerY = -lastViableLayer * this.state.layerWidth * (0, helperFunctions_js_1.sin)(newTaxonSpecifics[key]["center"][2]);
+                var pointOnLastLayerY = -lastViableLayer * this.state.layerWidth * (0, helperFunctions_js_1.sin)(center[2]);
                 pointOnLastLayerY = (0, helperFunctions_js_1.round)(pointOnLastLayerY) + viewportDimensions["cy"];
-                var verticalSpace = (0, helperFunctions_js_1.lineLength)(newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], pointOnLastLayerX, pointOnLastLayerY);
+                var verticalSpace = (0, helperFunctions_js_1.lineLength)(center[0], center[1], pointOnLastLayerX, pointOnLastLayerY);
                 // Decide between radial and circumferential.
+                var lengthPerLetter = width / label["abbreviation"].length;
                 if (verticalSpace > horizontalSpace) {
                     left = radialLeft;
                     hoverLeft = hoverRadialLeft;
                     angle = radialAngle;
-                    var lengthPerLetter = width / newTaxonSpecifics[key]["label"]["abbreviation"].length;
                     howManyLettersFit = Math.floor(verticalSpace / lengthPerLetter) - 2;
-                    abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
                 }
                 else {
-                    var lengthPerLetter = width / newTaxonSpecifics[key]["label"]["abbreviation"].length;
                     howManyLettersFit = Math.floor(horizontalSpace / lengthPerLetter) - 2 > 0 ? Math.floor(horizontalSpace / lengthPerLetter) - 2 : 0;
-                    abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
                 }
                 ;
+                abbreviation = label["abbreviation"].slice(0, howManyLettersFit);
             }
             // Calculations for root shape in the center.
             else {
                 top_1 = viewportDimensions["cy"] + height / 2;
-                left = newTaxonSpecifics[key]["center"][0] - width / 2;
-                hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth / 2;
+                left = center[0] - width / 2;
+                hoverLeft = center[0] - hoverWidth / 2;
                 transformOrigin = "";
-                var lengthPerLetter = width / newTaxonSpecifics[key]["label"]["abbreviation"].length;
+                var lengthPerLetter = width / label["abbreviation"].length;
                 howManyLettersFit = Math.floor(this.state.layerWidth * 2 / lengthPerLetter) - 2 > 0 ? Math.floor(this.state.layerWidth * 2 / lengthPerLetter) - 2 : 0;
-                abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
+                abbreviation = label["abbreviation"].slice(0, howManyLettersFit);
             }
             ;
             // Decide if the label should be hidden due to being too short, and if a dot is needed.
-            abbreviation = abbreviation.indexOf(".") >= 0 || !(newTaxonSpecifics[key]["label"]["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
-            newTaxonSpecifics[key]["label"]["abbreviation"] = abbreviation;
-            if (newTaxonSpecifics[key]["label"]["abbreviation"].length < 4) {
-                newTaxonSpecifics[key]["label"]["abbreviation"] = "";
-                newTaxonSpecifics[key]["label"]["display"] = "none";
+            abbreviation = abbreviation.indexOf(".") >= 0 || !(label["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
+            label["abbreviation"] = abbreviation;
+            if (label["abbreviation"].length < 4) {
+                label["abbreviation"] = "";
+                label["display"] = "none";
             }
             ;
             // Check one time if, after all the calculations, the abbreviated label indeed fits its shape. If not, set its display to none.
@@ -1618,27 +1598,27 @@ var PlotDrawing = /** @class */ (function (_super) {
             topRight.x = fourPoints["topRight"][0];
             topRight.y = fourPoints["topRight"][1];
             var shape = document.getElementById("".concat(key, "_-_").concat(this.state.taxonSpecifics[key]["firstLayerUnaligned"]));
-            if (alreadyRepeated && (newTaxonSpecifics[key]["label"]["direction"] === "verse" || newTaxonSpecifics[key]["label"]["direction"] === "horizontal")) {
+            if (alreadyRepeated && (label["direction"] === "verse" || label["direction"] === "horizontal")) {
                 if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight))) {
-                    newTaxonSpecifics[key]["label"]["display"] = "none";
+                    label["display"] = "none";
                 }
                 ;
             }
-            else if (alreadyRepeated && newTaxonSpecifics[key]["label"]["direction"] === "radial") {
+            else if (alreadyRepeated && label["direction"] === "radial") {
                 if (!((shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) || (shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)))) {
-                    newTaxonSpecifics[key]["label"]["display"] = "none";
+                    label["display"] = "none";
                 }
                 ;
             }
             ;
-            newTaxonSpecifics[key]["label"]["top"] = top_1;
-            newTaxonSpecifics[key]["label"]["transformOrigin"] = transformOrigin;
-            newTaxonSpecifics[key]["label"]["left"] = left;
-            newTaxonSpecifics[key]["label"]["transform"] = !alreadyRepeated ? "rotate(0)" : "rotate(".concat(angle, " ").concat(transformOrigin, ")");
+            label["top"] = top_1;
+            label["transformOrigin"] = transformOrigin;
+            label["left"] = left;
+            label["transform"] = !alreadyRepeated ? "rotate(0)" : "rotate(".concat(angle, " ").concat(transformOrigin, ")");
             if (!alreadyRepeated) {
-                newTaxonSpecifics[key]["label"]["hoverLeft"] = hoverLeft;
-                newTaxonSpecifics[key]["label"]["hoverDisplay"] = "none";
-                newTaxonSpecifics[key]["label"]["hoverWidth"] = hoverWidth;
+                label["hoverLeft"] = hoverLeft;
+                label["hoverDisplay"] = "none";
+                label["hoverWidth"] = hoverWidth;
             }
             ;
         }
@@ -1649,6 +1629,20 @@ var PlotDrawing = /** @class */ (function (_super) {
             this.setState({ taxonSpecifics: newTaxonSpecifics, labelsPlaced: true });
         }
         ;
+    };
+    ;
+    PlotDrawing.prototype.handleClick = function (shapeId) {
+        var taxon = shapeId.match(/.+?(?=_)/)[0];
+        var nextLayer;
+        if (taxon.includes("&")) {
+            nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length - 1;
+        }
+        else {
+            nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length - 1;
+        }
+        ;
+        window.taxSunClick(taxon);
+        this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     };
     ;
     PlotDrawing.prototype.render = function () {
@@ -1696,6 +1690,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             var item = tSkeys_2[_a];
             _loop_10(item);
         }
+        ;
         var _loop_11 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_3.state.ancestors[this_3.state.ancestors.length - 1], "_-_0") : id;

@@ -301,7 +301,7 @@ class AncestorSection extends React.Component<{ancestors:string[], root:string, 
             let groupedTaxa:string[] = this.props.root.split(" & ");
             for (let taxon of groupedTaxa) {
                 totalCount += allTaxaReduced[taxon]["totalCount"];
-            }
+            };
             unassignedCount = 0;
             rank = allTaxaReduced[groupedTaxa[0]]["rank"];
         }
@@ -1145,8 +1145,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         let taxonSpecifics:object = newState["taxonSpecifics"];
         let dpmm:number = viewportDimensions["dpmm"];
         let numberOfLayers:number = alignedCroppedLineages[0].length;
-        let smallerDimension:number = Math.min(cx * 0.6, cy); //var smallerDimension:number = Math.min(cx, cy);
-        let layerWidth:number = Math.max((smallerDimension - dpmm * 20) / numberOfLayers, dpmm * 1); //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
+        // let smallerDimension:number = Math.min(cx * 0.6, cy); //var smallerDimension:number = Math.min(cx, cy);
+        let layerWidth:number = Math.max(viewportDimensions["smallerDimSize"] / numberOfLayers, dpmm * 1); //var layerWidth:number = Math.max((smallerDimension) / numberOfLayers, dpmm * 1);
         
         for (let key of Object.keys(taxonSpecifics)) {
             let layers = taxonSpecifics[key]["layers"];
@@ -1230,41 +1230,34 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     };
 
     calculateTaxonLabels(newState:object):void {
-        var alignedCroppedLineages = newState["alignedCroppedLineages"];
-        var totalUnassignedCount = newState["totalUnassignedCount"];
-        var root:string = newState["root"];
-        var taxonSpecifics = newState["taxonSpecifics"];
-        var numberOfLayers:number = alignedCroppedLineages[0].length;
-        var cx:number = viewportDimensions["cx"];
-        var cy:number = viewportDimensions["cy"];
-        var layerWidthInPx:number = Math.max((Math.min(cx * 0.6, cy) - viewportDimensions["dpmm"] * 20) / numberOfLayers , viewportDimensions["dpmm"] * 1); //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
+        let alignedCroppedLineages = newState["alignedCroppedLineages"];
+        let totalUnassignedCount = newState["totalUnassignedCount"];
+        let root:string = newState["root"];
+        let taxonSpecifics = newState["taxonSpecifics"];
+        let numberOfLayers:number = alignedCroppedLineages[0].length;
+        let cx:number = viewportDimensions["cx"];
+        let cy:number = viewportDimensions["cy"];
+        let layerWidthInPx:number = Math.max(viewportDimensions["smallerDimSize"] / numberOfLayers , viewportDimensions["dpmm"] * 1); //var layerWidthInPx:number = Math.max((Math.min(cx, cy)) / numberOfLayers , viewportDimensions["dpmm"] * 1);
         
-        var startDeg = (key) => {return taxonSpecifics[key]["degrees"][0]};
-        var endDeg = (key) => {return taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1]};
+        for (let key of Object.keys(taxonSpecifics)) {
+            let startDeg = taxonSpecifics[key]["degrees"][0];
+            let endDeg = taxonSpecifics[key]["degrees"][taxonSpecifics[key]["degrees"].length-1];
+            let centerDegree = startDeg + (endDeg - startDeg) / 2;
+            let centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.333;
 
-        for (var key of Object.keys(taxonSpecifics)) {
-            let centerDegree, centerRadius;
-            centerDegree = startDeg(key) + (endDeg(key) - startDeg(key))/2;
-            centerRadius = taxonSpecifics[key]["firstLayerAligned"] + 0.333;
-            let centerX = centerRadius * layerWidthInPx * cos(centerDegree);
-            centerX = round(centerX) + cx;
-            let centerY = -centerRadius * layerWidthInPx * sin(centerDegree);
-            centerY = round(centerY) + cy;
-
-            let pointOnLeftBorderX = centerRadius * layerWidthInPx * cos(startDeg(key));
-            pointOnLeftBorderX = round(pointOnLeftBorderX) + cx;
-            let pointOnLeftBorderY = - centerRadius * layerWidthInPx * sin(startDeg(key));
-            pointOnLeftBorderY = round(pointOnLeftBorderY) + cy;
-            let pointOnRightBorderX = centerRadius * layerWidthInPx * cos(endDeg(key));
-            pointOnRightBorderX = round(pointOnRightBorderX) + cx;
-            let pointOnRightBorderY = - centerRadius * layerWidthInPx * sin(endDeg(key));
-            pointOnRightBorderY = round(pointOnRightBorderY) + cy;
+            let centerX = round(centerRadius * layerWidthInPx * cos(centerDegree)) + cx;
+            let centerY = round(-centerRadius * layerWidthInPx * sin(centerDegree)) + cy;
+            let pointOnLeftBorderX = round(centerRadius * layerWidthInPx * cos(startDeg)) + cx;
+            let pointOnLeftBorderY = round(-centerRadius * layerWidthInPx * sin(startDeg)) + cy;
+            let pointOnRightBorderX = round(centerRadius * layerWidthInPx * cos(endDeg)) + cx;
+            let pointOnRightBorderY = round(-centerRadius * layerWidthInPx * sin(endDeg)) + cy;
 
             let center = [centerX, centerY, centerDegree, pointOnLeftBorderX, pointOnLeftBorderY, pointOnRightBorderX, pointOnRightBorderY];
             taxonSpecifics[key]["center"] = center;
         };
 
-        for (var key of Object.keys(taxonSpecifics)) {
+        for (let key of Object.keys(taxonSpecifics)) {
+            // Label of root taxon.
             if (taxonSpecifics[key]["layers"][0] === 0) {
                 taxonSpecifics[key]["label"] = {
                     "direction": "horizontal",
@@ -1278,16 +1271,18 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                     "display": "unset",
                     "fullLabel": root.replace(RegExp(rankPatternFull.map(item => " " + item).join("|"), "g"),""),
                 }
-            } 
+            }
+
             else {
+                let centerDeg = taxonSpecifics[key]["center"][2];
                 let direction = (taxonSpecifics[key]["layers"].length === 2 && taxonSpecifics[key]["layers"][1] === numberOfLayers) ? "radial" : "verse";
                 let angle, radialAngle;
                 if (direction === "radial") {
-                    angle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : taxonSpecifics[key]["center"][2];
+                    angle = centerDeg <= 180 ? -centerDeg : centerDeg;
                 } 
                 else {
-                    angle = (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360) > 180 && (((270 - taxonSpecifics[key]["center"][2]) + 360) % 360 <= 360) ? taxonSpecifics[key]["center"][2] % 360 : (taxonSpecifics[key]["center"][2] + 180) % 360;
-                    radialAngle = taxonSpecifics[key]["center"][2] <= 180 ? -taxonSpecifics[key]["center"][2] : taxonSpecifics[key]["center"][2];
+                    angle = (((270 - centerDeg) + 360) % 360) > 180 && (((270 - centerDeg) + 360) % 360 <= 360) ? centerDeg % 360 : (centerDeg + 180) % 360;
+                    radialAngle = centerDeg <= 180 ? -centerDeg : centerDeg;
                 };
 
                 let percentage:number = round((taxonSpecifics[key]["totalCount"] / totalUnassignedCount) * 100);
@@ -1319,10 +1314,10 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 };
             };
         };
-        this.getTaxonShapes(newState);
+        this.calcShapeColors(newState);
     };
 
-    getTaxonShapes(newState:object):void {
+    calcShapeColors(newState:object):void {
         var croppedLineages:string[][] = newState["croppedLineages"] == undefined ? this.state.croppedLineages : newState["croppedLineages"];
         var croppedLineages:string[][] = JSON.parse(JSON.stringify(croppedLineages));
         var taxonSpecifics = newState["taxonSpecifics"] == undefined ? this.state.taxonSpecifics : newState["taxonSpecifics"];
@@ -1361,85 +1356,72 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         this.setState(newState);
     };
 
-    handleClick(shapeId):void {
-        let taxon:string = shapeId.match(/.+?(?=_)/)[0];
-        let nextLayer;
-        if (taxon.includes("&")) {
-            nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length-1;
-        }
-        else {
-            nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length-1;
-        };
-        (window as any).taxSunClick(taxon);
-        this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
-    };
-
     placeLabels(alreadyRepeated:boolean = this.state.alreadyRepeated) {
         let newTaxonSpecifics:object = JSON.parse(JSON.stringify(this.state.taxonSpecifics));
         let height:number = 0;
         for (let key of Object.keys(newTaxonSpecifics)) {
+            let center = newTaxonSpecifics[key]["center"];
+            let label = newTaxonSpecifics[key]["label"];
             let labelElement:any = document.getElementById(`${key}_-_${newTaxonSpecifics[key]["firstLayerUnaligned"]}-label`)!;
             let hoverLabelElement:any = document.getElementById(`${key}_-_${newTaxonSpecifics[key]["firstLayerUnaligned"]}-hoverLabel`)!;
             height = !alreadyRepeated ? labelElement.getBoundingClientRect().height / 2 : this.state.height;
             let width = labelElement.getBoundingClientRect().width;
             let hoverWidth = hoverLabelElement.getBoundingClientRect().width;
-            let angle = newTaxonSpecifics[key]["label"]["angle"];
-            let centerDegree:number = newTaxonSpecifics[key]["center"][2];
-            let transformOrigin = `${newTaxonSpecifics[key]["center"][0]} ${newTaxonSpecifics[key]["center"][1]}`;
-            let top = newTaxonSpecifics[key]["center"][1] + height/2;
+            let angle = label["angle"];
+            let centerDegree:number = center[2];
+            let transformOrigin = `${center[0]} ${center[1]}`;
+            let top = center[1] + height/2;
             let left, radialLeft, horizontalSpace, abbreviation, howManyLettersFit, hoverLeft, hoverRadialLeft;
 
             // Calculate left and angle for all labels of the last layer, which are always radial.
-            if (newTaxonSpecifics[key]["label"]["direction"] === "radial") {
+            if (label["direction"] === "radial") {
                 if (centerDegree >= 180 && centerDegree < 360) {
-                    left = hoverLeft = newTaxonSpecifics[key]["center"][0];
+                    left = hoverLeft = center[0];
                     angle = 360 - (270 - angle);    
                 }
                 else if (centerDegree >= 0 && centerDegree <= 180) {
-                    left = newTaxonSpecifics[key]["center"][0] - width;
-                    hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
+                    left = center[0] - width;
+                    hoverLeft = center[0] - hoverWidth;
                     angle = 270 - angle;
                 };
 
-                abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"];
+                abbreviation = label["abbreviation"];
                 let sliceHere:number = round(((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) + 1) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3)
-                if (newTaxonSpecifics[key]["label"]["abbreviation"].length > sliceHere) {
+                if (label["abbreviation"].length > sliceHere) {
                     abbreviation = abbreviation.slice(0, sliceHere) + "...";
                 };
             }
 
             // For internal wedges, calculate: 
-            else if (newTaxonSpecifics[key]["label"]["direction"] === "verse") {
-                left = newTaxonSpecifics[key]["center"][0] - width/2;
-                hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth/2;
-                let radialAngle = newTaxonSpecifics[key]["label"]["radialAngle"];
+            else if (label["direction"] === "verse") {
+                left = center[0] - width/2;
+                hoverLeft = center[0] - hoverWidth/2;
+                let radialAngle = label["radialAngle"];
 
                 // The circumferential space of the wedge (1).
-                var topBeforeRotation = newTaxonSpecifics[key]["center"][1] - height/2;
-                var bottomBeforeRotation = newTaxonSpecifics[key]["center"][1] + height/2;
-                var leftBeforeRotation = left;
-                var rightBeforeRotation = left + width;
-                var cx = newTaxonSpecifics[key]["center"][0];
-                var cy = newTaxonSpecifics[key]["center"][1];
-                var fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, cx, cy, angle);
+                let topBeforeRotation = center[1] - height/2;
+                let bottomBeforeRotation = center[1] + height/2;
+                let leftBeforeRotation = left;
+                let rightBeforeRotation = left + width;
+                let fourPoints = getFourCorners(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, center[0], center[1], angle);
 
                 let leftIntersect, rightIntersect;
                 if (centerDegree >= 180 && centerDegree < 360) {
-                    radialLeft = hoverRadialLeft = newTaxonSpecifics[key]["center"][0];
+                    radialLeft = hoverRadialLeft = center[0];
                     radialAngle = 360 - (270 - radialAngle);
                     
                     // (1)
-                    leftIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
-                    rightIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
+                    leftIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], center[3], center[4], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
+                    rightIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], center[5], center[6], fourPoints["bottomLeft"][0], fourPoints["bottomLeft"][1], fourPoints["bottomRight"][0], fourPoints["bottomRight"][1])!
                 }
                 else if (centerDegree >= 0 && centerDegree <= 180) {
-                    radialLeft = newTaxonSpecifics[key]["center"][0] - width;
-                    hoverRadialLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth;
+                    radialLeft = center[0] - width;
+                    hoverRadialLeft = center[0] - hoverWidth;
                     radialAngle = 270 - radialAngle;
 
                     // (1)
-                    leftIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][3], newTaxonSpecifics[key]["center"][4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
-                    rightIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], newTaxonSpecifics[key]["center"][5], newTaxonSpecifics[key]["center"][6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
+                    leftIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], center[3], center[4], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
+                    rightIntersect = lineIntersect(viewportDimensions["cx"], viewportDimensions["cy"], center[5], center[6], fourPoints["topLeft"][0], fourPoints["topLeft"][1], fourPoints["topRight"][0], fourPoints["topRight"][1])!
                 }
 
                 // (1)
@@ -1453,51 +1435,49 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
                 // Calculate radial space.
                 let layersCopy = JSON.parse(JSON.stringify(newTaxonSpecifics[key]["layers"]));
                 let lastViableLayer = layersCopy.sort(function(a, b){return a-b})[1]
-                let pointOnLastLayerX = lastViableLayer * this.state.layerWidth * cos(newTaxonSpecifics[key]["center"][2]);
+                let pointOnLastLayerX = lastViableLayer * this.state.layerWidth * cos(center[2]);
                 pointOnLastLayerX = round(pointOnLastLayerX) + viewportDimensions["cx"];
-                let pointOnLastLayerY = - lastViableLayer * this.state.layerWidth * sin(newTaxonSpecifics[key]["center"][2]);
+                let pointOnLastLayerY = - lastViableLayer * this.state.layerWidth * sin(center[2]);
                 pointOnLastLayerY = round(pointOnLastLayerY) + viewportDimensions["cy"];
-                let verticalSpace = lineLength(newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], pointOnLastLayerX, pointOnLastLayerY);
+                let verticalSpace = lineLength(center[0], center[1], pointOnLastLayerX, pointOnLastLayerY);
 
                 // Decide between radial and circumferential.
+                let lengthPerLetter = width/label["abbreviation"].length;
                 if (verticalSpace > horizontalSpace) {
                     left = radialLeft;
                     hoverLeft = hoverRadialLeft;
                     angle = radialAngle;
-
-                    let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
                     howManyLettersFit = Math.floor(verticalSpace/lengthPerLetter) - 2;
-                    abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
+                    
                 }
                 else {
-                    let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
                     howManyLettersFit = Math.floor(horizontalSpace/lengthPerLetter) - 2 > 0 ? Math.floor(horizontalSpace/lengthPerLetter) - 2 : 0;
-                    abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
                 };
+                abbreviation = label["abbreviation"].slice(0, howManyLettersFit);
             }
 
             // Calculations for root shape in the center.
             else {
                 top = viewportDimensions["cy"] + height/2;
-                left = newTaxonSpecifics[key]["center"][0] - width/2;
-                hoverLeft = newTaxonSpecifics[key]["center"][0] - hoverWidth/2;
+                left = center[0] - width/2;
+                hoverLeft = center[0] - hoverWidth/2;
                 transformOrigin = "";
 
-                let lengthPerLetter = width/newTaxonSpecifics[key]["label"]["abbreviation"].length;
+                let lengthPerLetter = width/label["abbreviation"].length;
                 howManyLettersFit = Math.floor(this.state.layerWidth*2/lengthPerLetter) - 2 > 0 ? Math.floor(this.state.layerWidth*2/lengthPerLetter) - 2 : 0;
-                abbreviation = newTaxonSpecifics[key]["label"]["abbreviation"].slice(0, howManyLettersFit);
+                abbreviation = label["abbreviation"].slice(0, howManyLettersFit);
             };
 
             // Decide if the label should be hidden due to being too short, and if a dot is needed.
-            abbreviation = abbreviation.indexOf(".") >= 0 || !(newTaxonSpecifics[key]["label"]["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
-            newTaxonSpecifics[key]["label"]["abbreviation"] = abbreviation;
-            if (newTaxonSpecifics[key]["label"]["abbreviation"].length < 4) {
-                newTaxonSpecifics[key]["label"]["abbreviation"] = "";
-                newTaxonSpecifics[key]["label"]["display"] = "none"; 
+            abbreviation = abbreviation.indexOf(".") >= 0 || !(label["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
+            label["abbreviation"] = abbreviation;
+            if (label["abbreviation"].length < 4) {
+                label["abbreviation"] = "";
+                label["display"] = "none"; 
             };
 
             // Check one time if, after all the calculations, the abbreviated label indeed fits its shape. If not, set its display to none.
-            var fourPoints = getFourCorners((top-height)-2, top+2, left-2, left+width+2, newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], angle);
+            let fourPoints = getFourCorners((top-height)-2, top+2, left-2, left+width+2, newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], angle);
             let bottomLeft = document.querySelector("svg")!.createSVGPoint();
             bottomLeft.x = fourPoints!["bottomLeft"][0];
             bottomLeft.y = fourPoints!["bottomLeft"][1];
@@ -1514,28 +1494,28 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             topRight.x = fourPoints!["topRight"][0];
             topRight.y = fourPoints!["topRight"][1];
 
-            var shape:any = document.getElementById(`${key}_-_${this.state.taxonSpecifics[key]["firstLayerUnaligned"]}`)!;
+            let shape:any = document.getElementById(`${key}_-_${this.state.taxonSpecifics[key]["firstLayerUnaligned"]}`)!;
 
-            if (alreadyRepeated && (newTaxonSpecifics[key]["label"]["direction"] === "verse" || newTaxonSpecifics[key]["label"]["direction"] === "horizontal")) {
+            if (alreadyRepeated && (label["direction"] === "verse" || label["direction"] === "horizontal")) {
                 if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight))) {
-                    newTaxonSpecifics[key]["label"]["display"] = "none"; 
+                    label["display"] = "none"; 
                 };
             } 
-            else if (alreadyRepeated && newTaxonSpecifics[key]["label"]["direction"] === "radial") {
+            else if (alreadyRepeated && label["direction"] === "radial") {
                 if (!((shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) || (shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)))) {
-                    newTaxonSpecifics[key]["label"]["display"] = "none"; 
+                    label["display"] = "none"; 
                 };
             };
 
-            newTaxonSpecifics[key]["label"]["top"] = top;
-            newTaxonSpecifics[key]["label"]["transformOrigin"] = transformOrigin;
-            newTaxonSpecifics[key]["label"]["left"] = left;
-            newTaxonSpecifics[key]["label"]["transform"] = !alreadyRepeated ? `rotate(0)` : `rotate(${angle} ${transformOrigin})`;
+            label["top"] = top;
+            label["transformOrigin"] = transformOrigin;
+            label["left"] = left;
+            label["transform"] = !alreadyRepeated ? `rotate(0)` : `rotate(${angle} ${transformOrigin})`;
 
             if (!alreadyRepeated) {
-                newTaxonSpecifics[key]["label"]["hoverLeft"] = hoverLeft;
-                newTaxonSpecifics[key]["label"]["hoverDisplay"] = "none";
-                newTaxonSpecifics[key]["label"]["hoverWidth"] = hoverWidth;
+                label["hoverLeft"] = hoverLeft;
+                label["hoverDisplay"] = "none";
+                label["hoverWidth"] = hoverWidth;
             };
         }
 
@@ -1547,6 +1527,18 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         };  
     };
 
+    handleClick(shapeId):void {
+        let taxon:string = shapeId.match(/.+?(?=_)/)[0];
+        let nextLayer;
+        if (taxon.includes("&")) {
+            nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length-1;
+        }
+        else {
+            nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length-1;
+        };
+        (window as any).taxSunClick(taxon);
+        this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
+    };
 
     render() {
         let plotId;
@@ -1582,7 +1574,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let label = <TaxonLabel key={`${id}-label`} id={`${id}-label`} abbr={tS[item]["label"]["abbreviation"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["left"]} top={tS[item]["label"]["top"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["display"]} onClick={() => {this.handleClick(redirectTo)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="normal" root={this.state.root}/>;
 
             labels.push(label);
-        }
+        };
 
         for (let item of tSkeys) {
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
@@ -1615,10 +1607,6 @@ function LabelBackground(props) {
     }
     else { return null; };
 };
-
-//extClick("Gammaproteobacteria_-_2");
-
-/* ===== DRAWING THE PLOT ===== */
 
 //addEventListener("mousemove", (event) => handleMouseMove(event));
 
