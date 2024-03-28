@@ -120,7 +120,6 @@ function getViewportDimensions():object {
     let rightColumnWidth = Number(getComputedStyle(document.body).getPropertyValue("--right-column-width"));
     let sum = leftColumnWidth + rightColumnWidth;
     let smallerDimSize = Math.min(cx * (1 - sum), cy) - dpmm * 10;
-    console.log(cx, cy);
 
     return {
         "cx": (-rightColumnWidth * cx + leftColumnWidth * cx) + cx,
@@ -261,7 +260,7 @@ function hoverHandler(id:string, fullLabel:string, root:string):void {
         var labelBackground = id + "-labelBackground";
     };
 
-    (window as any).taxSunHover(shape.split("_-_")[0]);
+    (window as any).taxSunMouseOver(shape.split("_-_")[0]);
     document.getElementById(shape)!.style.strokeWidth = "0.4vmin";
     document.getElementById(hoverLabel)!.style.display = "unset";
     document.getElementById(label)!.style.display = "none";
@@ -297,6 +296,7 @@ function onMouseOutHandler(id:string, initialLabelDisplay:string):void {
         var labelBackground = id + "-labelBackground";
     };
 
+    (window as any).taxSunMouseOut(shape.split("_-_")[0]);
     document.getElementById(shape)!.style.strokeWidth = "0.2vmin";
     document.getElementById(label)!.style.display = initialLabelDisplay;
     document.getElementById(hoverLabel)!.style.display = "none";

@@ -678,12 +678,10 @@ var PlotDrawing = /** @class */ (function (_super) {
             currPlotId = fileName + originalAllTaxaReduced["root"]["totalCount"] + root + layer + collapse + alteration + plotEValue + " " + viewportDimensions["cx"] + viewportDimensions["cy"];
         }
         if (Object.keys(alreadyVisited).indexOf(currPlotId) > -1) {
-            console.log("NO RECALCULATING");
             this.setState(alreadyVisited[currPlotId]);
             return;
         }
         ;
-        console.log("RECALCULATING");
         // Reset the object with all taxon data.
         allTaxaReduced = JSON.parse(JSON.stringify(originalAllTaxaReduced));
         // Get only relevant lineages.

@@ -1,53 +1,70 @@
 function taxSunClick(name, rank, id) {
-    //console.log("taxSunClick!", name);
+    // console.log("taxSunClick!", name);
+    let element = $(`button[id^="button-${name}"]`)[0];
+    if (element) element.click();
 };
 
-function taxSunHover(name, rank, id) {
+function taxSunMouseOver(name, rank, id) {
     //console.log("taxSunHover!", name);
+    let element = $(`button[id^="button-${name}"]`)[0];
+    if (element) element.dispatchEvent(new MouseEvent("mouseover", {'view': window, 'bubbles': true, 'cancelable': true}));
+};
+
+function taxSunMouseOut(name, rank, id) {
+    //console.log("taxSunHover!", name);
+    let element = $(`button[id^="button-${name}"]`)[0];
+    if (element) element.dispatchEvent(new MouseEvent("mouseout", {'view': window, 'bubbles': true, 'cancelable': true}));
 };
 
 const mouseClickEvents = ['mousedown', 'click', 'mouseup'];
-function simulateMouseClick(str){
-    let element = $(`path[id^="${str}"]`)[0];
-    mouseClickEvents.forEach(mouseEventType =>
-        element.dispatchEvent(
-            new MouseEvent(mouseEventType, {
-                view: window,
-                bubbles: true,
-                cancelable: true,
-                buttons: 1
-            })
-        )
-    );
+function simulateMouseClick(event){
+    if (event.isTrusted) {
+        let element = $(`path[id^=${event.target.getAttribute("taxName")}]`)[0];
+        mouseClickEvents.forEach(mouseEventType =>
+            element.dispatchEvent(
+                new MouseEvent(mouseEventType, {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true,
+                    buttons: 1
+                })
+            )
+        );
+    }
+    
 }
 
 const mouseOverEvent = ['mouseover'];
-function simulateMouseOver(str){
-    let element = $(`path[id^="${str}"]`)[0];
-    mouseOverEvent.forEach(mouseEventType =>
-        element.dispatchEvent(
-            new MouseEvent(mouseEventType, {
-                view: window,
-                bubbles: true,
-                cancelable: true,
-                buttons: 1
-            })
-        )
-    );
+function simulateMouseOver(event){
+    if (event.isTrusted) {
+        let element = $(`path[id^=${event.target.getAttribute("taxName")}]`)[0];
+        mouseOverEvent.forEach(mouseEventType =>
+            element.dispatchEvent(
+                new MouseEvent(mouseEventType, {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true,
+                    buttons: 1
+                })
+            )
+        );        
+    }
 }
 const mouseOutEvent = ['mouseout'];
-function simulateMouseOut(str){
-    let element = $(`path[id^="${str}"]`)[0];
-    mouseOutEvent.forEach(mouseEventType =>
-        element.dispatchEvent(
-            new MouseEvent(mouseEventType, {
-                view: window,
-                bubbles: true,
-                cancelable: true,
-                buttons: 1
-            })
-        )
-    );
+function simulateMouseOut(event){
+    if (event.isTrusted) {
+        let element = $(`path[id^=${event.target.getAttribute("taxName")}]`)[0];
+        mouseOutEvent.forEach(mouseEventType =>
+            element.dispatchEvent(
+                new MouseEvent(mouseEventType, {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true,
+                    buttons: 1
+                })
+            )
+        );
+    }
 }
 
 window.addEventListener('load', function() {

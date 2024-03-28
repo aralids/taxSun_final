@@ -123,7 +123,6 @@ function getViewportDimensions() {
     var rightColumnWidth = Number(getComputedStyle(document.body).getPropertyValue("--right-column-width"));
     var sum = leftColumnWidth + rightColumnWidth;
     var smallerDimSize = Math.min(cx * (1 - sum), cy) - dpmm * 10;
-    console.log(cx, cy);
     return {
         "cx": (-rightColumnWidth * cx + leftColumnWidth * cx) + cx,
         "cy": cy,
@@ -269,7 +268,7 @@ function hoverHandler(id, fullLabel, root) {
         var labelBackground = id + "-labelBackground";
     }
     ;
-    window.taxSunHover(shape.split("_-_")[0]);
+    window.taxSunMouseOver(shape.split("_-_")[0]);
     document.getElementById(shape).style.strokeWidth = "0.4vmin";
     document.getElementById(hoverLabel).style.display = "unset";
     document.getElementById(label).style.display = "none";
@@ -306,6 +305,7 @@ function onMouseOutHandler(id, initialLabelDisplay) {
         var labelBackground = id + "-labelBackground";
     }
     ;
+    window.taxSunMouseOut(shape.split("_-_")[0]);
     document.getElementById(shape).style.strokeWidth = "0.2vmin";
     document.getElementById(label).style.display = initialLabelDisplay;
     document.getElementById(hoverLabel).style.display = "none";
