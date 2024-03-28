@@ -30,6 +30,8 @@ document.body.style.setProperty("--container-width", container.getAttribute("wid
 container.setAttribute("width", "");
 document.body.style.setProperty("--container-height", container.getAttribute("height"));
 container.setAttribute("height", "");
+document.body.style.setProperty("--container-border", container.getAttribute("border"));
+container.setAttribute("border", "");
 
 currContainerParent.replaceChild(newContainerParent, container);
 plotContainerParentDiv.appendChild(container);

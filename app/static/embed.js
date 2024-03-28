@@ -7,7 +7,8 @@ function taxSunHover(name, rank, id) {
 };
 
 const mouseClickEvents = ['mousedown', 'click', 'mouseup'];
-function simulateMouseClick(element){
+function simulateMouseClick(str){
+    let element = $(`path[id^="${str}"]`)[0];
     mouseClickEvents.forEach(mouseEventType =>
         element.dispatchEvent(
             new MouseEvent(mouseEventType, {
@@ -21,7 +22,8 @@ function simulateMouseClick(element){
 }
 
 const mouseOverEvent = ['mouseover'];
-function simulateMouseOver(element){
+function simulateMouseOver(str){
+    let element = $(`path[id^="${str}"]`)[0];
     mouseOverEvent.forEach(mouseEventType =>
         element.dispatchEvent(
             new MouseEvent(mouseEventType, {
@@ -34,7 +36,8 @@ function simulateMouseOver(element){
     );
 }
 const mouseOutEvent = ['mouseout'];
-function simulateMouseOut(element){
+function simulateMouseOut(str){
+    let element = $(`path[id^="${str}"]`)[0];
     mouseOutEvent.forEach(mouseEventType =>
         element.dispatchEvent(
             new MouseEvent(mouseEventType, {

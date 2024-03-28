@@ -8,36 +8,37 @@
     --right-column-width: 0.2;
     --left-column-display: flex;
     --right-column-display: flex;
+    --container-border: 3px solid #800080;
 }
 
 svg {
     position: absolute;
-    top: var(--container-top);
-    left: var(--container-left);
-    width: var(--container-width);
-    height: var(--container-height);
+    top: inherit;
+    left: inherit;
+    width: inherit;
+    height: inherit;
     z-index: 100;
 }
 
 #interaction, #left-column {
     flex-direction: column; 
     position: absolute; 
-    top: var(--container-top);
+    top: 0;
     z-index: 200;
 }
 
 #left-column {
     display: var(--left-column-display); 
-    left: var(--container-left);
+    left: 0;
     margin-left: 2vmin;
-    width: calc(var(--container-width) * var(--left-column-width));
+    width: calc(100% * var(--left-column-width));
 }
 
 #interaction {
     display: var(--right-column-display); 
     right: 0;
     margin-right: 2vmin;
-    width: calc(var(--container-width) * var(--right-column-width));
+    width: calc(100% * var(--right-column-width));
 }
 
 fieldset {
@@ -45,11 +46,11 @@ fieldset {
     min-width: 0px; 
     max-width: 100%; 
     margin: 0; 
-    margin-top: 3vh;
-    padding-left: 1.5vw;
-    padding-right: 1.5vw;
-    padding-top: 1.5vh;
-    padding-bottom: 2vh;
+    margin-top: calc(3 / 100 * var(--container-height));
+    padding-left: calc(1.5 / 100 * var(--container-width));
+    padding-right: calc(1.5 / 100 * var(--container-width));
+    padding-top: calc(1.5 / 100 * var(--container-height));
+    padding-bottom: calc(2 / 100 * var(--container-height));
     border-radius: 5px;
 }
 
@@ -94,7 +95,7 @@ fieldset {
 .mp-zero-pb-not {
     margin: 0;
     padding: 0;
-    padding-bottom: 2.5vh;
+    padding-bottom: calc(2.5 / 100 * var(--container-height));
 }
 
 body, #body-1 {
@@ -139,7 +140,7 @@ body, #body-1 {
 }
 
 #uploadForm > fieldset {
-    padding-bottom: 2vh;
+    padding-bottom: calc(2 / 100 * var(--container-height));
 }
 
 legend {
@@ -175,7 +176,7 @@ legend {
 }
 
 #input1 {
-    padding-bottom: 2vh;
+    padding-bottom: calc(2 / 100 * var(--container-height));;
 }
 
 #e-label {
@@ -195,7 +196,7 @@ legend {
 }
 
 #interaction-last-fieldset {
-    padding-bottom: 2vh;
+    padding-bottom: calc(2 / 100 * var(--container-height));;
 }
 
 #context-menu {
@@ -210,6 +211,7 @@ legend {
     box-sizing: border-box; 
     border: none; 
     z-index: 1;
+    border: var(--container-border);
 }
 
 #dpmm {
@@ -222,8 +224,8 @@ legend {
 
 #plot-container {
     position: absolute;
-    height: var(--container-height);
-    width: var(--container-width);
+    height: 100%;
+    width: 100%;
     margin: 0; 
     padding: 0; 
     box-sizing: 

@@ -11,9 +11,11 @@
         <link rel="stylesheet" href={{ url_for('static', filename='style.css') }}>
     </head>
     <body>
-        <div id="plot-container" position="absolute" top="0%" left="0%" width="100%" height="100%" left-column-width=0.2 right-column-width=0.2></div>
+        <div id="plot-container" position="absolute" top="10%" left="25%" width="50%" height="50%" border="1px solid #800080" left-column-width=0.2 right-column-width=0.2></div>
         <script src="{{ url_for('static', filename='embed.js') }}"></script>
         <script src="{{ url_for('static', filename='bundle.js') }}"></script>
+
+        <button class="extra-button" style="position: absolute; top: 80%; left: calc(50% - 75px); width: 150px; height: 50px;" onclick="simulateMouseClick('Gammaproteobacteria')"; onmouseover="simulateMouseOver('Gammaproteobacteria')" onmouseout="simulateMouseOut('Gammaproteobacteria')">Gammaproteobacteria</button>
         <!-- <script src="https://cdn.jsdelivr.net/gh/aralids/KRONA-Reimplemented/app/static/bundle.js"></script> -->
     </body>
 </html>
