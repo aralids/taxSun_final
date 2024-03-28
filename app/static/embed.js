@@ -67,6 +67,8 @@ function simulateMouseOut(event){
     }
 }
 
+let mouseOverEventVar = mouseOverEvent;
+
 window.addEventListener('load', function() {
     var element = document.getElementById("Gammaproteobacteria_-_2");
     // simulateMouseClick(element);
