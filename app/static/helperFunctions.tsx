@@ -236,7 +236,7 @@ function downloadSVGasTextFile(fileName, taxonName, layerName, modeName, collaps
     a.dispatchEvent(e);
 }
 
-function hoverHandler(id:string, fullLabel:string, root:string):void {
+function hoverHandler(id:string, fullLabel:string, root:string, e):void {
     if (id.indexOf("-labelBackground") > -1) {
         var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
         var shape = id.replace("-labelBackground", "");
