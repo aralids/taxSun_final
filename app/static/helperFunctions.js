@@ -242,74 +242,38 @@ function downloadSVGasTextFile(fileName, taxonName, layerName, modeName, collaps
     a.dispatchEvent(e);
 }
 exports.downloadSVGasTextFile = downloadSVGasTextFile;
-function hoverHandler(id, fullLabel, root) {
-    if (id.indexOf("-labelBackground") > -1) {
-        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
-        var shape = id.replace("-labelBackground", "");
-        var label = id.replace("-labelBackground", "-label");
-        var labelBackground = id;
+function hoverHandler(id, fullLabel, root, e) {
+    if ($("path[id^=\"".concat(e.detail.taxName, "\"]"))[0]) {
+        var id_1 = $("path[id^=\"".concat(e.detail.taxName, "\"]"))[0]["id"];
+        var shape = id_1;
+        var label = id_1 + "-label";
+        var hoverLabel = id_1 + "-hoverLabel";
+        var labelBackground = id_1 + "-labelBackground";
+        window.taxSunMouseOver(shape.split("_-_")[0]);
+        document.getElementById(shape).style.strokeWidth = "0.4vmin";
+        document.getElementById(hoverLabel).style.display = "unset";
+        document.getElementById(label).style.display = "none";
+        document.getElementById(labelBackground).style.display = "unset";
+        document.getElementById("descendant-section").setAttribute('value', "".concat(shape.split("_-_")[0], "*").concat(shape.split("_-_")[1], "*").concat(root));
+        var evt = new CustomEvent('change');
+        document.getElementById("descendant-section").dispatchEvent(evt);
     }
-    else if (id.indexOf("-hoverLabel") > -1) {
-        var hoverLabel = id;
-        var shape = id.replace("-hoverLabel", "");
-        var label = id.replace("-hoverLabel", "-label");
-        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
-    }
-    else if (id.indexOf("-label") > -1) {
-        var label = id;
-        var shape = id.replace("-label", "");
-        var hoverLabel = id.replace("-label", "-hoverLabel");
-        var labelBackground = id.replace("-label", "-labelBackground");
-    }
-    else {
-        var shape = id;
-        var label = id + "-label";
-        var hoverLabel = id + "-hoverLabel";
-        var labelBackground = id + "-labelBackground";
-    }
-    ;
-    window.taxSunMouseOver(shape.split("_-_")[0]);
-    document.getElementById(shape).style.strokeWidth = "0.4vmin";
-    document.getElementById(hoverLabel).style.display = "unset";
-    document.getElementById(label).style.display = "none";
-    document.getElementById(labelBackground).style.display = "unset";
-    document.getElementById("descendant-section").setAttribute('value', "".concat(shape.split("_-_")[0], "*").concat(shape.split("_-_")[1], "*").concat(root));
-    var evt = new CustomEvent('change');
-    document.getElementById("descendant-section").dispatchEvent(evt);
 }
 exports.hoverHandler = hoverHandler;
 ;
-function onMouseOutHandler(id, initialLabelDisplay) {
-    if (id.indexOf("-labelBackground") > -1) {
-        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
-        var shape = id.replace("-labelBackground", "");
-        var label = id.replace("-labelBackground", "-label");
-        var labelBackground = id;
+function onMouseOutHandler(id, initialLabelDisplay, e) {
+    if ($("path[id^=\"".concat(e.detail.taxName, "\"]"))[0]) {
+        var id_2 = $("path[id^=\"".concat(e.detail.taxName, "\"]"))[0]["id"];
+        var shape = id_2;
+        var label = id_2 + "-label";
+        var hoverLabel = id_2 + "-hoverLabel";
+        var labelBackground = id_2 + "-labelBackground";
+        window.taxSunMouseOut(shape.split("_-_")[0]);
+        document.getElementById(shape).style.strokeWidth = "0.2vmin";
+        document.getElementById(label).style.display = initialLabelDisplay;
+        document.getElementById(hoverLabel).style.display = "none";
+        document.getElementById(labelBackground).style.display = "none";
     }
-    else if (id.indexOf("-hoverLabel") > -1) {
-        var hoverLabel = id;
-        var shape = id.replace("-hoverLabel", "");
-        var label = id.replace("-hoverLabel", "-label");
-        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
-    }
-    else if (id.indexOf("-label") > -1) {
-        var label = id;
-        var shape = id.replace("-label", "");
-        var hoverLabel = id.replace("-label", "-hoverLabel");
-        var labelBackground = id.replace("-label", "-labelBackground");
-    }
-    else {
-        var shape = id;
-        var label = id + "-label";
-        var hoverLabel = id + "-hoverLabel";
-        var labelBackground = id + "-labelBackground";
-    }
-    ;
-    window.taxSunMouseOut(shape.split("_-_")[0]);
-    document.getElementById(shape).style.strokeWidth = "0.2vmin";
-    document.getElementById(label).style.display = initialLabelDisplay;
-    document.getElementById(hoverLabel).style.display = "none";
-    document.getElementById(labelBackground).style.display = "none";
 }
 exports.onMouseOutHandler = onMouseOutHandler;
 // Returns a set of arrays, where each array contains all elements that will be on the same level in the plot.

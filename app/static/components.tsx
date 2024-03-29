@@ -1600,16 +1600,16 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 }
 
 function TaxonShape(props) {
-    return <path id={props.id} data-taxname={props.taxName} data-taxrank={props.taxRank} className="hoverable-object" d={props.d} onMouseOver={(e) => hoverHandler(props.id, props.fullLabel, props.root, e)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} onContextMenu={props.onContextMenu} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
+    return <path id={props.id} data-taxname={props.taxName} data-taxrank={props.taxRank} className="hoverable-object" d={props.d} onMouseOver={(e) => hoverHandler(props.id, props.fullLabel, props.root, e)} onMouseOut={(e) => onMouseOutHandler(props.id, props.labelDisplay, e)} onClick={props.onClick} onContextMenu={props.onContextMenu} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
 };
 
 function TaxonLabel(props) {
-    return <text data-taxname={props.taxName} data-taxrank={props.taxRank} className="hoverable-object" x={props.left} y={props.top} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} onContextMenu={(e) => {showContextMenu(e)}} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "fixed", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight}}>{props.abbr}</text>
+    return <text data-taxname={props.taxName} data-taxrank={props.taxRank} className="hoverable-object" x={props.left} y={props.top} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={(e) => hoverHandler(props.id, props.fullLabel, props.root, e)} onMouseOut={(e) => onMouseOutHandler(props.id, props.labelDisplay, e)} onClick={props.onClick} onContextMenu={(e) => {showContextMenu(e)}} style={{"margin": "0", "padding": "0", "lineHeight": "2vmin", "position": "fixed", "fontFamily": "calibri", "fontSize": "2vmin", "transformOrigin": props.transformOrigin, "fill": "#800080", "opacity": props.opacity, "display": props.display, "fontWeight": props.fontWeight}}>{props.abbr}</text>
 };
 
 function LabelBackground(props) {
     if (props.top) {
-        return <rect data-taxname={props.taxName} data-taxrank={props.taxRank} className="hoverable-object" x={props.left} y={props.top} height={props.height} width={props.width} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={() => hoverHandler(props.id, props.fullLabel, props.root)} onMouseOut={() => onMouseOutHandler(props.id, props.labelDisplay)} onClick={props.onClick} fill={props.fill} stroke={props.stroke} style={{"position": "fixed", "display": props.selfDisplay, "strokeWidth":"0.2vmin"}}/>
+        return <rect data-taxname={props.taxName} data-taxrank={props.taxRank} className="hoverable-object" x={props.left} y={props.top} height={props.height} width={props.width} transform={props.transform} transform-origin={props.transformOrigin} id={props.id} onMouseOver={(e) => hoverHandler(props.id, props.fullLabel, props.root, e)} onMouseOut={(e) => onMouseOutHandler(props.id, props.labelDisplay, e)} onClick={props.onClick} fill={props.fill} stroke={props.stroke} style={{"position": "fixed", "display": props.selfDisplay, "strokeWidth":"0.2vmin"}}/>
     }
     else { return null; };
 };

@@ -237,70 +237,38 @@ function downloadSVGasTextFile(fileName, taxonName, layerName, modeName, collaps
 }
 
 function hoverHandler(id:string, fullLabel:string, root:string, e):void {
-    if (id.indexOf("-labelBackground") > -1) {
-        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
-        var shape = id.replace("-labelBackground", "");
-        var label = id.replace("-labelBackground", "-label");
-        var labelBackground = id;
-    } else if (id.indexOf("-hoverLabel") > -1) {
-        var hoverLabel = id;
-        var shape = id.replace("-hoverLabel", "");
-        var label = id.replace("-hoverLabel", "-label");
-        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
-    }
-    else if (id.indexOf("-label") > -1) {
-        var label = id;
-        var shape = id.replace("-label", "");
-        var hoverLabel = id.replace("-label", "-hoverLabel");
-        var labelBackground = id.replace("-label", "-labelBackground");
-    } else {
+    if ($(`path[id^="${e.detail.taxName}"]`)[0]) {
+        let id = $(`path[id^="${e.detail.taxName}"]`)[0]["id"];
         var shape = id;
         var label = id + "-label";
         var hoverLabel = id + "-hoverLabel";
         var labelBackground = id + "-labelBackground";
-    };
-
-    (window as any).taxSunMouseOver(shape.split("_-_")[0]);
-    document.getElementById(shape)!.style.strokeWidth = "0.4vmin";
-    document.getElementById(hoverLabel)!.style.display = "unset";
-    document.getElementById(label)!.style.display = "none";
-    document.getElementById(labelBackground)!.style.display = "unset";
-    document.getElementById("descendant-section")!.setAttribute('value', `${shape.split("_-_")[0]}*${shape.split("_-_")[1]}*${root}`);
-    var evt = new CustomEvent('change');
-    document.getElementById("descendant-section")!.dispatchEvent(evt);
+    
+        (window as any).taxSunMouseOver(shape.split("_-_")[0]);
+        document.getElementById(shape)!.style.strokeWidth = "0.4vmin";
+        document.getElementById(hoverLabel)!.style.display = "unset";
+        document.getElementById(label)!.style.display = "none";
+        document.getElementById(labelBackground)!.style.display = "unset";
+        document.getElementById("descendant-section")!.setAttribute('value', `${shape.split("_-_")[0]}*${shape.split("_-_")[1]}*${root}`);
+        var evt = new CustomEvent('change');
+        document.getElementById("descendant-section")!.dispatchEvent(evt);
+    }
 };
 
-function onMouseOutHandler(id:string, initialLabelDisplay:string):void {
-    if (id.indexOf("-labelBackground") > -1) {
-        var hoverLabel = id.replace("-labelBackground", "-hoverLabel");
-        var shape = id.replace("-labelBackground", "");
-        var label = id.replace("-labelBackground", "-label");
-        var labelBackground = id;
-    } 
-    else if (id.indexOf("-hoverLabel") > -1) {
-        var hoverLabel = id;
-        var shape = id.replace("-hoverLabel", "");
-        var label = id.replace("-hoverLabel", "-label");
-        var labelBackground = id.replace("-hoverLabel", "-labelBackground");
-    }
-    else if (id.indexOf("-label") > -1) {
-        var label = id;
-        var shape = id.replace("-label", "");
-        var hoverLabel = id.replace("-label", "-hoverLabel");
-        var labelBackground = id.replace("-label", "-labelBackground");
-    } 
-    else {
+function onMouseOutHandler(id:string, initialLabelDisplay:string, e):void {
+    if ($(`path[id^="${e.detail.taxName}"]`)[0]) {
+        let id = $(`path[id^="${e.detail.taxName}"]`)[0]["id"];
         var shape = id;
         var label = id + "-label";
         var hoverLabel = id + "-hoverLabel";
         var labelBackground = id + "-labelBackground";
-    };
 
-    (window as any).taxSunMouseOut(shape.split("_-_")[0]);
-    document.getElementById(shape)!.style.strokeWidth = "0.2vmin";
-    document.getElementById(label)!.style.display = initialLabelDisplay;
-    document.getElementById(hoverLabel)!.style.display = "none";
-    document.getElementById(labelBackground)!.style.display = "none";
+        (window as any).taxSunMouseOut(shape.split("_-_")[0]);
+        document.getElementById(shape)!.style.strokeWidth = "0.2vmin";
+        document.getElementById(label)!.style.display = initialLabelDisplay;
+        document.getElementById(hoverLabel)!.style.display = "none";
+        document.getElementById(labelBackground)!.style.display = "none";
+    }
 }
 
 
