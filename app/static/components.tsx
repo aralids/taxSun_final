@@ -235,8 +235,8 @@ document.getElementById("download")!.addEventListener("click", () => {
 });
 
 document.addEventListener("mousemove", (e) => {
-    let target:any = e.target!
-    if (!target.classList.contains('hoverable-object')) {
+    let target:any = e.target!;
+    if (!target.classList.contains("hoverable-object") && !target.classList.contains("taxsun-interactee")) {
         document.getElementById("descendant-section")!.setAttribute('value', "");
         var evt = new CustomEvent('change');
         document.getElementById("descendant-section")!.dispatchEvent(evt);
@@ -1531,9 +1531,8 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     };
 
     handleClick(shapeId, e):void {
-        console.log("e:", e);
-        let taxon:string = typeof e.detail === "object" ? e.detail.taxName : e.target.getAttribute("data-taxname").split("_-_")[0];
-        console.log("handleClick taxon: ", taxon)
+        let taxon:string = typeof e.detail === "object" ? e.detail.taxName : e.target.getAttribute("data-taxname");
+        let rank:string = typeof e.detail === "object" ? e.detail.taxRank : e.target.getAttribute("data-taxrank");
         let nextLayer;
         if (taxon.includes("&")) {
             nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length-1;
@@ -1541,7 +1540,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         else {
             nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length-1;
         };
-        (window as any).taxSunClick(taxon);
+        (window as any).clickTaxsun2External(taxon, rank);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     };
 

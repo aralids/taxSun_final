@@ -243,44 +243,43 @@ function downloadSVGasTextFile(fileName, taxonName, layerName, modeName, collaps
 }
 exports.downloadSVGasTextFile = downloadSVGasTextFile;
 function hoverHandler(id, fullLabel, root, e) {
-    console.log("e:", e, e.target, e.target.getAttribute("data-taxname"));
+    var _a, _b;
+    var newRoot = (_b = (_a = document.querySelector(".hoverable-object")) === null || _a === void 0 ? void 0 : _a.getAttribute("id")) === null || _b === void 0 ? void 0 : _b.split("_-_")[0];
     var target = Boolean(e.detail) ? e.detail.taxName : e.target.getAttribute("id").split("_-_")[0];
-    console.log("target: ", target);
     if ($("path[id^=\"".concat(target, "\"]"))[0]) {
         var id_1 = $("path[id^=\"".concat(target, "\"]"))[0].getAttribute("id");
         var shape = id_1;
         var label = id_1 + "-label";
         var hoverLabel = id_1 + "-hoverLabel";
         var labelBackground = id_1 + "-labelBackground";
+        var rank = $("path[id^=\"".concat(target, "\"]"))[0].getAttribute("data-taxrank");
         document.getElementById(shape).style.strokeWidth = "0.4vmin";
         document.getElementById(hoverLabel).style.display = "unset";
         document.getElementById(label).style.display = "none";
         document.getElementById(labelBackground).style.display = "unset";
-        document.getElementById("descendant-section").setAttribute('value', "".concat(shape.split("_-_")[0], "*").concat(shape.split("_-_")[1], "*").concat(root));
+        document.getElementById("descendant-section").setAttribute('value', "".concat(shape.split("_-_")[0], "*").concat(shape.split("_-_")[1], "*").concat(newRoot));
         var evt = new CustomEvent('change');
         document.getElementById("descendant-section").dispatchEvent(evt);
-        window.taxSunMouseOver(shape.split("_-_")[0]);
+        window.mouseOverTaxsun2External(shape.split("_-_")[0], rank);
     }
 }
 exports.hoverHandler = hoverHandler;
 ;
 function onMouseOutHandler(id, initialLabelDisplay, e) {
-    console.log("e:", e, e.target, e.target.getAttribute("data-taxname"));
     var target = Boolean(e.detail) ? e.detail.taxName : e.target.getAttribute("id").split("_-_")[0];
-    console.log("target: ", target);
     if ($("path[id^=\"".concat(target, "\"]"))[0]) {
         var id_2 = $("path[id^=\"".concat(target, "\"]"))[0].getAttribute("id");
-        console.log(id_2);
         var shape = id_2;
         var label = id_2 + "-label";
         var hoverLabel = id_2 + "-hoverLabel";
         var labelBackground = id_2 + "-labelBackground";
         var labelDisplay = $("path[id^=\"".concat(target, "\"]"))[0].getAttribute("label-display");
+        var rank = $("path[id^=\"".concat(target, "\"]"))[0].getAttribute("data-taxrank");
         document.getElementById(shape).style.strokeWidth = "0.2vmin";
         document.getElementById(label).style.display = labelDisplay;
         document.getElementById(hoverLabel).style.display = "none";
         document.getElementById(labelBackground).style.display = "none";
-        window.taxSunMouseOut(shape.split("_-_")[0]);
+        window.mouseOutTaxsun2External(shape.split("_-_")[0], rank);
     }
 }
 exports.onMouseOutHandler = onMouseOutHandler;

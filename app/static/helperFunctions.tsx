@@ -237,45 +237,43 @@ function downloadSVGasTextFile(fileName, taxonName, layerName, modeName, collaps
 }
 
 function hoverHandler(id:string, fullLabel:string, root:string, e):void {
-    console.log("e:", e, e.target, e.target.getAttribute("data-taxname"));
+    let newRoot = document.querySelector(".hoverable-object")?.getAttribute("id")?.split("_-_")[0];
     let target = Boolean(e.detail) ? e.detail.taxName : e.target.getAttribute("id").split("_-_")[0];
-    console.log("target: ", target)
     if ($(`path[id^="${target}"]`)[0]) {
         let id = $(`path[id^="${target}"]`)[0].getAttribute("id")!;
         var shape = id;
         var label = id + "-label";
         var hoverLabel = id + "-hoverLabel";
         var labelBackground = id + "-labelBackground";
+        let rank = $(`path[id^="${target}"]`)[0].getAttribute("data-taxrank")!;
     
         document.getElementById(shape)!.style.strokeWidth = "0.4vmin";
         document.getElementById(hoverLabel)!.style.display = "unset";
         document.getElementById(label)!.style.display = "none";
         document.getElementById(labelBackground)!.style.display = "unset";
-        document.getElementById("descendant-section")!.setAttribute('value', `${shape.split("_-_")[0]}*${shape.split("_-_")[1]}*${root}`);
+        document.getElementById("descendant-section")!.setAttribute('value', `${shape.split("_-_")[0]}*${shape.split("_-_")[1]}*${newRoot}`);
         var evt = new CustomEvent('change');
         document.getElementById("descendant-section")!.dispatchEvent(evt);
-        (window as any).taxSunMouseOver(shape.split("_-_")[0]);
+        (window as any).mouseOverTaxsun2External(shape.split("_-_")[0], rank);
     }
 };
 
 function onMouseOutHandler(id:string, initialLabelDisplay:string, e):void {
-    console.log("e:", e, e.target, e.target.getAttribute("data-taxname"));
     let target = Boolean(e.detail) ? e.detail.taxName : e.target.getAttribute("id").split("_-_")[0];
-    console.log("target: ", target)
     if ($(`path[id^="${target}"]`)[0]) {
         let id = $(`path[id^="${target}"]`)[0].getAttribute("id")!;
-        console.log(id);
         var shape = id;
         var label = id + "-label";
         var hoverLabel = id + "-hoverLabel";
         var labelBackground = id + "-labelBackground";
         let labelDisplay = $(`path[id^="${target}"]`)[0].getAttribute("label-display")!;
+        let rank = $(`path[id^="${target}"]`)[0].getAttribute("data-taxrank")!;
 
         document.getElementById(shape)!.style.strokeWidth = "0.2vmin";
         document.getElementById(label)!.style.display = labelDisplay;
         document.getElementById(hoverLabel)!.style.display = "none";
         document.getElementById(labelBackground)!.style.display = "none";
-        (window as any).taxSunMouseOut(shape.split("_-_")[0]);
+        (window as any).mouseOutTaxsun2External(shape.split("_-_")[0], rank);
     }
 }
 

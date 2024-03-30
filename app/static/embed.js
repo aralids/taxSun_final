@@ -1,18 +1,15 @@
-function taxSunClick(name, rank, id) {
-    // console.log("taxSunClick!", name);
-    let element = $(`button[id^="button-${name}"]`)[0];
+function clickTaxsun2External(name, rank, id) {
+    let element = document.querySelector(`.taxsun-interactee[data-taxname='${name}'][data-taxrank='${rank}']`);
     if (element) element.click();
 };
 
-function taxSunMouseOver(name, rank, id) {
-    //console.log("taxSunHover!", name);
-    let element = $(`button[id^="button-${name}"]`)[0];
+function mouseOverTaxsun2External(name, rank, id) {
+    let element = document.querySelector(`.taxsun-interactee[data-taxname='${name}'][data-taxrank='${rank}']`);
     if (element) element.dispatchEvent(new MouseEvent("mouseover", {'view': window, 'bubbles': true, 'cancelable': true}));
 };
 
-function taxSunMouseOut(name, rank, id) {
-    //console.log("taxSunHover!", name);
-    let element = $(`button[id^="button-${name}"]`)[0];
+function mouseOutTaxsun2External(name, rank, id) {
+    let element = document.querySelector(`.taxsun-interactee[data-taxname='${name}'][data-taxrank='${rank}']`);
     if (element) element.dispatchEvent(new MouseEvent("mouseout", {'view': window, 'bubbles': true, 'cancelable': true}));
 };
 

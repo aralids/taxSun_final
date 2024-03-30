@@ -282,7 +282,7 @@ document.getElementById("download").addEventListener("click", function () {
 });
 document.addEventListener("mousemove", function (e) {
     var target = e.target;
-    if (!target.classList.contains('hoverable-object')) {
+    if (!target.classList.contains("hoverable-object") && !target.classList.contains("taxsun-interactee")) {
         document.getElementById("descendant-section").setAttribute('value', "");
         var evt = new CustomEvent('change');
         document.getElementById("descendant-section").dispatchEvent(evt);
@@ -1633,9 +1633,8 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     ;
     PlotDrawing.prototype.handleClick = function (shapeId, e) {
-        console.log("e:", e);
-        var taxon = typeof e.detail === "object" ? e.detail.taxName : e.target.getAttribute("data-taxname").split("_-_")[0];
-        console.log("handleClick taxon: ", taxon);
+        var taxon = typeof e.detail === "object" ? e.detail.taxName : e.target.getAttribute("data-taxname");
+        var rank = typeof e.detail === "object" ? e.detail.taxRank : e.target.getAttribute("data-taxrank");
         var nextLayer;
         if (taxon.includes("&")) {
             nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length - 1;
@@ -1644,7 +1643,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length - 1;
         }
         ;
-        window.taxSunClick(taxon);
+        window.clickTaxsun2External(taxon, rank);
         this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     };
     ;
