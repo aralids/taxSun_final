@@ -1541,7 +1541,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             nextLayer = originalAllTaxaReduced[taxon]["lineageNames"].length-1;
         };
         (window as any).clickTaxsun2External(taxon, rank);
-        this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
+        if (taxon !== this.state.root) this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     };
 
     render() {

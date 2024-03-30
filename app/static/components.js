@@ -1644,7 +1644,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         }
         ;
         window.clickTaxsun2External(taxon, rank);
-        this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
+        if (taxon !== this.state.root)
+            this.cropLineages(taxon, nextLayer, this.state.alteration, this.state.collapse);
     };
     ;
     PlotDrawing.prototype.render = function () {

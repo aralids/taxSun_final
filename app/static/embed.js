@@ -14,7 +14,7 @@ function mouseOutTaxsun2External(name, rank, id) {
 };
 
 const mouseClickEvents = ['mousedown', 'click', 'mouseup'];
-function simulateMouseClick(event){
+function clickExternal2Taxsun(event){
     if (event.isTrusted) {
         let element = document.querySelector(".hoverable-object");
         mouseClickEvents.forEach(mouseEventType =>
@@ -33,7 +33,7 @@ function simulateMouseClick(event){
 }
 
 const mouseOverEvent = ['mouseover'];
-function simulateMouseOver(event){
+function mouseOverExternal2Taxsun(event){
     if (event.isTrusted) {
         let element = document.querySelector(".hoverable-object");
         mouseOverEvent.forEach(mouseEventType =>
@@ -50,7 +50,7 @@ function simulateMouseOver(event){
     }
 }
 const mouseOutEvent = ['mouseout'];
-function simulateMouseOut(event){
+function mouseOutExternal2Taxsun(event){
     if (event.isTrusted) {
         let element = document.querySelector(".hoverable-object");
         mouseOutEvent.forEach(mouseEventType =>
