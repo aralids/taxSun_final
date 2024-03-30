@@ -247,7 +247,6 @@ function hoverHandler(id:string, fullLabel:string, root:string, e):void {
         var hoverLabel = id + "-hoverLabel";
         var labelBackground = id + "-labelBackground";
     
-        (window as any).taxSunMouseOver(shape.split("_-_")[0]);
         document.getElementById(shape)!.style.strokeWidth = "0.4vmin";
         document.getElementById(hoverLabel)!.style.display = "unset";
         document.getElementById(label)!.style.display = "none";
@@ -255,6 +254,7 @@ function hoverHandler(id:string, fullLabel:string, root:string, e):void {
         document.getElementById("descendant-section")!.setAttribute('value', `${shape.split("_-_")[0]}*${shape.split("_-_")[1]}*${root}`);
         var evt = new CustomEvent('change');
         document.getElementById("descendant-section")!.dispatchEvent(evt);
+        (window as any).taxSunMouseOver(shape.split("_-_")[0]);
     }
 };
 
@@ -269,13 +269,13 @@ function onMouseOutHandler(id:string, initialLabelDisplay:string, e):void {
         var label = id + "-label";
         var hoverLabel = id + "-hoverLabel";
         var labelBackground = id + "-labelBackground";
-        let labelDisplay = initialLabelDisplay;
+        let labelDisplay = $(`path[id^="${target}"]`)[0].getAttribute("label-display")!;
 
-        (window as any).taxSunMouseOut(shape.split("_-_")[0]);
         document.getElementById(shape)!.style.strokeWidth = "0.2vmin";
         document.getElementById(label)!.style.display = labelDisplay;
         document.getElementById(hoverLabel)!.style.display = "none";
         document.getElementById(labelBackground)!.style.display = "none";
+        (window as any).taxSunMouseOut(shape.split("_-_")[0]);
     }
 }
 

@@ -252,7 +252,6 @@ function hoverHandler(id, fullLabel, root, e) {
         var label = id_1 + "-label";
         var hoverLabel = id_1 + "-hoverLabel";
         var labelBackground = id_1 + "-labelBackground";
-        window.taxSunMouseOver(shape.split("_-_")[0]);
         document.getElementById(shape).style.strokeWidth = "0.4vmin";
         document.getElementById(hoverLabel).style.display = "unset";
         document.getElementById(label).style.display = "none";
@@ -260,6 +259,7 @@ function hoverHandler(id, fullLabel, root, e) {
         document.getElementById("descendant-section").setAttribute('value', "".concat(shape.split("_-_")[0], "*").concat(shape.split("_-_")[1], "*").concat(root));
         var evt = new CustomEvent('change');
         document.getElementById("descendant-section").dispatchEvent(evt);
+        window.taxSunMouseOver(shape.split("_-_")[0]);
     }
 }
 exports.hoverHandler = hoverHandler;
@@ -275,12 +275,12 @@ function onMouseOutHandler(id, initialLabelDisplay, e) {
         var label = id_2 + "-label";
         var hoverLabel = id_2 + "-hoverLabel";
         var labelBackground = id_2 + "-labelBackground";
-        var labelDisplay = initialLabelDisplay;
-        window.taxSunMouseOut(shape.split("_-_")[0]);
+        var labelDisplay = $("path[id^=\"".concat(target, "\"]"))[0].getAttribute("label-display");
         document.getElementById(shape).style.strokeWidth = "0.2vmin";
         document.getElementById(label).style.display = labelDisplay;
         document.getElementById(hoverLabel).style.display = "none";
         document.getElementById(labelBackground).style.display = "none";
+        window.taxSunMouseOut(shape.split("_-_")[0]);
     }
 }
 exports.onMouseOutHandler = onMouseOutHandler;
