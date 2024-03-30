@@ -243,8 +243,11 @@ function downloadSVGasTextFile(fileName, taxonName, layerName, modeName, collaps
 }
 exports.downloadSVGasTextFile = downloadSVGasTextFile;
 function hoverHandler(id, fullLabel, root, e) {
-    if ($("path[id^=\"".concat(e.detail.taxName, "\"]"))[0]) {
-        var id_1 = $("path[id^=\"".concat(e.detail.taxName, "\"]"))[0]["id"];
+    console.log("e:", e, e.target, e.target.getAttribute("data-taxname"));
+    var target = Boolean(e.detail) ? e.detail.taxName : e.target.getAttribute("id").split("_-_")[0];
+    console.log("target: ", target);
+    if ($("path[id^=\"".concat(target, "\"]"))[0]) {
+        var id_1 = $("path[id^=\"".concat(target, "\"]"))[0].getAttribute("id");
         var shape = id_1;
         var label = id_1 + "-label";
         var hoverLabel = id_1 + "-hoverLabel";
@@ -262,15 +265,20 @@ function hoverHandler(id, fullLabel, root, e) {
 exports.hoverHandler = hoverHandler;
 ;
 function onMouseOutHandler(id, initialLabelDisplay, e) {
-    if ($("path[id^=\"".concat(e.detail.taxName, "\"]"))[0]) {
-        var id_2 = $("path[id^=\"".concat(e.detail.taxName, "\"]"))[0]["id"];
+    console.log("e:", e, e.target, e.target.getAttribute("data-taxname"));
+    var target = Boolean(e.detail) ? e.detail.taxName : e.target.getAttribute("id").split("_-_")[0];
+    console.log("target: ", target);
+    if ($("path[id^=\"".concat(target, "\"]"))[0]) {
+        var id_2 = $("path[id^=\"".concat(target, "\"]"))[0].getAttribute("id");
+        console.log(id_2);
         var shape = id_2;
         var label = id_2 + "-label";
         var hoverLabel = id_2 + "-hoverLabel";
         var labelBackground = id_2 + "-labelBackground";
+        var labelDisplay = initialLabelDisplay;
         window.taxSunMouseOut(shape.split("_-_")[0]);
         document.getElementById(shape).style.strokeWidth = "0.2vmin";
-        document.getElementById(label).style.display = initialLabelDisplay;
+        document.getElementById(label).style.display = labelDisplay;
         document.getElementById(hoverLabel).style.display = "none";
         document.getElementById(labelBackground).style.display = "none";
     }

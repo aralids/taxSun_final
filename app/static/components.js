@@ -1633,8 +1633,9 @@ var PlotDrawing = /** @class */ (function (_super) {
     };
     ;
     PlotDrawing.prototype.handleClick = function (shapeId, e) {
-        console.log("e:", e, e.target.getAttribute("data-taxname"), e.target.getAttribute("data-taxrank"));
-        var taxon = e.detail.taxName;
+        console.log("e:", e);
+        var taxon = typeof e.detail === "object" ? e.detail.taxName : e.target.getAttribute("data-taxname").split("_-_")[0];
+        console.log("handleClick taxon: ", taxon);
         var nextLayer;
         if (taxon.includes("&")) {
             nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length - 1;
@@ -1671,7 +1672,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_9 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_1.state.ancestors[this_1.state.ancestors.length - 1], "_-_0") : id;
-            shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], taxName: item, taxRank: tS[item]["rank"], onClick: function (event) { return _this.handleClick(redirectTo, event); }, d: tS[item]["svgPath"], onContextMenu: function (e) { (0, helperFunctions_js_1.showContextMenu)(e); }, strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"], transformOrigin: tS[item]["label"]["transformOrigin"], root: this_1.state.root }));
+            shapes.push(React.createElement(TaxonShape, { key: id, id: id, abbr: tS[item]["label"]["abbreviation"], taxName: redirectTo.split("_-_")[0], taxRank: tS[item]["rank"], onClick: function (event) { return _this.handleClick(redirectTo, event); }, d: tS[item]["svgPath"], onContextMenu: function (e) { (0, helperFunctions_js_1.showContextMenu)(e); }, strokeWidth: viewportDimensions["dpmm"] * 0.265, fillColor: tS[item]["fill"], labelOpacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], fullLabel: tS[item]["label"]["fullLabel"], stroke: tS[item]["stroke"], transformOrigin: tS[item]["label"]["transformOrigin"], root: this_1.state.root }));
             if (tS[item]["married"]) {
                 clipPaths.push(React.createElement("path", { key: "clippath-".concat(id), d: tS[item]["svgPath"] }));
             }
@@ -1684,7 +1685,7 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_10 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_2.state.ancestors[this_2.state.ancestors.length - 1], "_-_0") : id;
-            var label = React.createElement(TaxonLabel, { key: "".concat(id, "-label"), id: "".concat(id, "-label"), abbr: tS[item]["label"]["abbreviation"], taxName: item, taxRank: tS[item]["rank"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], top: tS[item]["label"]["top"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["display"], onClick: function (event) { _this.handleClick(redirectTo, event); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "normal", root: this_2.state.root });
+            var label = React.createElement(TaxonLabel, { key: "".concat(id, "-label"), id: "".concat(id, "-label"), abbr: tS[item]["label"]["abbreviation"], taxName: redirectTo.split("_-_")[0], taxRank: tS[item]["rank"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["left"], top: tS[item]["label"]["top"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["display"], onClick: function (event) { _this.handleClick(redirectTo, event); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "normal", root: this_2.state.root });
             labels.push(label);
         };
         var this_2 = this;
@@ -1696,8 +1697,8 @@ var PlotDrawing = /** @class */ (function (_super) {
         var _loop_11 = function (item) {
             var id = "".concat(item, "_-_").concat(tS[item]["firstLayerUnaligned"]);
             var redirectTo = tS[item]["layers"][0] === 0 ? "".concat(this_3.state.ancestors[this_3.state.ancestors.length - 1], "_-_0") : id;
-            var labelBackground = React.createElement(LabelBackground, { key: "".concat(id, "-labelBackground"), id: "".concat(id, "-labelBackground"), taxName: item, taxRank: tS[item]["rank"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"] - 4, top: (tS[item]["label"]["top"] - this_3.state.height) - 4, selfDisplay: "none", labelDisplay: tS[item]["label"]["display"], onClick: function (event) { _this.handleClick(redirectTo, event); }, fullLabel: tS[item]["label"]["fullLabel"], height: this_3.state.height + 8, width: tS[item]["label"]["hoverWidth"] + 8, stroke: "#800080", fill: "#ffffff", root: this_3.state.root });
-            var hoverLabel = React.createElement(TaxonLabel, { key: "".concat(id, "-hoverLabel"), id: "".concat(id, "-hoverLabel"), abbr: tS[item]["label"]["fullLabel"], taxName: item, taxRank: tS[item]["rank"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"], top: tS[item]["label"]["top"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["hoverDisplay"], onContextMenu: function (e) { (0, helperFunctions_js_1.showContextMenu)(e); }, onClick: function (event) { _this.handleClick(redirectTo, event); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "bold", root: this_3.state.root });
+            var labelBackground = React.createElement(LabelBackground, { key: "".concat(id, "-labelBackground"), id: "".concat(id, "-labelBackground"), taxName: redirectTo.split("_-_")[0], taxRank: tS[item]["rank"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"] - 4, top: (tS[item]["label"]["top"] - this_3.state.height) - 4, selfDisplay: "none", labelDisplay: tS[item]["label"]["display"], onClick: function (event) { _this.handleClick(redirectTo, event); }, fullLabel: tS[item]["label"]["fullLabel"], height: this_3.state.height + 8, width: tS[item]["label"]["hoverWidth"] + 8, stroke: "#800080", fill: "#ffffff", root: this_3.state.root });
+            var hoverLabel = React.createElement(TaxonLabel, { key: "".concat(id, "-hoverLabel"), id: "".concat(id, "-hoverLabel"), abbr: tS[item]["label"]["fullLabel"], taxName: redirectTo.split("_-_")[0], taxRank: tS[item]["rank"], transform: tS[item]["label"]["transform"], left: tS[item]["label"]["hoverLeft"], top: tS[item]["label"]["top"], opacity: tS[item]["label"]["opacity"], labelDisplay: tS[item]["label"]["display"], display: tS[item]["label"]["hoverDisplay"], onContextMenu: function (e) { (0, helperFunctions_js_1.showContextMenu)(e); }, onClick: function (event) { _this.handleClick(redirectTo, event); }, fullLabel: tS[item]["label"]["fullLabel"], fontWeight: "bold", root: this_3.state.root });
             labels.push(labelBackground);
             labels.push(hoverLabel);
         };
@@ -1721,7 +1722,7 @@ var PlotDrawing = /** @class */ (function (_super) {
 }(React.Component));
 exports.PlotDrawing = PlotDrawing;
 function TaxonShape(props) {
-    return React.createElement("path", { id: props.id, "data-taxname": props.taxName, "data-taxrank": props.taxRank, className: "hoverable-object", d: props.d, onMouseOver: function (e) { return (0, helperFunctions_js_1.hoverHandler)(props.id, props.fullLabel, props.root, e); }, onMouseOut: function (e) { return (0, helperFunctions_js_1.onMouseOutHandler)(props.id, props.labelDisplay, e); }, onClick: props.onClick, onContextMenu: props.onContextMenu, style: { "stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor } });
+    return React.createElement("path", { id: props.id, "data-taxname": props.taxName, "data-taxrank": props.taxRank, "label-display": props.labelDisplay, className: "hoverable-object", d: props.d, onMouseOver: function (e) { return (0, helperFunctions_js_1.hoverHandler)(props.id, props.fullLabel, props.root, e); }, onMouseOut: function (e) { return (0, helperFunctions_js_1.onMouseOutHandler)(props.id, props.labelDisplay, e); }, onClick: props.onClick, onContextMenu: props.onContextMenu, style: { "stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor } });
 }
 ;
 function TaxonLabel(props) {

@@ -237,8 +237,11 @@ function downloadSVGasTextFile(fileName, taxonName, layerName, modeName, collaps
 }
 
 function hoverHandler(id:string, fullLabel:string, root:string, e):void {
-    if ($(`path[id^="${e.detail.taxName}"]`)[0]) {
-        let id = $(`path[id^="${e.detail.taxName}"]`)[0]["id"];
+    console.log("e:", e, e.target, e.target.getAttribute("data-taxname"));
+    let target = Boolean(e.detail) ? e.detail.taxName : e.target.getAttribute("id").split("_-_")[0];
+    console.log("target: ", target)
+    if ($(`path[id^="${target}"]`)[0]) {
+        let id = $(`path[id^="${target}"]`)[0].getAttribute("id")!;
         var shape = id;
         var label = id + "-label";
         var hoverLabel = id + "-hoverLabel";
@@ -256,16 +259,21 @@ function hoverHandler(id:string, fullLabel:string, root:string, e):void {
 };
 
 function onMouseOutHandler(id:string, initialLabelDisplay:string, e):void {
-    if ($(`path[id^="${e.detail.taxName}"]`)[0]) {
-        let id = $(`path[id^="${e.detail.taxName}"]`)[0]["id"];
+    console.log("e:", e, e.target, e.target.getAttribute("data-taxname"));
+    let target = Boolean(e.detail) ? e.detail.taxName : e.target.getAttribute("id").split("_-_")[0];
+    console.log("target: ", target)
+    if ($(`path[id^="${target}"]`)[0]) {
+        let id = $(`path[id^="${target}"]`)[0].getAttribute("id")!;
+        console.log(id);
         var shape = id;
         var label = id + "-label";
         var hoverLabel = id + "-hoverLabel";
         var labelBackground = id + "-labelBackground";
+        let labelDisplay = initialLabelDisplay;
 
         (window as any).taxSunMouseOut(shape.split("_-_")[0]);
         document.getElementById(shape)!.style.strokeWidth = "0.2vmin";
-        document.getElementById(label)!.style.display = initialLabelDisplay;
+        document.getElementById(label)!.style.display = labelDisplay;
         document.getElementById(hoverLabel)!.style.display = "none";
         document.getElementById(labelBackground)!.style.display = "none";
     }

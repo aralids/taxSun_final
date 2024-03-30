@@ -1531,8 +1531,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
     };
 
     handleClick(shapeId, e):void {
-        console.log("e:", e, e.target.getAttribute("data-taxname"), e.target.getAttribute("data-taxrank"));
-        let taxon:string = e.detail.taxName;
+        console.log("e:", e);
+        let taxon:string = typeof e.detail === "object" ? e.detail.taxName : e.target.getAttribute("data-taxname").split("_-_")[0];
+        console.log("handleClick taxon: ", taxon)
         let nextLayer;
         if (taxon.includes("&")) {
             nextLayer = originalAllTaxaReduced[taxon.split(" & ")[0]]["lineageNames"].length-1;
@@ -1567,7 +1568,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
 
-            shapes.push(<TaxonShape key={id} id={id} abbr={tS[item]["label"]["abbreviation"]} taxName = {item} taxRank = {tS[item]["rank"]} onClick={(event) => this.handleClick(redirectTo, event)} d={tS[item]["svgPath"]} onContextMenu={(e) => {showContextMenu(e)}} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]} transformOrigin={tS[item]["label"]["transformOrigin"]} root={this.state.root}/>);
+            shapes.push(<TaxonShape key={id} id={id} abbr={tS[item]["label"]["abbreviation"]} taxName = {redirectTo.split("_-_")[0]} taxRank = {tS[item]["rank"]} onClick={(event) => this.handleClick(redirectTo, event)} d={tS[item]["svgPath"]} onContextMenu={(e) => {showContextMenu(e)}} strokeWidth={viewportDimensions["dpmm"] * 0.265} fillColor={tS[item]["fill"]} labelOpacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} fullLabel={tS[item]["label"]["fullLabel"]} stroke={tS[item]["stroke"]} transformOrigin={tS[item]["label"]["transformOrigin"]} root={this.state.root}/>);
             if (tS[item]["married"]) {
                 clipPaths.push(<path key={`clippath-${id}`} d={tS[item]["svgPath"]}/>)
             }
@@ -1576,7 +1577,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
         for (let item of tSkeys) {
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
-            let label = <TaxonLabel key={`${id}-label`} id={`${id}-label`} abbr={tS[item]["label"]["abbreviation"]} taxName = {item} taxRank = {tS[item]["rank"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["left"]} top={tS[item]["label"]["top"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["display"]} onClick={(event) => {this.handleClick(redirectTo, event)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="normal" root={this.state.root}/>;
+            let label = <TaxonLabel key={`${id}-label`} id={`${id}-label`} abbr={tS[item]["label"]["abbreviation"]} taxName = {redirectTo.split("_-_")[0]} taxRank = {tS[item]["rank"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["left"]} top={tS[item]["label"]["top"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["display"]} onClick={(event) => {this.handleClick(redirectTo, event)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="normal" root={this.state.root}/>;
 
             labels.push(label);
         };
@@ -1585,9 +1586,9 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
             let id:string = `${item}_-_${tS[item]["firstLayerUnaligned"]}`;
             let redirectTo:string = tS[item]["layers"][0] === 0 ? `${this.state.ancestors[this.state.ancestors.length - 1]}_-_0` : id;
 
-            let labelBackground = <LabelBackground key={`${id}-labelBackground`} id={`${id}-labelBackground`} taxName = {item} taxRank = {tS[item]["rank"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]-4} top={(tS[item]["label"]["top"]-this.state.height) - 4} selfDisplay="none" labelDisplay={tS[item]["label"]["display"]} onClick={(event) => {this.handleClick(redirectTo, event)}} fullLabel={tS[item]["label"]["fullLabel"]} height={this.state.height+8} width={tS[item]["label"]["hoverWidth"]+8} stroke="#800080" fill="#ffffff" root={this.state.root}/>
+            let labelBackground = <LabelBackground key={`${id}-labelBackground`} id={`${id}-labelBackground`} taxName = {redirectTo.split("_-_")[0]} taxRank = {tS[item]["rank"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]-4} top={(tS[item]["label"]["top"]-this.state.height) - 4} selfDisplay="none" labelDisplay={tS[item]["label"]["display"]} onClick={(event) => {this.handleClick(redirectTo, event)}} fullLabel={tS[item]["label"]["fullLabel"]} height={this.state.height+8} width={tS[item]["label"]["hoverWidth"]+8} stroke="#800080" fill="#ffffff" root={this.state.root}/>
 
-            let hoverLabel = <TaxonLabel key={`${id}-hoverLabel`} id={`${id}-hoverLabel`} abbr={tS[item]["label"]["fullLabel"]} taxName = {item} taxRank = {tS[item]["rank"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]} top={tS[item]["label"]["top"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["hoverDisplay"]} onContextMenu={(e) => {showContextMenu(e)}} onClick={(event) => {this.handleClick(redirectTo, event)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="bold" root={this.state.root}/>;
+            let hoverLabel = <TaxonLabel key={`${id}-hoverLabel`} id={`${id}-hoverLabel`} abbr={tS[item]["label"]["fullLabel"]} taxName = {redirectTo.split("_-_")[0]} taxRank = {tS[item]["rank"]} transform={tS[item]["label"]["transform"]} left={tS[item]["label"]["hoverLeft"]} top={tS[item]["label"]["top"]} opacity={tS[item]["label"]["opacity"]} labelDisplay={tS[item]["label"]["display"]} display={tS[item]["label"]["hoverDisplay"]} onContextMenu={(e) => {showContextMenu(e)}} onClick={(event) => {this.handleClick(redirectTo, event)}} fullLabel={tS[item]["label"]["fullLabel"]} fontWeight="bold" root={this.state.root}/>;
             labels.push(labelBackground);
             labels.push(hoverLabel);
         };
@@ -1600,7 +1601,7 @@ class PlotDrawing extends React.Component<{lineages:string[][], ranks:string[][]
 }
 
 function TaxonShape(props) {
-    return <path id={props.id} data-taxname={props.taxName} data-taxrank={props.taxRank} className="hoverable-object" d={props.d} onMouseOver={(e) => hoverHandler(props.id, props.fullLabel, props.root, e)} onMouseOut={(e) => onMouseOutHandler(props.id, props.labelDisplay, e)} onClick={props.onClick} onContextMenu={props.onContextMenu} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
+    return <path id={props.id} data-taxname={props.taxName} data-taxrank={props.taxRank} label-display={props.labelDisplay} className="hoverable-object" d={props.d} onMouseOver={(e) => hoverHandler(props.id, props.fullLabel, props.root, e)} onMouseOut={(e) => onMouseOutHandler(props.id, props.labelDisplay, e)} onClick={props.onClick} onContextMenu={props.onContextMenu} style={{"stroke": props.stroke, "strokeWidth": "0.2vmin", "fill": props.fillColor}}/>;
 };
 
 function TaxonLabel(props) {
