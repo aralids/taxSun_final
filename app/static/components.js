@@ -30,6 +30,8 @@ var React = require("react");
 var predefinedObjects_js_1 = require("./predefinedObjects.js");
 var helperFunctions_js_1 = require("./helperFunctions.js");
 /* ===== VARIABLE DECLARATIONS/DEFINITIONS - all of which will ideally become either a prop or a part of the state of PlotDrawing. ===== */
+var labelThreshold = 1;
+var divLabelsArr = [];
 var fileName = "lessSpontaneous2.tsv";
 var taxonName = "Bacteria";
 var layerName = 1;
@@ -1411,6 +1413,10 @@ var PlotDrawing = /** @class */ (function (_super) {
                     "fullLabel": key.replace(RegExp(rankPatternFull.map(function (item) { return " " + item; }).join("|"), "g"), "") + " ".concat(percentage, "%"),
                     "radialAngle": radialAngle
                 };
+                if (percentage < labelThreshold) {
+                    taxonSpecifics[key]["label"]["inDiv"] = true;
+                    divLabelsArr.push(taxonSpecifics[key]["label"]["fullLabel"]);
+                }
                 if (taxonSpecifics[key]["rank"] === "species") {
                     var abbr = taxonSpecifics[key]["label"]["abbreviation"];
                     if (abbr.split(" ").length >= 2 && !(abbr.split(" ")[1] === "sp.")) {
@@ -1428,6 +1434,7 @@ var PlotDrawing = /** @class */ (function (_super) {
             ;
         }
         ;
+        console.log("divLabelsArr:", divLabelsArr);
         this.calcShapeColors(newState);
     };
     ;
@@ -1477,151 +1484,153 @@ var PlotDrawing = /** @class */ (function (_super) {
         var height = 0;
         for (var _i = 0, _a = Object.keys(newTaxonSpecifics); _i < _a.length; _i++) {
             var key = _a[_i];
-            var center = newTaxonSpecifics[key]["center"];
-            var label = newTaxonSpecifics[key]["label"];
-            var labelElement = document.getElementById("".concat(key, "_-_").concat(newTaxonSpecifics[key]["firstLayerUnaligned"], "-label"));
-            var hoverLabelElement = document.getElementById("".concat(key, "_-_").concat(newTaxonSpecifics[key]["firstLayerUnaligned"], "-hoverLabel"));
-            height = !alreadyRepeated ? labelElement.getBoundingClientRect().height / 2 : this.state.height;
-            var width = labelElement.getBoundingClientRect().width;
-            var hoverWidth = hoverLabelElement.getBoundingClientRect().width;
-            var angle = label["angle"];
-            var centerDegree = center[2];
-            var transformOrigin = "".concat(center[0], " ").concat(center[1]);
-            var top_1 = center[1] + height / 2;
-            var left = void 0, radialLeft = void 0, horizontalSpace = void 0, abbreviation = void 0, howManyLettersFit = void 0, hoverLeft = void 0, hoverRadialLeft = void 0;
-            // Calculate left and angle for all labels of the last layer, which are always radial.
-            if (label["direction"] === "radial") {
-                if (centerDegree >= 180 && centerDegree < 360) {
-                    left = hoverLeft = center[0];
-                    angle = 360 - (270 - angle);
+            if (!this.state.taxonSpecifics[key]["label"]["inDiv"]) {
+                var center = newTaxonSpecifics[key]["center"];
+                var label = newTaxonSpecifics[key]["label"];
+                var labelElement = document.getElementById("".concat(key, "_-_").concat(newTaxonSpecifics[key]["firstLayerUnaligned"], "-label"));
+                var hoverLabelElement = document.getElementById("".concat(key, "_-_").concat(newTaxonSpecifics[key]["firstLayerUnaligned"], "-hoverLabel"));
+                height = !alreadyRepeated ? labelElement.getBoundingClientRect().height / 2 : this.state.height;
+                var width = labelElement.getBoundingClientRect().width;
+                var hoverWidth = hoverLabelElement.getBoundingClientRect().width;
+                var angle = label["angle"];
+                var centerDegree = center[2];
+                var transformOrigin = "".concat(center[0], " ").concat(center[1]);
+                var top_1 = center[1] + height / 2;
+                var left = void 0, radialLeft = void 0, horizontalSpace = void 0, abbreviation = void 0, howManyLettersFit = void 0, hoverLeft = void 0, hoverRadialLeft = void 0;
+                // Calculate left and angle for all labels of the last layer, which are always radial.
+                if (label["direction"] === "radial") {
+                    if (centerDegree >= 180 && centerDegree < 360) {
+                        left = hoverLeft = center[0];
+                        angle = 360 - (270 - angle);
+                    }
+                    else if (centerDegree >= 0 && centerDegree <= 180) {
+                        left = center[0] - width;
+                        hoverLeft = center[0] - hoverWidth;
+                        angle = 270 - angle;
+                    }
+                    ;
+                    abbreviation = label["abbreviation"];
+                    var sliceHere = (0, helperFunctions_js_1.round)(((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) + 1) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3);
+                    if (label["abbreviation"].length > sliceHere) {
+                        abbreviation = abbreviation.slice(0, sliceHere) + "...";
+                    }
+                    ;
                 }
-                else if (centerDegree >= 0 && centerDegree <= 180) {
-                    left = center[0] - width;
-                    hoverLeft = center[0] - hoverWidth;
-                    angle = 270 - angle;
-                }
-                ;
-                abbreviation = label["abbreviation"];
-                var sliceHere = (0, helperFunctions_js_1.round)(((this.state.numberOfLayers - newTaxonSpecifics[key]["firstLayerAligned"]) + 1) * this.state.layerWidth / viewportDimensions["2vmin"] * 2.3);
-                if (label["abbreviation"].length > sliceHere) {
-                    abbreviation = abbreviation.slice(0, sliceHere) + "...";
-                }
-                ;
-            }
-            // For internal wedges, calculate: 
-            else if (label["direction"] === "verse") {
-                left = center[0] - width / 2;
-                hoverLeft = center[0] - hoverWidth / 2;
-                var radialAngle = label["radialAngle"];
-                // The circumferential space of the wedge (1).
-                var topBeforeRotation = center[1] - height / 2;
-                var bottomBeforeRotation = center[1] + height / 2;
-                var leftBeforeRotation = left;
-                var rightBeforeRotation = left + width;
-                var fourPoints_1 = (0, helperFunctions_js_1.getFourCorners)(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, center[0], center[1], angle);
-                var leftIntersect = void 0, rightIntersect = void 0;
-                if (centerDegree >= 180 && centerDegree < 360) {
-                    radialLeft = hoverRadialLeft = center[0];
-                    radialAngle = 360 - (270 - radialAngle);
+                // For internal wedges, calculate: 
+                else if (label["direction"] === "verse") {
+                    left = center[0] - width / 2;
+                    hoverLeft = center[0] - hoverWidth / 2;
+                    var radialAngle = label["radialAngle"];
+                    // The circumferential space of the wedge (1).
+                    var topBeforeRotation = center[1] - height / 2;
+                    var bottomBeforeRotation = center[1] + height / 2;
+                    var leftBeforeRotation = left;
+                    var rightBeforeRotation = left + width;
+                    var fourPoints_1 = (0, helperFunctions_js_1.getFourCorners)(topBeforeRotation, bottomBeforeRotation, leftBeforeRotation, rightBeforeRotation, center[0], center[1], angle);
+                    var leftIntersect = void 0, rightIntersect = void 0;
+                    if (centerDegree >= 180 && centerDegree < 360) {
+                        radialLeft = hoverRadialLeft = center[0];
+                        radialAngle = 360 - (270 - radialAngle);
+                        // (1)
+                        leftIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[3], center[4], fourPoints_1["bottomLeft"][0], fourPoints_1["bottomLeft"][1], fourPoints_1["bottomRight"][0], fourPoints_1["bottomRight"][1]);
+                        rightIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[5], center[6], fourPoints_1["bottomLeft"][0], fourPoints_1["bottomLeft"][1], fourPoints_1["bottomRight"][0], fourPoints_1["bottomRight"][1]);
+                    }
+                    else if (centerDegree >= 0 && centerDegree <= 180) {
+                        radialLeft = center[0] - width;
+                        hoverRadialLeft = center[0] - hoverWidth;
+                        radialAngle = 270 - radialAngle;
+                        // (1)
+                        leftIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[3], center[4], fourPoints_1["topLeft"][0], fourPoints_1["topLeft"][1], fourPoints_1["topRight"][0], fourPoints_1["topRight"][1]);
+                        rightIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[5], center[6], fourPoints_1["topLeft"][0], fourPoints_1["topLeft"][1], fourPoints_1["topRight"][0], fourPoints_1["topRight"][1]);
+                    }
                     // (1)
-                    leftIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[3], center[4], fourPoints_1["bottomLeft"][0], fourPoints_1["bottomLeft"][1], fourPoints_1["bottomRight"][0], fourPoints_1["bottomRight"][1]);
-                    rightIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[5], center[6], fourPoints_1["bottomLeft"][0], fourPoints_1["bottomLeft"][1], fourPoints_1["bottomRight"][0], fourPoints_1["bottomRight"][1]);
+                    if (leftIntersect === null || rightIntersect === null) {
+                        horizontalSpace = 0;
+                    }
+                    else {
+                        horizontalSpace = (0, helperFunctions_js_1.lineLength)(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"]);
+                    }
+                    ;
+                    // Calculate radial space.
+                    var layersCopy = JSON.parse(JSON.stringify(newTaxonSpecifics[key]["layers"]));
+                    var lastViableLayer = layersCopy.sort(function (a, b) { return a - b; })[1];
+                    var pointOnLastLayerX = lastViableLayer * this.state.layerWidth * (0, helperFunctions_js_1.cos)(center[2]);
+                    pointOnLastLayerX = (0, helperFunctions_js_1.round)(pointOnLastLayerX) + viewportDimensions["cx"];
+                    var pointOnLastLayerY = -lastViableLayer * this.state.layerWidth * (0, helperFunctions_js_1.sin)(center[2]);
+                    pointOnLastLayerY = (0, helperFunctions_js_1.round)(pointOnLastLayerY) + viewportDimensions["cy"];
+                    var verticalSpace = (0, helperFunctions_js_1.lineLength)(center[0], center[1], pointOnLastLayerX, pointOnLastLayerY);
+                    // Decide between radial and circumferential.
+                    var lengthPerLetter = width / label["abbreviation"].length;
+                    if (verticalSpace > horizontalSpace) {
+                        left = radialLeft;
+                        hoverLeft = hoverRadialLeft;
+                        angle = radialAngle;
+                        howManyLettersFit = Math.floor(verticalSpace / lengthPerLetter) - 2;
+                    }
+                    else {
+                        howManyLettersFit = Math.floor(horizontalSpace / lengthPerLetter) - 2 > 0 ? Math.floor(horizontalSpace / lengthPerLetter) - 2 : 0;
+                    }
+                    ;
+                    abbreviation = label["abbreviation"].slice(0, howManyLettersFit);
                 }
-                else if (centerDegree >= 0 && centerDegree <= 180) {
-                    radialLeft = center[0] - width;
-                    hoverRadialLeft = center[0] - hoverWidth;
-                    radialAngle = 270 - radialAngle;
-                    // (1)
-                    leftIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[3], center[4], fourPoints_1["topLeft"][0], fourPoints_1["topLeft"][1], fourPoints_1["topRight"][0], fourPoints_1["topRight"][1]);
-                    rightIntersect = (0, helperFunctions_js_1.lineIntersect)(viewportDimensions["cx"], viewportDimensions["cy"], center[5], center[6], fourPoints_1["topLeft"][0], fourPoints_1["topLeft"][1], fourPoints_1["topRight"][0], fourPoints_1["topRight"][1]);
-                }
-                // (1)
-                if (leftIntersect === null || rightIntersect === null) {
-                    horizontalSpace = 0;
-                }
+                // Calculations for root shape in the center.
                 else {
-                    horizontalSpace = (0, helperFunctions_js_1.lineLength)(leftIntersect["x"], leftIntersect["y"], rightIntersect["x"], rightIntersect["y"]);
+                    top_1 = viewportDimensions["cy"] + height / 2;
+                    left = center[0] - width / 2;
+                    hoverLeft = center[0] - hoverWidth / 2;
+                    transformOrigin = "";
+                    var lengthPerLetter = width / label["abbreviation"].length;
+                    howManyLettersFit = Math.floor(this.state.layerWidth * 2 / lengthPerLetter) - 2 > 0 ? Math.floor(this.state.layerWidth * 2 / lengthPerLetter) - 2 : 0;
+                    abbreviation = label["abbreviation"].slice(0, howManyLettersFit);
                 }
                 ;
-                // Calculate radial space.
-                var layersCopy = JSON.parse(JSON.stringify(newTaxonSpecifics[key]["layers"]));
-                var lastViableLayer = layersCopy.sort(function (a, b) { return a - b; })[1];
-                var pointOnLastLayerX = lastViableLayer * this.state.layerWidth * (0, helperFunctions_js_1.cos)(center[2]);
-                pointOnLastLayerX = (0, helperFunctions_js_1.round)(pointOnLastLayerX) + viewportDimensions["cx"];
-                var pointOnLastLayerY = -lastViableLayer * this.state.layerWidth * (0, helperFunctions_js_1.sin)(center[2]);
-                pointOnLastLayerY = (0, helperFunctions_js_1.round)(pointOnLastLayerY) + viewportDimensions["cy"];
-                var verticalSpace = (0, helperFunctions_js_1.lineLength)(center[0], center[1], pointOnLastLayerX, pointOnLastLayerY);
-                // Decide between radial and circumferential.
-                var lengthPerLetter = width / label["abbreviation"].length;
-                if (verticalSpace > horizontalSpace) {
-                    left = radialLeft;
-                    hoverLeft = hoverRadialLeft;
-                    angle = radialAngle;
-                    howManyLettersFit = Math.floor(verticalSpace / lengthPerLetter) - 2;
-                }
-                else {
-                    howManyLettersFit = Math.floor(horizontalSpace / lengthPerLetter) - 2 > 0 ? Math.floor(horizontalSpace / lengthPerLetter) - 2 : 0;
-                }
-                ;
-                abbreviation = label["abbreviation"].slice(0, howManyLettersFit);
-            }
-            // Calculations for root shape in the center.
-            else {
-                top_1 = viewportDimensions["cy"] + height / 2;
-                left = center[0] - width / 2;
-                hoverLeft = center[0] - hoverWidth / 2;
-                transformOrigin = "";
-                var lengthPerLetter = width / label["abbreviation"].length;
-                howManyLettersFit = Math.floor(this.state.layerWidth * 2 / lengthPerLetter) - 2 > 0 ? Math.floor(this.state.layerWidth * 2 / lengthPerLetter) - 2 : 0;
-                abbreviation = label["abbreviation"].slice(0, howManyLettersFit);
-            }
-            ;
-            // Decide if the label should be hidden due to being too short, and if a dot is needed.
-            abbreviation = abbreviation.indexOf(".") >= 0 || !(label["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
-            label["abbreviation"] = abbreviation;
-            if (label["abbreviation"].length < 4) {
-                label["abbreviation"] = "";
-                label["display"] = "none";
-            }
-            ;
-            // Check one time if, after all the calculations, the abbreviated label indeed fits its shape. If not, set its display to none.
-            var fourPoints = (0, helperFunctions_js_1.getFourCorners)((top_1 - height) - 2, top_1 + 2, left - 2, left + width + 2, newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], angle);
-            var bottomLeft = document.querySelector("svg").createSVGPoint();
-            bottomLeft.x = fourPoints["bottomLeft"][0];
-            bottomLeft.y = fourPoints["bottomLeft"][1];
-            var bottomRight = document.querySelector("svg").createSVGPoint();
-            bottomRight.x = fourPoints["bottomRight"][0];
-            bottomRight.y = fourPoints["bottomRight"][1];
-            var topLeft = document.querySelector("svg").createSVGPoint();
-            topLeft.x = fourPoints["topLeft"][0];
-            topLeft.y = fourPoints["topLeft"][1];
-            var topRight = document.querySelector("svg").createSVGPoint();
-            topRight.x = fourPoints["topRight"][0];
-            topRight.y = fourPoints["topRight"][1];
-            var shape = document.getElementById("".concat(key, "_-_").concat(this.state.taxonSpecifics[key]["firstLayerUnaligned"]));
-            if (alreadyRepeated && (label["direction"] === "verse" || label["direction"] === "horizontal")) {
-                if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight))) {
+                // Decide if the label should be hidden due to being too short, and if a dot is needed.
+                abbreviation = abbreviation.indexOf(".") >= 0 || !(label["fullLabel"].split(" ")[0][howManyLettersFit]) ? abbreviation : abbreviation + ".";
+                label["abbreviation"] = abbreviation;
+                if (label["abbreviation"].length < 4) {
+                    label["abbreviation"] = "";
                     label["display"] = "none";
                 }
                 ;
-            }
-            else if (alreadyRepeated && label["direction"] === "radial") {
-                if (!((shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) || (shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)))) {
-                    label["display"] = "none";
+                // Check one time if, after all the calculations, the abbreviated label indeed fits its shape. If not, set its display to none.
+                var fourPoints = (0, helperFunctions_js_1.getFourCorners)((top_1 - height) - 2, top_1 + 2, left - 2, left + width + 2, newTaxonSpecifics[key]["center"][0], newTaxonSpecifics[key]["center"][1], angle);
+                var bottomLeft = document.querySelector("svg").createSVGPoint();
+                bottomLeft.x = fourPoints["bottomLeft"][0];
+                bottomLeft.y = fourPoints["bottomLeft"][1];
+                var bottomRight = document.querySelector("svg").createSVGPoint();
+                bottomRight.x = fourPoints["bottomRight"][0];
+                bottomRight.y = fourPoints["bottomRight"][1];
+                var topLeft = document.querySelector("svg").createSVGPoint();
+                topLeft.x = fourPoints["topLeft"][0];
+                topLeft.y = fourPoints["topLeft"][1];
+                var topRight = document.querySelector("svg").createSVGPoint();
+                topRight.x = fourPoints["topRight"][0];
+                topRight.y = fourPoints["topRight"][1];
+                var shape = document.getElementById("".concat(key, "_-_").concat(this.state.taxonSpecifics[key]["firstLayerUnaligned"]));
+                if (alreadyRepeated && (label["direction"] === "verse" || label["direction"] === "horizontal")) {
+                    if (!(shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft) && shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight))) {
+                        label["display"] = "none";
+                    }
+                    ;
+                }
+                else if (alreadyRepeated && label["direction"] === "radial") {
+                    if (!((shape.isPointInFill(bottomLeft) && shape.isPointInFill(topLeft)) || (shape.isPointInFill(bottomRight) && shape.isPointInFill(topRight)))) {
+                        label["display"] = "none";
+                    }
+                    ;
+                }
+                ;
+                label["top"] = top_1;
+                label["transformOrigin"] = transformOrigin;
+                label["left"] = left;
+                label["transform"] = !alreadyRepeated ? "rotate(0)" : "rotate(".concat(angle, " ").concat(transformOrigin, ")");
+                if (!alreadyRepeated) {
+                    label["hoverLeft"] = hoverLeft;
+                    label["hoverDisplay"] = "none";
+                    label["hoverWidth"] = hoverWidth;
                 }
                 ;
             }
-            ;
-            label["top"] = top_1;
-            label["transformOrigin"] = transformOrigin;
-            label["left"] = left;
-            label["transform"] = !alreadyRepeated ? "rotate(0)" : "rotate(".concat(angle, " ").concat(transformOrigin, ")");
-            if (!alreadyRepeated) {
-                label["hoverLeft"] = hoverLeft;
-                label["hoverDisplay"] = "none";
-                label["hoverWidth"] = hoverWidth;
-            }
-            ;
         }
         if (!alreadyRepeated) {
             this.setState({ taxonSpecifics: newTaxonSpecifics, alreadyRepeated: true, height: height });
