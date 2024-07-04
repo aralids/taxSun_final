@@ -8,16 +8,16 @@ var IDInfo = function () {
         display: "block",
         margin: "2vh 0 2vh 0"
     };
-    if (ctx["bsc"]["name"] === "root") {
+    if (ctx["name"] === "root") {
         return React.createElement(React.Fragment, null);
     }
-    else if (!ctx["bsc"]["id"]) {
+    else if (!ctx["id"]) {
         return (React.createElement("div", { style: stl },
             React.createElement("p", { style: { display: "inline" } }, "NCBI ID: "),
-            React.createElement("button", { style: { display: "inline" }, onClick: ctx["handleIDClick"] }, "FETCH")));
+            React.createElement("button", { style: { display: "inline" }, onClick: ctx["IDInfoHandleClick"] }, "FETCH")));
     }
     return (React.createElement("div", { style: stl },
         React.createElement("p", { style: { display: "inline" } }, "NCBI ID: "),
-        React.createElement("a", { style: { display: "inline" }, target: "_blank", href: "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=".concat(ctx["bsc"]["id"], "&lvl=3&lin=f&keep=1&srchmode=1&unlock") }, ctx["bsc"]["id"])));
+        React.createElement("a", { style: { display: "inline" }, target: "_blank", href: "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=".concat(ctx["id"], "&lvl=3&lin=f&keep=1&srchmode=1&unlock") }, ctx["id"])));
 };
 exports["default"] = IDInfo;

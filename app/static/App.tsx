@@ -1,107 +1,152 @@
 import * as React from "react";
 import LeftSection from "./LeftSection.js";
 import RightSection from "./RightSection.js";
-import { lns, rks, txSet, rawTxSet } from "./predefinedObjects.js";
+import { lns, taxSet, rawTaxSet } from "./predefinedObjects.js";
 
 export const LeftSectionCtx = React.createContext({});
 export const RightSectionCtx = React.createContext({});
 
 const App = () => {
-	const [rawData, setRawData] = React.useState({
-		fileName: "homsa.tsv",
+	const [stt, setStt] = React.useState({
+		lyr: "Bacteria superkingdom",
+		relLns: lns,
+		relTaxSet: taxSet,
+		ancestors: [
+			{
+				ancName: "root",
+				ancPerc: "11.83%",
+				ancHandleClick: () => shortcutsHandleClick("root root"),
+			},
+		],
+
 		lns: lns,
-		rks: rks,
-		txSet: txSet,
-		rawTxSet: rawTxSet,
+		taxSet: taxSet,
+		rawTaxSet: rawTaxSet,
+
+		tsvLastTry: "",
+		tsvLoadStatus: "",
+		tsvName: "default",
+
+		faaLastTry: "",
+		faaLoadStatus: "",
+		faaName: "",
+		faaObj: {},
+
+		collapse: true,
+		eValue: Infinity,
+		eValueApplied: false,
+		view: "allEqual",
+
+		fetchedIDs: {},
 	});
-
-	const tempFunc1 = () => {
-		console.log("tempFunc1");
-		return "Bacteria superkingdom";
-	};
-
-	const [layer, setLayer] = React.useState(tempFunc1());
+	const [ctxMenuVis, setCtxMenuVis] = React.useState(false);
 	const [hover, setHover] = React.useState("");
+	const sttRef = React.useRef(stt);
+	sttRef.current = stt;
 
-	const handleIDClick = () => {
-		console.log("handleIDClick");
-	};
-	const handlePlotClick = (key) => {
-		setLayer(key);
-	};
-	const uplTSVHandleClick = () => {
-		console.log("uplTSVHandleClick");
+	const IDInfoHandleClick = () => {
+		console.log("IDInfoHandleClick");
 	};
 
-	const relTxSet = {
-		"root root": {
-			id: undefined,
-			ln: [],
-			name: "root",
-			rank: "root",
-			rawCount: 22561,
-			totCount: 408743,
-			unaCount: 1201,
-		},
-		"Bacteria superkingdom": {
-			id: 2,
-			ln: [["root", "root"]],
-			name: "Bacteria",
-			rank: "superkingdom",
-			rawCount: 13962,
-			totCount: 48334,
-			unaCount: 15616,
-		},
-		"Salmonella genus": {
-			id: undefined,
-			ln: [
-				["root", "root"],
-				["superkingdom", "Bacteria"],
-				["phylum", "Pseudomonadota"],
-				["class", "Gammaproteobacteria"],
-				["order", "Enterobacterales"],
-				["family", "Enterobacteriaceae"],
-				["genus", "Salmonella"],
-			],
-			name: "Salmonella",
-			rank: "genus",
-			rawCount: 0,
-			totCount: 314,
-			unaCount: 0,
-		},
+	const shortcutsHandleClick = (key) => {
+		console.log("shortcutsHandleClick");
 	};
+
+	const uplTsvHandleChange = () => {
+		console.log("uplTsvHandleChange");
+		console.log("tsvRef.current: ", tsvRef);
+	};
+
+	const uplFaaHandleChange = () => {
+		console.log("uplFaaHandleChange");
+		console.log("faaRef.current: ", faaRef);
+	};
+
+	const collHandleChange = () => {
+		setStt({ ...sttRef.current, collapse: !sttRef.current["collapse"] });
+		console.log("collHandleChange");
+	};
+
+	const eValueAppliedHandleChange = () => {
+		setStt({
+			...sttRef.current,
+			eValueApplied: !sttRef.current["eValueApplied"],
+		});
+		console.log("eValueAppliedHandleChange");
+	};
+
+	const eValueHandleKeyDown = (event) => {
+		if (event.key === "Enter") {
+			if (sttRef.current["eValueApplied"]) {
+				setStt({ ...sttRef.current, eValue: eValueRef.current.value });
+			} else {
+				setStt({ ...sttRef.current, eValue: eValueRef.current.value });
+			}
+			console.log("eValueHandleKeyDown: ", eValueRef.current.value);
+		}
+	};
+
+	const viewHandleChange = () => {
+		console.log("viewHandleChange", radioRef.current);
+	};
+
+	const dldOnClick = () => {
+		console.log("dldOnClick");
+	};
+
+	const tsvRef = React.useRef();
+	const faaRef = React.useRef();
+	const eValueRef = React.useRef({ value: 0 });
+	const radioRef = React.useRef({ value: 0 });
 
 	return (
 		<div>
 			<LeftSectionCtx.Provider
 				value={{
-					bsc: relTxSet[layer],
-					handleIDClick: handleIDClick,
-					ancestors: [
-						{
-							ancName: "root",
-							ancPerc: "11.83%",
-							ancHandleClick: () => handlePlotClick("root root"),
-						},
-						{
-							ancName: "Salmonella",
-							ancPerc: "10.13%",
-							ancHandleClick: () => handlePlotClick("Salmonella genus"),
-						},
-					],
-					hovered: relTxSet[hover],
+					...stt["relTaxSet"][stt["lyr"]],
+					rawCount: stt["rawTaxSet"][stt["lyr"]]
+						? stt["rawTaxSet"][stt["lyr"]]["unaCount"]
+						: 0,
+					id: stt["rawTaxSet"][stt["lyr"]]
+						? stt["rawTaxSet"][stt["lyr"]]["taxID"]
+						: stt["fetchedIDs"][stt["lyr"]] ?? undefined,
+					IDInfoHandleClick: IDInfoHandleClick,
+					ancestors: stt["ancestors"],
+					hovered: stt["relTaxSet"][hover],
 				}}
 			>
 				<LeftSection />
 			</LeftSectionCtx.Provider>
+
 			<RightSectionCtx.Provider
 				value={{
-					uplStatus: "",
-					uplTSVHandleClick: uplTSVHandleClick,
+					tsvLastTry: stt.tsvLastTry,
+					tsvLoadStatus: stt.tsvLoadStatus,
+					uplTsvHandleChange: uplTsvHandleChange,
+					tsvFormRef: tsvRef,
+
+					faaLastTry: stt.faaLastTry,
+					faaLoadStatus: stt.faaLoadStatus,
+					uplFaaHandleChange: uplFaaHandleChange,
+					faaFormRef: faaRef,
+
+					coll: stt["collapse"],
+					collHandleChange: collHandleChange,
+
+					eValueApplied: stt["eValueApplied"],
+					eValueAppliedHandleChange: eValueAppliedHandleChange,
+					eValueHandleKeyDown: eValueHandleKeyDown,
+					eValueRef: eValueRef,
+
+					radioRef: radioRef,
+					viewHandleChange: viewHandleChange,
+
+					dldOnClick: dldOnClick,
 				}}
 			>
 				<RightSection />
 			</RightSectionCtx.Provider>
+
 			<button
 				onMouseOver={() => setHover("Salmonella genus")}
 				onMouseOut={() => setHover("")}

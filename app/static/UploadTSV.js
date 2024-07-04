@@ -2,17 +2,17 @@
 exports.__esModule = true;
 var React = require("react");
 var App_1 = require("./App");
-var UploadTSV = function () {
+var UploadTsv = function () {
     var ctx = React.useContext(App_1.RightSectionCtx);
-    var signature = ctx["uplStatus"];
+    var signature = ctx["tsvLoadStatus"];
     return React.useMemo(function () {
         return (React.createElement("div", { style: {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between"
             } },
-            React.createElement("input", { id: "file-input", type: "file", style: { display: "none" } }),
-            React.createElement("label", { onClick: ctx["uplTSVHandleClick"], htmlFor: "file-input", style: {
+            React.createElement("input", { id: "tsv-file-input", type: "file", style: { display: "none" }, ref: ctx["tsvFormRef"], onChange: ctx["uplTsvHandleChange"] }),
+            React.createElement("label", { htmlFor: "tsv-file-input", style: {
                     border: "1px solid grey",
                     borderRadius: "3px",
                     backgroundColor: "#F0F0F0",
@@ -25,9 +25,9 @@ var UploadTSV = function () {
                     margin: "0",
                     width: "100%"
                 } },
-                React.createElement("span", { id: "status", className: "material-symbols-outlined", style: { display: "inline" } }, "upload"),
+                React.createElement("span", { className: "material-symbols-outlined", style: { display: "inline" } }, "upload"),
                 ".tsv"),
-            React.createElement("span", { id: "status", className: "material-symbols-outlined", style: { display: "inline" } }, ctx["uplStatus"])));
+            React.createElement("span", { className: "material-symbols-outlined", style: { display: "inline" } }, ctx["tsvLoadStatus"])));
     }, [signature]);
 };
-exports["default"] = UploadTSV;
+exports["default"] = UploadTsv;

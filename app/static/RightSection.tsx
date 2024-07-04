@@ -1,5 +1,7 @@
 import * as React from "react";
 import Upload from "./Upload.js";
+import ViewingModes from "./ViewingModes.js";
+import Download from "./Download.js";
 
 const RightSectionCtx = () => {
 	return React.useMemo(() => {
@@ -15,6 +17,8 @@ const RightSectionCtx = () => {
 				}}
 			>
 				<Upload />
+				<ViewingModes />
+				<Download />
 			</div>
 		);
 	}, []);

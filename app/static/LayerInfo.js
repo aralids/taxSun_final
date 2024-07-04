@@ -16,9 +16,14 @@ var LayerInfo = function () {
                 margin: "0",
                 marginTop: "2vh",
                 maxWidth: "18vw",
-                padding: "1.5vh 1.5vw 1.5vh 1.5vw"
+                padding: "1.5vh 1.5vw 1.5vh 1.5vw",
+                wordBreak: "break-all"
             } },
-            React.createElement("legend", { style: { color: "#800080", fontWeight: "bold" } }, "CURRENT LAYER"),
+            React.createElement("legend", { style: {
+                    color: "#800080",
+                    fontWeight: "bold",
+                    wordBreak: "keep-all"
+                } }, "CURRENT LAYER"),
             React.createElement(BasicLayerInfo_js_1["default"], null),
             React.createElement(IDInfo_js_1["default"], null),
             React.createElement(Shortcuts_js_1["default"], null)));

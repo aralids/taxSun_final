@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 exports.__esModule = true;
 exports.RightSectionCtx = exports.LeftSectionCtx = void 0;
 var React = require("react");
@@ -8,87 +19,106 @@ var predefinedObjects_js_1 = require("./predefinedObjects.js");
 exports.LeftSectionCtx = React.createContext({});
 exports.RightSectionCtx = React.createContext({});
 var App = function () {
-    var _a = React.useState({
-        fileName: "homsa.tsv",
+    var _a;
+    var _b = React.useState({
+        lyr: "Bacteria superkingdom",
+        relLns: predefinedObjects_js_1.lns,
+        relTaxSet: predefinedObjects_js_1.taxSet,
+        ancestors: [
+            {
+                ancName: "root",
+                ancPerc: "11.83%",
+                ancHandleClick: function () { return shortcutsHandleClick("root root"); }
+            },
+        ],
         lns: predefinedObjects_js_1.lns,
-        rks: predefinedObjects_js_1.rks,
-        txSet: predefinedObjects_js_1.txSet,
-        rawTxSet: predefinedObjects_js_1.rawTxSet
-    }), rawData = _a[0], setRawData = _a[1];
-    var tempFunc1 = function () {
-        console.log("tempFunc1");
-        return "Bacteria superkingdom";
+        taxSet: predefinedObjects_js_1.taxSet,
+        rawTaxSet: predefinedObjects_js_1.rawTaxSet,
+        tsvLastTry: "",
+        tsvLoadStatus: "",
+        tsvName: "default",
+        faaLastTry: "",
+        faaLoadStatus: "",
+        faaName: "",
+        faaObj: {},
+        collapse: true,
+        eValue: Infinity,
+        eValueApplied: false,
+        view: "allEqual",
+        fetchedIDs: {}
+    }), stt = _b[0], setStt = _b[1];
+    var _c = React.useState(false), ctxMenuVis = _c[0], setCtxMenuVis = _c[1];
+    var _d = React.useState(""), hover = _d[0], setHover = _d[1];
+    var sttRef = React.useRef(stt);
+    sttRef.current = stt;
+    var IDInfoHandleClick = function () {
+        console.log("IDInfoHandleClick");
     };
-    var _b = React.useState(tempFunc1()), layer = _b[0], setLayer = _b[1];
-    var _c = React.useState(""), hover = _c[0], setHover = _c[1];
-    var handleIDClick = function () {
-        console.log("handleIDClick");
+    var shortcutsHandleClick = function (key) {
+        console.log("shortcutsHandleClick");
     };
-    var handlePlotClick = function (key) {
-        setLayer(key);
+    var uplTsvHandleChange = function () {
+        console.log("uplTsvHandleChange");
+        console.log("tsvRef.current: ", tsvRef);
     };
-    var uplTSVHandleClick = function () {
-        console.log("uplTSVHandleClick");
+    var uplFaaHandleChange = function () {
+        console.log("uplFaaHandleChange");
+        console.log("faaRef.current: ", faaRef);
     };
-    var relTxSet = {
-        "root root": {
-            id: undefined,
-            ln: [],
-            name: "root",
-            rank: "root",
-            rawCount: 22561,
-            totCount: 408743,
-            unaCount: 1201
-        },
-        "Bacteria superkingdom": {
-            id: 2,
-            ln: [["root", "root"]],
-            name: "Bacteria",
-            rank: "superkingdom",
-            rawCount: 13962,
-            totCount: 48334,
-            unaCount: 15616
-        },
-        "Salmonella genus": {
-            id: undefined,
-            ln: [
-                ["root", "root"],
-                ["superkingdom", "Bacteria"],
-                ["phylum", "Pseudomonadota"],
-                ["class", "Gammaproteobacteria"],
-                ["order", "Enterobacterales"],
-                ["family", "Enterobacteriaceae"],
-                ["genus", "Salmonella"],
-            ],
-            name: "Salmonella",
-            rank: "genus",
-            rawCount: 0,
-            totCount: 314,
-            unaCount: 0
+    var collHandleChange = function () {
+        setStt(__assign(__assign({}, sttRef.current), { collapse: !sttRef.current["collapse"] }));
+        console.log("collHandleChange");
+    };
+    var eValueAppliedHandleChange = function () {
+        setStt(__assign(__assign({}, sttRef.current), { eValueApplied: !sttRef.current["eValueApplied"] }));
+        console.log("eValueAppliedHandleChange");
+    };
+    var eValueHandleKeyDown = function (event) {
+        if (event.key === "Enter") {
+            if (sttRef.current["eValueApplied"]) {
+                setStt(__assign(__assign({}, sttRef.current), { eValue: eValueRef.current.value }));
+            }
+            else {
+                setStt(__assign(__assign({}, sttRef.current), { eValue: eValueRef.current.value }));
+            }
+            console.log("eValueHandleKeyDown: ", eValueRef.current.value);
         }
     };
+    var viewHandleChange = function () {
+        console.log("viewHandleChange", radioRef.current);
+    };
+    var dldOnClick = function () {
+        console.log("dldOnClick");
+    };
+    var tsvRef = React.useRef();
+    var faaRef = React.useRef();
+    var eValueRef = React.useRef({ value: 0 });
+    var radioRef = React.useRef({ value: 0 });
     return (React.createElement("div", null,
-        React.createElement(exports.LeftSectionCtx.Provider, { value: {
-                bsc: relTxSet[layer],
-                handleIDClick: handleIDClick,
-                ancestors: [
-                    {
-                        ancName: "root",
-                        ancPerc: "11.83%",
-                        ancHandleClick: function () { return handlePlotClick("root root"); }
-                    },
-                    {
-                        ancName: "Salmonella",
-                        ancPerc: "10.13%",
-                        ancHandleClick: function () { return handlePlotClick("Salmonella genus"); }
-                    },
-                ],
-                hovered: relTxSet[hover]
-            } },
+        React.createElement(exports.LeftSectionCtx.Provider, { value: __assign(__assign({}, stt["relTaxSet"][stt["lyr"]]), { rawCount: stt["rawTaxSet"][stt["lyr"]]
+                    ? stt["rawTaxSet"][stt["lyr"]]["unaCount"]
+                    : 0, id: stt["rawTaxSet"][stt["lyr"]]
+                    ? stt["rawTaxSet"][stt["lyr"]]["taxID"]
+                    : (_a = stt["fetchedIDs"][stt["lyr"]]) !== null && _a !== void 0 ? _a : undefined, IDInfoHandleClick: IDInfoHandleClick, ancestors: stt["ancestors"], hovered: stt["relTaxSet"][hover] }) },
             React.createElement(LeftSection_js_1["default"], null)),
         React.createElement(exports.RightSectionCtx.Provider, { value: {
-                uplStatus: "",
-                uplTSVHandleClick: uplTSVHandleClick
+                tsvLastTry: stt.tsvLastTry,
+                tsvLoadStatus: stt.tsvLoadStatus,
+                uplTsvHandleChange: uplTsvHandleChange,
+                tsvFormRef: tsvRef,
+                faaLastTry: stt.faaLastTry,
+                faaLoadStatus: stt.faaLoadStatus,
+                uplFaaHandleChange: uplFaaHandleChange,
+                faaFormRef: faaRef,
+                coll: stt["collapse"],
+                collHandleChange: collHandleChange,
+                eValueApplied: stt["eValueApplied"],
+                eValueAppliedHandleChange: eValueAppliedHandleChange,
+                eValueHandleKeyDown: eValueHandleKeyDown,
+                eValueRef: eValueRef,
+                radioRef: radioRef,
+                viewHandleChange: viewHandleChange,
+                dldOnClick: dldOnClick
             } },
             React.createElement(RightSection_js_1["default"], null)),
         React.createElement("button", { onMouseOver: function () { return setHover("Salmonella genus"); }, onMouseOut: function () { return setHover(""); }, style: { position: "fixed", top: "50%", left: "50%" } }, "Salmonella")));

@@ -20,9 +20,14 @@ var HoverInfo = function () {
                 margin: "0",
                 marginTop: "2vh",
                 maxWidth: "18vw",
-                padding: "1.5vh 1.5vw 1.5vh 1.5vw"
+                padding: "1.5vh 1.5vw 1.5vh 1.5vw",
+                wordBreak: "break-all"
             } },
-            React.createElement("legend", { style: { color: "#800080", fontWeight: "bold" } }, "HOVERING OVER"),
+            React.createElement("legend", { style: {
+                    color: "#800080",
+                    fontWeight: "bold",
+                    wordBreak: "keep-all"
+                } }, "HOVERING OVER"),
             React.createElement("p", { style: stl },
                 "Rank: ",
                 React.createElement("b", null, ctx["hovered"]["name"])),

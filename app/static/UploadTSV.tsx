@@ -1,9 +1,9 @@
 import * as React from "react";
 import { RightSectionCtx } from "./App";
 
-const UploadTSV = () => {
+const UploadTsv = () => {
 	const ctx = React.useContext(RightSectionCtx);
-	const signature = ctx["uplStatus"];
+	const signature = ctx["tsvLoadStatus"];
 	return React.useMemo(() => {
 		return (
 			<div
@@ -13,10 +13,15 @@ const UploadTSV = () => {
 					justifyContent: "space-between",
 				}}
 			>
-				<input id="file-input" type="file" style={{ display: "none" }} />
+				<input
+					id="tsv-file-input"
+					type="file"
+					style={{ display: "none" }}
+					ref={ctx["tsvFormRef"]}
+					onChange={ctx["uplTsvHandleChange"]}
+				/>
 				<label
-					onClick={ctx["uplTSVHandleClick"]}
-					htmlFor="file-input"
+					htmlFor="tsv-file-input"
 					style={{
 						border: "1px solid grey",
 						borderRadius: "3px",
@@ -32,7 +37,6 @@ const UploadTSV = () => {
 					}}
 				>
 					<span
-						id="status"
 						className="material-symbols-outlined"
 						style={{ display: "inline" }}
 					>
@@ -41,15 +45,14 @@ const UploadTSV = () => {
 					.tsv
 				</label>
 				<span
-					id="status"
 					className="material-symbols-outlined"
 					style={{ display: "inline" }}
 				>
-					{ctx["uplStatus"]}
+					{ctx["tsvLoadStatus"]}
 				</span>
 			</div>
 		);
 	}, [signature]);
 };
 
-export default UploadTSV;
+export default UploadTsv;

@@ -8,20 +8,20 @@ const BasicLayerInfo = () => {
 	};
 
 	const ctx = React.useContext(LeftSectionCtx);
-	if (ctx["bsc"]["rawCount"] === 0) {
+	if (ctx["rawCount"] === 0) {
 		return (
 			<div>
 				<p style={stl}>
-					Taxon: <b>{ctx["bsc"]["name"]}</b>
+					Taxon: <b>{ctx["name"]}</b>
 				</p>
 				<p style={stl}>
-					Rank: <b>{ctx["bsc"]["rank"]}</b>
+					Rank: <b>{ctx["rank"]}</b>
 				</p>
 				<p style={stl}>
-					Total count: <b>{ctx["bsc"]["totCount"]}</b>
+					Total count: <b>{ctx["totCount"]}</b>
 				</p>
 				<p style={stl}>
-					Unspec. count: <b>{ctx["bsc"]["unaCount"]}</b>
+					Unspec. count: <b>{ctx["unaCount"]}</b>
 				</p>
 			</div>
 		);
@@ -30,19 +30,19 @@ const BasicLayerInfo = () => {
 	return (
 		<div>
 			<p style={stl}>
-				Taxon: <b>{ctx["bsc"]["name"]}</b>
+				Taxon: <b>{ctx["name"]}</b>
 			</p>
 			<p style={stl}>
-				Rank: <b>{ctx["bsc"]["rank"]}</b>
+				Rank: <b>{ctx["rank"]}</b>
 			</p>
 			<p style={stl}>
-				Total count: <b>{ctx["bsc"]["totCount"]}</b>
+				Total count: <b>{ctx["totCount"]}</b>
 			</p>
 			<p style={stl}>
-				Unspec. count: <b>{ctx["bsc"]["unaCount"]}</b>
+				Unspec. count: <b>{ctx["unaCount"]}</b>
 			</p>
 			<p style={stl}>
-				Raw file count: <b>{ctx["bsc"]["rawCount"]}</b>
+				Raw file count: <b>{ctx["rawCount"]}</b>
 			</p>
 		</div>
 	);
